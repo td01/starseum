@@ -5,6 +5,7 @@
 <meta name="referrer" content="no-referrer-when-downgrade">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Starseum — A Museum of Extraordinary Lives</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A0806'/><text x='50%' y='58%' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23C9A84C' font-family='serif'>S</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -20,6 +21,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 /* ═══ MOSAIC ═══════════════════════════════════ */
 #mosaicScreen{position:fixed;inset:0;overflow:hidden;z-index:1;}
 #mosaicCanvas{position:absolute;top:0;left:0;will-change:transform;user-select:none;-webkit-user-select:none;}
+#mosaicCanvas.intro-hidden .star-tile{opacity:0!important;transform:scale(0.94)!important;transition:none!important;}
 .star-tile{position:absolute;overflow:hidden;cursor:pointer;background:#0e0b08;}
 .star-tile img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(25%) brightness(0.72) contrast(1.12);transition:filter 0.8s ease,transform 0.7s cubic-bezier(.25,.46,.45,.94);display:block;pointer-events:none;will-change:filter,transform;}
 .star-tile[data-b="4"] img{filter:grayscale(0%) brightness(1.0) contrast(1.06);transform:scale(1.05);}
@@ -511,28 +513,40 @@ let thumbs={},rendered=new Set();
 let hoveredTile=null,clickedTile=null;
 
 const rowPerms={};
+function seededShuffle(arr,seed){
+  const a=[...arr];
+  let s=(seed^0x9e3779b9)>>>0;
+  const rand=()=>{s=Math.imul(s^(s>>>16),0x45d9f3b);s=Math.imul(s^(s>>>16),0x45d9f3b);s=s^(s>>>16);return(s>>>0)/4294967296;};
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
 function getRowPerm(r){
   if(rowPerms[r])return rowPerms[r];
   const n=STARS.length;
-  let seed=(Math.abs(r*2654435761+r)^0xDEADBEEF)>>>0;
-  const lcg=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-  const p=[...Array(n).keys()];
-  for(let i=n-1;i>0;i--){const j=Math.floor(lcg()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
-  // Ensure no slug repeats within 4 positions
-  for(let i=0;i<p.length;i++){
-    for(let k=1;k<=3;k++){
-      if(i+k<p.length&&STARS[p[i]].slug===STARS[p[i+k]].slug){
-        // Swap with a position further away
-        const swapIdx=Math.min(p.length-1,i+k+4);
-        [p[i+k],p[swapIdx]]=[p[swapIdx],p[i+k]];
+  // Each row gets a different prime-multiplied seed
+  const seed=Math.abs(r*2654435761+(r*r*196613)+7)>>>0;
+  let perm=seededShuffle([...Array(n).keys()],seed);
+  // Get previous row's perm to avoid vertical duplicates
+  const prevPerm=rowPerms[r-1]||rowPerms[r+1];
+  if(prevPerm){
+    // For each position, if same slug as prev row, find a swap partner
+    for(let i=0;i<Math.min(perm.length,20);i++){
+      if(STARS[perm[i]].slug===STARS[prevPerm[i]].slug){
+        // Find a position far enough away to swap with
+        for(let j=i+5;j<perm.length;j++){
+          if(STARS[perm[j]].slug!==STARS[prevPerm[j]].slug){
+            [perm[i],perm[j]]=[perm[j],perm[i]];
+            break;
+          }
+        }
       }
     }
   }
-  rowPerms[r]=p;return p;
+  rowPerms[r]=perm;
+  return perm;
 }
 function starAt(c,r){
   const n=STARS.length,p=getRowPerm(r),col=((c%n)+n)%n;
-  // Also check the row above/below for same slug
   return STARS[p[col]];
 }
 
@@ -1137,23 +1151,27 @@ window.addEventListener('resize',()=>{
   const sc=document.getElementById('tlScroll');if(sc)updateScrubber();
 });
 
-// Intro sequence then staggered tile reveal
+// Intro sequence — hide canvas first, then reveal tiles staggered
+mc.classList.add('intro-hidden'); // all tiles invisible while intro plays
 setTimeout(()=>{
   document.getElementById('intro').classList.add('done');
-  window._introsDone=false;
-  mInit();
-  setTimeout(()=>{window._introsDone=true;},3500);
-  // Stagger reveal: tiles scale in slightly off-beat for premium feel
+  mInit(); // renders tiles while hidden
+  // Short delay to ensure tiles are in DOM, then stagger them in
   setTimeout(()=>{
+    mc.classList.remove('intro-hidden');
     const tiles=Array.from(mc.querySelectorAll('.star-tile'));
-    tiles.forEach((t,i)=>{
-      t.style.opacity='0';t.style.transform='scale(0.96)';t.style.transition='none';
+    tiles.forEach(t=>{
+      t.style.opacity='0';
+      t.style.transform='scale(0.94)';
+      t.style.transition='none';
+      const delay=Math.random()*1000;
       setTimeout(()=>{
-        t.style.transition='opacity .5s ease,transform .5s cubic-bezier(.25,.46,.45,.94)';
-        t.style.opacity='1';t.style.transform='scale(1)';
-      }, Math.random()*1200);
+        t.style.transition='opacity .6s ease, transform .6s cubic-bezier(.25,.46,.45,.94)';
+        t.style.opacity='1';
+        t.style.transform='scale(1)';
+      }, delay);
     });
-  },100);
+  }, 60);
 }, 3200);
 
 // Mobile: track which tile is in centre and show its label
