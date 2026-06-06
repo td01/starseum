@@ -41,12 +41,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 /* After idle timeout: dim others when one is hovered */
 #mosaicCanvas.idle.has-hover .star-tile img{
   filter:grayscale(60%) brightness(0.28) contrast(1.1);
-  transition:filter 1.2s ease;
+  transition:filter 2.5s ease;
 }
 /* Hovered tile always lights up in idle mode */
 #mosaicCanvas.idle.has-hover .star-tile.lit img{
   filter:grayscale(0%) brightness(1.0) contrast(1.06);
   transform:scale(1.05);
+  transition:filter 0.6s ease,transform 0.6s cubic-bezier(.25,.46,.45,.94);
 }
 /* During pan: all full brightness */
 #mosaicCanvas.panning .star-tile img{
@@ -71,6 +72,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 /* No text selection while dragging */
 #mosaicCanvas{user-select:none;-webkit-user-select:none;}
+/* Mobile smaller tiles */
+@media(max-width:600px){
+  .star-tile img{filter:grayscale(20%) brightness(0.75) contrast(1.1);}
+}
 
 /* HUD */
 .m-hud{
@@ -201,7 +206,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .tl-card-year{font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:.14em;margin-bottom:.2rem;}
 .tl-card-type{font-family:var(--display);font-size:6.5px;letter-spacing:.3em;color:var(--muted);opacity:.6;margin-bottom:.22rem;}
 .tl-card-title{font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.35rem;}
-.tl-card-text{font-family:var(--serif);font-size:.82rem;line-height:1.72;color:var(--txt);}
+.tl-card-text{font-family:var(--serif);font-size:.82rem;line-height:1.72;color:var(--txt);transition:opacity .3s;}
+#tlScreen.zoom-out .tl-card-text{opacity:0;}
+#tlScreen.zoom-out .tl-card-quote{display:none;}
+#tlScreen.zoom-out .tl-card-img{height:100px !important;}
+#tlScreen.zoom-mid .tl-card-img{height:130px !important;}
 .tl-card-quote{margin-top:.55rem;padding:.45rem .65rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.04);font-family:var(--serif);font-style:italic;font-size:.78rem;color:var(--cream);line-height:1.5;}
 
 /* Video play button overlay */
@@ -433,7 +442,7 @@ const STARS=[
   {name:"Diego Maradona",slug:"Diego_Maradona",years:"1960–2020"},
   {name:"Paul Walker",slug:"Paul_Walker",years:"1973–2013"},
   {name:"Queen Elizabeth II",slug:"Elizabeth_II",years:"1926–2022"},
-  {name:"Pelé",slug:"Pel%C3%A9",years:"1940–2022"},
+  {name:"Pelé",slug:"Pelé",years:"1940–2022"},
   {name:"Anthony Bourdain",slug:"Anthony_Bourdain",years:"1956–2018"},
   {name:"Notorious B.I.G.",slug:"The_Notorious_B.I.G.",years:"1972–1997"},
   {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
@@ -460,7 +469,8 @@ const STARS=[
 // ══════════════════════════════════════════════════
 //  MOSAIC ENGINE
 // ══════════════════════════════════════════════════
-const TW=190,TH=248,TG=3,SX=TW+TG,SY=TH+TG;
+const isMobile=window.innerWidth<600;
+const TW=isMobile?114:190,TH=isMobile?149:248,TG=isMobile?2:3,SX=TW+TG,SY=TH+TG;
 const mc=document.getElementById('mosaicCanvas');
 let camX=0,camY=0,velX=0,velY=0;
 let mDrag=false,mDidDrag=false,mDX0,mDY0,mCX0,mCY0,mLX,mLY;
@@ -493,14 +503,14 @@ function resetIdle(){
   idleTimer=setTimeout(()=>{
     mc.classList.remove('panning');
     mc.classList.add('idle');
-  },2000);
+  },1000);
 }
 
 function mInit(){
   renderTiles();
   mLoop();
   // Start idle timer on page load
-  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },2000);
+  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },1000);
   const ms=document.getElementById('mosaicScreen');
 
   ms.addEventListener('mousedown',e=>{
@@ -524,10 +534,10 @@ function mInit(){
     // Edge autopan
     const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
-    // Edge zone 220px (100% bigger). Quadratic speed ramp. Max 9px/frame.
-    const z2=220,spd2=9;
-    edgePX=x<z2? spd2*Math.pow((z2-x)/z2,2):x>vw-z2?-spd2*Math.pow((x-(vw-z2))/z2,2):0;
-    edgePY=y<z2? spd2*Math.pow((z2-y)/z2,2):y>vh-z2?-spd2*Math.pow((y-(vh-z2))/z2,2):0;
+    // Edge zone 330px. Cubic ramp — very slow at boundary, fast at edge.
+    const z2=330,spd2=10;
+    edgePX=x<z2? spd2*Math.pow((z2-x)/z2,3):x>vw-z2?-spd2*Math.pow((x-(vw-z2))/z2,3):0;
+    edgePY=y<z2? spd2*Math.pow((z2-y)/z2,3):y>vh-z2?-spd2*Math.pow((y-(vh-z2))/z2,3):0;
   });
 
   window.addEventListener('mouseup',()=>{ mDrag=false; mc.style.cursor=''; /* velX/velY already set from last mousemove delta */ });
@@ -576,9 +586,10 @@ function setHover(tile){
 function mLoop(){
   if(!mActive)return;
   if(!mDrag){
-    velX*=0.96;velY*=0.96;
-    if(Math.abs(velX)>0.01||Math.abs(velY)>0.01){camX+=velX;camY+=velY;}
-    else{velX=0;velY=0;}
+    // Spring-damped momentum: friction 0.97, min threshold 0.01
+    velX*=0.97;velY*=0.97;
+    camX+=velX;camY+=velY;
+    if(Math.abs(velX)<0.01&&Math.abs(velY)<0.01){velX=0;velY=0;}
     if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;resetIdle();}
   }
   mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
@@ -899,9 +910,10 @@ function buildTimeline(star,tl,wiki,heroThumb){
   document.getElementById('scrubDeath').textContent=tl.died||diedY;
   setupScrubber();
 
-  // Init pan to birth
-  zoom=1;targetZoom=1;
-  panX=screenCentreFor(PAD);
+  // Init to FIT mode — show full life at once
+  const fitZ=Math.max(MIN_Z,Math.min(1,(window.innerWidth-120)/(totalW)));
+  zoom=fitZ;targetZoom=fitZ;
+  panX=window.innerWidth/2-totalW*fitZ/2;
   targetPanX=panX;
 
   // Start render loop
@@ -988,7 +1000,7 @@ function resizeCanvas(){
 //  MAIN RENDER LOOP
 // ──────────────────────────────────────
 function tlLoop(){
-  if(!tlRunning)return;
+  if(!tlRunning||!tlData)return;
 
   // Smooth lerp
   const lf=0.1;
@@ -1004,6 +1016,11 @@ function tlLoop(){
   drawSpine();
   positionCards();
   updateScrubber();
+  // Dynamic content density based on zoom
+  const tlScr=document.getElementById('tlScreen');
+  tlScr.classList.toggle('zoom-out',zoom<0.55);
+  tlScr.classList.toggle('zoom-mid',zoom>=0.55&&zoom<0.9);
+  tlScr.classList.toggle('zoom-in',zoom>=0.9);
 
   tlRaf=requestAnimationFrame(tlLoop);
 }
