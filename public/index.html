@@ -49,10 +49,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   transform:scale(1.05);
   transition:filter 0.6s ease,transform 0.6s cubic-bezier(.25,.46,.45,.94);
 }
-/* During pan: all full brightness */
+/* During pan: all full brightness — slow cinematic restore */
 #mosaicCanvas.panning .star-tile img{
   filter:grayscale(15%) brightness(0.85) contrast(1.08) !important;
-  transition:filter .3s ease;
+  transition:filter 1.8s ease;
 }
 .star-tile-shade{
   position:absolute;inset:0;
@@ -86,6 +86,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .m-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
 .m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:super;}
 .m-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);opacity:.7;}
+
+/* Fullscreen button */
+.fs-btn{
+  position:fixed;z-index:500;
+  bottom:1.2rem;left:1.2rem;
+  width:30px;height:30px;
+  background:rgba(12,10,7,.7);
+  border:1px solid var(--gold2);
+  border-radius:2px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s,background .2s;
+  backdrop-filter:blur(4px);
+}
+.fs-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.1);}
+.fs-btn svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:1.5;stroke-linecap:round;}
 
 /* ═══════════════════════════════════════
    TRANSITION LAYERS
@@ -168,7 +184,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlCards{
   position:absolute;inset:0;z-index:15;
   pointer-events:none;
-  overflow:hidden;
+  overflow:visible;
 }
 
 /* Individual timeline card */
@@ -186,6 +202,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   border:1px solid var(--gold2);
   border-radius:2px;
   overflow:hidden;
+  display:block;
   transform:translateZ(0);
   transition:border-color .3s,box-shadow .3s,transform .35s cubic-bezier(.25,.46,.45,.94);
   box-shadow:0 4px 24px rgba(0,0,0,.6);
@@ -409,7 +426,32 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <iframe id="videoFrame" allowfullscreen allow="autoplay; fullscreen"></iframe>
 </div>
 
+<div class="fs-btn" id="fsBtn" title="Fullscreen">
+  <svg viewBox="0 0 16 16" id="fsIcon">
+    <polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/>
+    <polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/>
+  </svg>
+</div>
+
 <script>
+// Fullscreen
+(function(){
+  const btn=document.getElementById('fsBtn');
+  const icon=document.getElementById('fsIcon');
+  const enterPoly='<polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/><polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/>';
+  const exitPoly='<polyline points="5,1 1,1 1,5"/><polyline points="15,5 15,1 11,1"/><polyline points="11,15 15,15 15,11"/><polyline points="1,11 1,15 5,15"/>';
+  btn.addEventListener('click',()=>{
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(()=>{});
+    }else{
+      document.exitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange',()=>{
+    icon.innerHTML=document.fullscreenElement?exitPoly:enterPoly;
+  });
+})();
+
 // ══════════════════════════════════════════════════
 //  STARS
 // ══════════════════════════════════════════════════
@@ -480,17 +522,25 @@ let thumbs={};
 const rendered=new Set();
 let hoveredTile=null,clickedTile=null;
 
-function starAt(c,r){
-  // Each row is a full permutation of STARS with no adjacent duplicates
-  // Use Knuth shuffle seeded by row number
+// Precomputed row permutations — guaranteed no adjacent duplicates
+const _rowPerms={};
+function getRowPerm(r){
+  if(_rowPerms[r])return _rowPerms[r];
   const n=STARS.length;
-  function seededRand(seed){
-    let s=seed^0x12345678;
-    return ()=>{s=Math.imul(s^(s>>>16),0x45d9f3b);s=Math.imul(s^(s>>>16),0x45d9f3b);s=s^(s>>>16);return(s>>>0)/4294967296;};
-  }
-  const rng=seededRand(Math.abs(r)*2654435761+7);
+  // Seeded LCG for deterministic shuffle
+  let seed=Math.abs(r*1664525+1013904223)>>>0;
+  const lcg=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const perm=[...Array(n).keys()];
-  for(let i=n-1;i>0;i--){const j=Math.floor(rng()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]];}
+  for(let i=n-1;i>0;i--){
+    const j=Math.floor(lcg()*(i+1));
+    [perm[i],perm[j]]=[perm[j],perm[i]];
+  }
+  _rowPerms[r]=perm;
+  return perm;
+}
+function starAt(c,r){
+  const n=STARS.length;
+  const perm=getRowPerm(r);
   const col=((c%n)+n)%n;
   return STARS[perm[col]];
 }
@@ -1135,9 +1185,7 @@ function positionCards(){
       cardY=spineY+GAP+connH;
     }
 
-    card.style.left=cardX+'px';
-    card.style.top=cardY+'px';
-    card.style.width=cardW+'px';
+    card.style.cssText=`position:absolute;left:${cardX}px;top:${cardY}px;width:${cardW}px;pointer-events:auto;`;
 
     // Connector sizing
     const conn=card._conn;
