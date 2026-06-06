@@ -868,11 +868,15 @@ async function fetchTimeline(name){
   const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Server error ${r.status}`);}
   const data=await r.json();
+  console.log('Claude response:',JSON.stringify(data).substring(0,300));
   if(data.error){throw new Error(data.error.message||data.error||'API error');}
   const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
   const clean=raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim();
+  console.log('Parsed JSON preview:',clean.substring(0,200));
   if(!clean||clean==='{}'){ throw new Error('No timeline data returned'); }
-  return JSON.parse(clean);
+  const parsed=JSON.parse(clean);
+  console.log('Events count:',parsed.events?.length,'events:',parsed.events?.map(e=>e.year));
+  return parsed;
 }
 
 // ══════════════════════════════════════════════════
@@ -962,6 +966,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
   // Build DOM cards for events
   const events=tl.events||[];
+  console.log('Building timeline with',events.length,'events, allImgs:',allImgs.length);
   events.forEach((ev,i)=>{
     const evY=getY(ev.year);
     const xWorld=PAD+(evY-bornY)*PX_PER_YEAR;
