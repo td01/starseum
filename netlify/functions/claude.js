@@ -1,63 +1,57 @@
-export default async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-    });
+const https = require("https");
+
+exports.handler = async function(event, context) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json"
+  };
+
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "" };
   }
 
-  if (request.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  const apiKey = Netlify.env.get("ANTHROPIC_API_KEY");
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not set" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    });
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "API key not configured" }) };
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
-  }
+  let parsed;
+  try { parsed = JSON.parse(event.body); }
+  catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad request" }) }; }
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const payload = JSON.stringify({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: parsed.max_tokens || 1400,
+    messages: parsed.messages
+  });
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: body.max_tokens || 1400,
-        messages: body.messages,
-      }),
+        "Content-Length": Buffer.byteLength(payload)
+      }
+    }, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        resolve({ statusCode: res.statusCode, headers, body: data });
+      });
     });
-
-    const data = await response.json();
-    return new Response(JSON.stringify(data), {
-      status: response.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+    req.on("error", (e) => {
+      resolve({ statusCode: 500, headers, body: JSON.stringify({ error: e.message }) });
     });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    });
-  }
+    req.write(payload);
+    req.end();
+  });
 };
-
-export const config = { path: "/api/claude" };
