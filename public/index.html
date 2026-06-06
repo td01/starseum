@@ -697,59 +697,7 @@ async function fetchTimeline(name) {
   const resp = await fetch('/.netlify/functions/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      max_tokens: 1400,
-      messages: [{
-        role: 'user',
-        content: `You are a curator at Starseum, an AI museum celebrating extraordinary lives. Create a timeline for: ${name}
-
-Return ONLY raw valid JSON — no markdown fences, no explanation:
-{
-  "fullName": "full birth name",
-  "born": "birth year",
-  "died": "death year or null",
-  "nationality": "nationality",
-  "fields": ["primary field", "secondary field if applicable"],
-  "tagline": "one poetic evocative sentence (max 15 words)",
-  "wikipediaSlug": "exact Wikipedia article slug with underscores",
-  "youtubeId": "real 11-char YouTube video ID for a documentary, interview, or tribute",
-  "chapters": [
-    {
-      "id": "origins",
-      "label": "Origins",
-      "year": "birth year",
-      "title": "evocative 4-6 word title",
-      "text": "3 sentences of museum-quality prose on early life and formative years",
-      "quote": null
-    },
-    {
-      "id": "rise",
-      "label": "Rise",
-      "year": "year of first major breakthrough",
-      "title": "evocative title",
-      "text": "3 sentences on their emergence and rise",
-      "quote": "one real verifiable famous quote by them"
-    },
-    {
-      "id": "peak",
-      "label": "Peak",
-      "year": "year of greatest achievement",
-      "title": "evocative title",
-      "text": "3 sentences on their greatest works and impact",
-      "quote": null
-    },
-    {
-      "id": "legacy",
-      "label": "Legacy",
-      "year": "year of death or most significant recent year",
-      "title": "evocative title",
-      "text": "3 sentences on their enduring legacy",
-      "quote": "one real verifiable famous quote by them"
-    }
-  ]
-}`
-      }]
-    })
+    body: JSON.stringify({ name: name })
   });
 
   if (!resp.ok) {
