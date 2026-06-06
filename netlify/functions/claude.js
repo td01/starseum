@@ -27,25 +27,25 @@ Return ONLY valid JSON, no markdown, no explanation:
   "fields": ["field1","field2"],
   "tagline": "one evocative sentence max 10 words",
   "wikipediaSlug": "Wikipedia_Article_Slug",
-  "youtubeSearchTerms": ["${name} full documentary", "${name} interview", "${name} greatest moments"],
   "events": [
     {
       "year": "YYYY",
-      "title": "Short punchy headline (5 words max)",
+      "title": "Short punchy headline 5 words max",
       "text": "Two vivid sentences about this moment.",
       "type": "birth|childhood|education|career|achievement|personal|death",
-      "quote": "verified real quote or null",
-      "videoSearch": "specific YouTube search for footage of this exact moment e.g. '${name} 1985 interview' or null"
+      "quote": "a real verified famous quote by them or null",
+      "youtubeId": "a real 11-character YouTube video ID for footage directly related to this event, or null"
     }
   ]
 }
-Include exactly 10 events from birth to death. Last event must be type death.
-For videoSearch: provide specific searches that will find real YouTube footage — concert performances, film clips, interviews, documentaries, news footage of key moments. Be specific with years and event names. At least 5 events should have a videoSearch value.
-Quotes must be real and verifiable — if uncertain, use null.`;
+Include exactly 10 events from birth to death in chronological order. Last event must be type death.
+For youtubeId: provide REAL YouTube video IDs (11 characters) for actual videos that exist on YouTube. Examples of format: dQw4w9WgXcQ, jNQXAC9IVRw. Include documentary clips, performances, interviews, speeches, film trailers, news coverage. At least 4 events should have real youtubeId values. For the death event always try to include a tribute or documentary video ID.
+Only include youtubeId values you are highly confident exist on YouTube. Use null if uncertain.
+Quotes must be real — use null if uncertain.`;
 
   const payload = JSON.stringify({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2000,
+    max_tokens: 2200,
     messages: [{ role: "user", content: prompt }]
   });
 
