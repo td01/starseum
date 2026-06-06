@@ -479,10 +479,12 @@ const rendered = new Set(); // "col,row" already created
 
 // Map (col,row) → unique star without duplication on same row
 function starAt(col, row) {
-  // shuffle cols differently per row using row as offset
-  const rowOffset = (row * 7 + row * row * 3) % STARS.length;
-  const colOffset = (col * 13) % STARS.length;
-  return STARS[(rowOffset + colOffset) % STARS.length];
+  const n = STARS.length;
+  // Use absolute values and double modulo to guarantee valid index
+  const rowOffset = Math.abs(row * 7 + Math.abs(row) * 3) % n;
+  const colOffset = Math.abs(col * 13) % n;
+  const idx = (rowOffset + colOffset) % n;
+  return STARS[Math.abs(idx) % n];
 }
 
 function mosaicInit() {
