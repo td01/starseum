@@ -25,19 +25,60 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .star-tile[data-b="3"] img{filter:grayscale(10%) brightness(0.75) contrast(1.08);}
 .star-tile[data-b="2"] img{filter:grayscale(30%) brightness(0.50) contrast(1.05);}
 .star-tile[data-b="1"] img{filter:grayscale(50%) brightness(0.35) contrast(1.02);}
-.star-tile[data-b="0"] img{filter:grayscale(60%) brightness(0.25) contrast(1.00);}
+.star-tile[data-b="0"] img{filter:grayscale(65%) brightness(0.09) contrast(1.00);}
 .star-tile-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,transparent 55%);opacity:0;transition:opacity .35s;}
 .star-tile[data-b="4"] .star-tile-shade{opacity:1;}
 .star-tile-label{position:absolute;bottom:0;left:0;right:0;padding:.5rem .65rem .6rem;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;}
 .star-tile[data-b="4"] .star-tile-label{opacity:1;transform:none;}
 .stn{font-family:var(--display);font-size:9.5px;letter-spacing:.12em;color:var(--cream);line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,1);}
 .sty{font-family:var(--mono);font-size:8px;color:var(--gold);margin-top:2px;opacity:.85;}
+@media(max-width:600px){
+  .star-tile-label{opacity:0!important;transform:none!important;}
+  .star-tile[data-b="4"] .star-tile-label{opacity:0!important;}
+  /* Centre tile label shown via JS class */
+  .star-tile.mobile-centre .star-tile-label{opacity:1!important;transform:none!important;}
+  .star-tile.mobile-centre .star-tile-shade{opacity:1!important;}
+}
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
 .m-hud{position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;padding:1.1rem 1.8rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(10,8,6,.9) 0%,transparent);}
 .m-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
 .m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:super;}
 .m-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);opacity:.7;}
+
+
+/* ═══ INTRO ════════════════════════════════ */
+#intro{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--dark);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+#intro.done{display:none;}
+.intro-logo{
+  font-family:var(--display);
+  font-size:clamp(2.5rem,8vw,5rem);
+  font-weight:600;letter-spacing:.25em;
+  color:var(--cream);
+  opacity:0;
+  transform:scale(0.88);
+  animation:introIn 1.1s cubic-bezier(.16,1,.3,1) .3s forwards;
+}
+.intro-rule{
+  width:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:.8rem auto;
+  animation:introRule 1s ease .9s forwards;
+}
+.intro-sub{
+  font-family:var(--serif);font-style:italic;
+  font-size:1rem;letter-spacing:.06em;
+  color:var(--muted);opacity:0;
+  animation:introFade .8s ease 1.4s forwards;
+}
+@keyframes introIn{to{opacity:1;transform:scale(1);}}
+@keyframes introRule{to{width:80px;}}
+@keyframes introFade{to{opacity:.7;}}
 
 /* ═══ TRANSITION ═══════════════════════════════ */
 #transLayer{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;}
@@ -133,6 +174,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </head>
 <body>
 
+<div id="intro">
+  <div class="intro-logo">STARSEUM</div>
+  <div class="intro-rule"></div>
+  <div class="intro-sub">A museum of extraordinary lives</div>
+</div>
 <div id="mosaicScreen">
   <div id="mosaicCanvas"></div>
   <div class="m-hud">
@@ -296,10 +342,11 @@ function mInit(){
       mLX=e.clientX;mLY=e.clientY;
       camX=mCX0+dx;camY=mCY0+dy;return;
     }
-    const vw=window.innerWidth,vh=window.innerHeight,z=330,spd=10;
+    const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
-    edgePX=x<z?spd*Math.pow((z-x)/z,3):x>vw-z?-spd*Math.pow((x-(vw-z))/z,3):0;
-    edgePY=y<z?spd*Math.pow((z-y)/z,3):y>vh-z?-spd*Math.pow((y-(vh-z))/z,3):0;
+    const zx=vw*0.45,zy=vh*0.45,spd=12;
+    edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
+    edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
   });
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
   ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
@@ -369,7 +416,7 @@ function renderTiles(){
 function makeTile(star,tx,ty){
   const t=document.createElement('div');
   t.className='star-tile';t._star=star;
-  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;`;
+  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;opacity:0;`;
   const ph=document.createElement('div');ph.className='star-ph';
   ph.innerHTML=`<div class="star-ph-i">${star.name[0]}</div>`;
   t.appendChild(ph);
@@ -380,6 +427,8 @@ function makeTile(star,tx,ty){
   t.addEventListener('mouseenter',()=>{if(!mDrag&&!mDidDrag)setHover(t);});
   t.addEventListener('mouseleave',()=>{if(hoveredTile===t)setHover(null);});
   t.addEventListener('click',()=>{if(!mDidDrag){setHover(null);enterStar(star,t);}});
+  // New tiles during pan appear immediately (only first batch fades in)
+  if(window._introsDone)t.style.opacity='1';
   mc.appendChild(t);
   if(thumbs[star.slug]){injectThumb(t,ph,thumbs[star.slug]);return;}
   fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`)
@@ -626,6 +675,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
   // Setup interactions
   setupScrollDrag(sc);
   setupZoom();
+  setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tlRunning=true;
 }
@@ -659,6 +709,28 @@ function setupScrollDrag(sc){
   });
 }
 
+function setupTLEdgePan(sc){
+  // Pan timeline when cursor in outer 25% of screen
+  let tlEdgeRaf,tlEdgeVel=0;
+  document.getElementById('tlScreen').addEventListener('mousemove',e=>{
+    const vw=window.innerWidth;
+    const zone=vw*0.25,spd=8;
+    const x=e.clientX;
+    tlEdgeVel=x<zone?-spd*Math.pow((zone-x)/zone,2):x>vw-zone?spd*Math.pow((x-(vw-zone))/zone,2):0;
+  });
+  document.getElementById('tlScreen').addEventListener('mouseleave',()=>{tlEdgeVel=0;});
+  function edgePanLoop(){
+    if(tlEdgeVel&&!document.getElementById('tlScroll').classList.contains('grabbing')){
+      sc.scrollLeft+=tlEdgeVel;
+      updateScrubber();
+    }
+    tlEdgeRaf=requestAnimationFrame(edgePanLoop);
+  }
+  tlEdgeRaf=requestAnimationFrame(edgePanLoop);
+  // Store ref to cancel on goHome
+  sc._edgeRaf=tlEdgeRaf;
+}
+
 function setupZoom(){
   const strip=document.getElementById('tlStrip');
   const sc=document.getElementById('tlScroll');
@@ -667,6 +739,11 @@ function setupZoom(){
     strip.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(230*tlScale)+'px';c.style.margin=`0 ${Math.round(14*tlScale)}px`;});
     strip.querySelectorAll('.ev-conn').forEach(c=>c.style.height=Math.round(48*tlScale)+'px');
     strip.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(120*tlScale)+'px');
+    // Scale text with zoom
+    const fs=Math.max(0.65,Math.min(1.2,tlScale));
+    strip.querySelectorAll('.ev-title').forEach(el=>el.style.fontSize=Math.round(fs*15.2)/16+'rem');
+    strip.querySelectorAll('.ev-text').forEach(el=>el.style.fontSize=Math.round(fs*12.5)/16+'rem');
+    strip.querySelectorAll('.ev-yr').forEach(el=>el.style.fontSize=Math.round(fs*8)+'px');
   }
   document.getElementById('zIn').onclick=()=>apply(tlScale*1.3);
   document.getElementById('zOut').onclick=()=>apply(tlScale/1.3);
@@ -684,7 +761,10 @@ function stopTL(){
 //  VIDEO
 // ═══════════════════════════════════════════
 function openVideo(query,title){
-  document.getElementById('videoFrame').src=`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(query)}&rel=0&autoplay=1&modestbranding=1`;
+  // Search YouTube for documentary — use results page embedded
+  // Try multiple approaches: first a curated search embed
+  const q=encodeURIComponent(query+' full documentary');
+  document.getElementById('videoFrame').src=`https://www.youtube.com/embed?listType=search&list=${q}&index=1&rel=0&modestbranding=1`;
   document.getElementById('videoOverlay').classList.add('on');
 }
 document.getElementById('videoClose').addEventListener('click',()=>{
@@ -705,7 +785,42 @@ window.addEventListener('resize',()=>{
   const sc=document.getElementById('tlScroll');if(sc)updateScrubber();
 });
 
-mInit();
+// Intro sequence then staggered tile reveal
+setTimeout(()=>{
+  document.getElementById('intro').classList.add('done');
+  window._introsDone=false;
+  mInit();
+  setTimeout(()=>{window._introsDone=true;},3500);
+  // Stagger brightness reveal — tiles flicker in
+  setTimeout(()=>{
+    const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+    tiles.forEach((t,i)=>{
+      setTimeout(()=>{
+        t.style.transition='opacity .4s ease';
+        t.style.opacity='1';
+      }, Math.random()*800);
+    });
+  },100);
+}, 3200);
+
+// Mobile: track which tile is in centre and show its label
+if(isMobile){
+  const ms=document.getElementById('mosaicScreen');
+  function updateMobileCentre(){
+    const cx=window.innerWidth/2-camX;
+    const cy=window.innerHeight/2-camY;
+    const col=Math.round((cx-TW/2)/SX);
+    const row=Math.round((cy-TH/2)/SY);
+    mc.querySelectorAll('.mobile-centre').forEach(t=>t.classList.remove('mobile-centre'));
+    const key=`${col},${row}`;
+    const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>{
+      const tl=parseInt(t.style.left),tt=parseInt(t.style.top);
+      return Math.abs(tl-col*SX)<SX/2&&Math.abs(tt-row*SY)<SY/2;
+    });
+    if(tile)tile.classList.add('mobile-centre');
+  }
+  setInterval(updateMobileCentre,200);
+}
 </script>
 </body>
 </html>
