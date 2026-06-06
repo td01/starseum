@@ -2,119 +2,91 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Starseum</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#C9A84C;--gold2:rgba(201,168,76,0.2);--gold3:rgba(201,168,76,0.06);
-  --cream:#F0E6CC;--dark:#0C0A07;--card:#18140F;--card2:#221C12;
+  --gold:#C9A84C;--gold2:rgba(201,168,76,0.18);--gold3:rgba(201,168,76,0.06);
+  --cream:#F0E6CC;--dark:#0C0A07;--card:#16120D;--card2:#1E1912;
   --txt:#DDD5BE;--muted:#6A6050;--muted2:#3A3428;
   --serif:'Cormorant Garamond',Georgia,serif;
   --display:'Cinzel',serif;--mono:'DM Mono',monospace;
 }
-html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:var(--txt);-webkit-font-smoothing:antialiased;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-font-smoothing:antialiased;}
 
-/* ═══════════════════════════════════
-   MOSAIC
-═══════════════════════════════════ */
-#mosaicScreen{position:fixed;inset:0;overflow:hidden;z-index:1;cursor:crosshair;}
+/* ═══════════ MOSAIC ═══════════ */
+#mosaicScreen{position:fixed;inset:0;overflow:hidden;z-index:1;}
 #mosaicCanvas{position:absolute;top:0;left:0;will-change:transform;}
 
 .star-tile{
   position:absolute;overflow:hidden;cursor:pointer;
   background:#0e0c09;
-  transition:box-shadow .4s;
 }
-.star-tile:hover{box-shadow:0 0 0 1px rgba(201,168,76,0.5),0 0 30px rgba(201,168,76,0.08);}
 .star-tile img{
   width:100%;height:100%;object-fit:cover;object-position:center top;
-  filter:grayscale(30%) brightness(0.75) contrast(1.1);
-  transition:filter .6s,transform .6s cubic-bezier(.25,.46,.45,.94);
+  filter:grayscale(25%) brightness(0.72) contrast(1.12);
+  transition:filter .7s ease,transform .7s cubic-bezier(.25,.46,.45,.94);
   display:block;pointer-events:none;
-  transform-origin:center center;
 }
-.star-tile:hover img{filter:grayscale(0%) brightness(.92) contrast(1.05);transform:scale(1.06);}
-.star-tile-vig{
+.star-tile:hover img{filter:grayscale(0%) brightness(.92);transform:scale(1.05);}
+.star-tile-shade{
   position:absolute;inset:0;
-  background:linear-gradient(160deg,transparent 40%,rgba(0,0,0,.7) 100%);
+  background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.0) 55%);
   opacity:0;transition:opacity .4s;
 }
-.star-tile:hover .star-tile-vig{opacity:1;}
-.star-tile-info{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:.6rem .75rem .7rem;
-  opacity:0;transform:translateY(6px);
-  transition:opacity .35s,transform .35s;
+.star-tile:hover .star-tile-shade{opacity:1;}
+.star-tile-label{
+  position:absolute;bottom:0;left:0;right:0;padding:.55rem .7rem .65rem;
+  opacity:0;transform:translateY(5px);transition:opacity .35s,transform .35s;
 }
-.star-tile:hover .star-tile-info{opacity:1;transform:none;}
-.star-tile-name{font-family:var(--display);font-size:10px;letter-spacing:.12em;color:var(--cream);line-height:1.3;text-shadow:0 1px 4px rgba(0,0,0,.8);}
-.star-tile-years{font-family:var(--mono);font-size:8px;color:var(--gold);margin-top:2px;opacity:.9;}
+.star-tile:hover .star-tile-label{opacity:1;transform:none;}
+.stn{font-family:var(--display);font-size:9.5px;letter-spacing:.12em;color:var(--cream);line-height:1.25;text-shadow:0 1px 6px rgba(0,0,0,.9);}
+.sty{font-family:var(--mono);font-size:8px;color:var(--gold);margin-top:2px;opacity:.85;}
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
-.star-ph-init{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,0.15);}
+.star-ph-i{font-family:var(--display);font-size:2.6rem;color:rgba(201,168,76,0.12);}
 
+/* HUD */
 .mosaic-hud{
   position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;
-  padding:1.2rem 1.8rem;display:flex;align-items:center;justify-content:space-between;
-  background:linear-gradient(to bottom,rgba(12,10,7,.85) 0%,transparent 100%);
+  padding:1.2rem 2rem;display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(12,10,7,.88) 0%,transparent);
 }
-.mosaic-logo{font-family:var(--display);font-size:1rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
-.mosaic-logo em{color:var(--gold);font-style:normal;font-size:.55em;vertical-align:super;letter-spacing:.2em;}
-.mosaic-hint{font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--muted);}
+.mosaic-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
+.mosaic-logo em{color:var(--gold);font-style:normal;font-size:.55em;vertical-align:super;}
+.mosaic-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);opacity:.8;}
 
-/* ═══════════════════════════════════
-   ZOOM CINEMATIC TRANSITION
-═══════════════════════════════════ */
-#zoomCanvas{
-  position:fixed;inset:0;z-index:50;
-  pointer-events:none;display:none;
-  overflow:hidden;
-}
-#zoomImg{
-  position:absolute;
-  object-fit:cover;
-  transform-origin:center center;
-  filter:brightness(.75) contrast(1.1);
-  transition:none;
-}
-#zoomVignette{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at center,transparent 0%,rgba(12,10,7,0.0) 30%,rgba(12,10,7,1) 100%);
-  opacity:0;
+/* ═══════════ ZOOM TRANSITION ═══════════ */
+/* The hole that opens in the grid */
+#zoomHole{
+  position:fixed;inset:0;z-index:40;pointer-events:none;display:none;
+  /* dark overlay with transparent circle cutout */
+  background:radial-gradient(circle var(--hole-r,1px) at var(--hole-x,50%) var(--hole-y,50%),transparent 100%,rgba(12,10,7,.0) 100%);
 }
 #zoomDark{
-  position:fixed;inset:0;z-index:60;
+  position:fixed;inset:0;z-index:50;
   background:var(--dark);opacity:0;pointer-events:none;
-  transition:opacity .4s ease;
+  transition:opacity .45s ease;
 }
 
-/* ═══════════════════════════════════
-   LOAD SCREEN
-═══════════════════════════════════ */
+/* ═══════════ LOAD SCREEN ═══════════ */
 #loadScreen{
   position:fixed;inset:0;z-index:200;display:none;
   flex-direction:column;align-items:center;justify-content:center;
   background:var(--dark);
 }
 #loadScreen.on{display:flex;}
-.lp-img{
-  width:100px;height:130px;object-fit:cover;object-position:center top;
-  border:1px solid var(--gold2);margin-bottom:1.8rem;
-  filter:grayscale(20%) sepia(.1);
-  animation:fadeScaleIn .5s ease both;
-}
-@keyframes fadeScaleIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:none}}
-.lp-name{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.4rem);color:var(--cream);letter-spacing:.15em;margin-bottom:.25rem;animation:fadeScaleIn .5s .1s ease both;}
-.lp-dates{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.18em;margin-bottom:2rem;animation:fadeScaleIn .5s .2s ease both;}
-.lp-track{width:200px;height:1px;background:rgba(201,168,76,.1);margin-bottom:1rem;overflow:hidden;animation:fadeScaleIn .4s .3s ease both;}
-.lp-fill{height:100%;background:var(--gold);width:0%;transition:width .5s ease;}
-.lp-step{font-family:var(--mono);font-size:8px;letter-spacing:.22em;color:var(--muted);animation:fadeScaleIn .4s .35s ease both;}
-.lp-err{color:#b06040;font-size:13px;margin-top:1.5rem;font-family:var(--serif);font-style:italic;text-align:center;max-width:340px;line-height:1.6;}
+.lp-img{width:90px;height:118px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);margin-bottom:1.6rem;filter:grayscale(15%) sepia(.1);opacity:0;animation:lpin .5s .05s ease both;}
+@keyframes lpin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.lp-name{font-family:var(--display);font-size:clamp(1.5rem,4vw,2.4rem);color:var(--cream);letter-spacing:.15em;margin-bottom:.2rem;opacity:0;animation:lpin .5s .15s ease both;}
+.lp-dates{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.18em;margin-bottom:2rem;opacity:0;animation:lpin .5s .22s ease both;}
+.lp-bar{width:180px;height:1px;background:rgba(201,168,76,.1);overflow:hidden;opacity:0;animation:lpin .4s .3s ease both;}
+.lp-fill{height:100%;background:var(--gold);width:0%;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.lp-step{font-family:var(--mono);font-size:8px;letter-spacing:.22em;color:var(--muted);margin-top:.8rem;opacity:0;animation:lpin .4s .35s ease both;}
+.lp-err{color:#a05030;font-size:13px;margin-top:1.5rem;font-family:var(--serif);font-style:italic;text-align:center;max-width:320px;line-height:1.6;}
 
-/* ═══════════════════════════════════
-   TIMELINE — IMMERSIVE 3D SCROLL
-═══════════════════════════════════ */
+/* ═══════════ TIMELINE SCREEN ═══════════ */
 #tlScreen{
   position:fixed;inset:0;z-index:200;display:none;
   background:var(--dark);overflow:hidden;
@@ -125,229 +97,183 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
 .tl-bar{
   position:absolute;top:0;left:0;right:0;z-index:30;
   display:flex;align-items:center;gap:1rem;
-  padding:.75rem 1.5rem;
-  background:linear-gradient(to bottom,rgba(12,10,7,.97) 60%,transparent 100%);
-  backdrop-filter:blur(8px);
+  padding:.7rem 1.5rem;
+  background:linear-gradient(to bottom,rgba(12,10,7,.98) 70%,transparent);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
-.tl-back{background:none;border:none;cursor:pointer;font-family:var(--display);font-size:8px;letter-spacing:2.5px;color:var(--muted);padding:0;transition:color .2s;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.tl-back{background:none;border:none;cursor:pointer;font-family:var(--display);font-size:8px;letter-spacing:2.5px;color:var(--muted);padding:0;transition:color .2s;flex-shrink:0;}
 .tl-back:hover{color:var(--gold);}
 .tl-info{flex:1;min-width:0;}
-.tl-name{font-family:var(--display);font-size:clamp(.9rem,2.5vw,1.25rem);font-weight:600;color:var(--cream);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tl-meta{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;letter-spacing:.08em;}
-.tl-tagline{font-family:var(--serif);font-style:italic;font-size:.82rem;color:var(--muted);max-width:280px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.tl-sname{font-family:var(--display);font-size:clamp(.85rem,2vw,1.2rem);font-weight:600;color:var(--cream);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-smeta{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;letter-spacing:.07em;}
+.tl-tagline{font-family:var(--serif);font-style:italic;font-size:.8rem;color:var(--muted);max-width:260px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
 
-/* The scroll container — vertical now for immersion */
-#tlScroll{
+/* 3D scene container */
+#tlScene{
   position:absolute;inset:0;
-  overflow-y:auto;overflow-x:hidden;
-  scroll-behavior:smooth;
-  scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;
+  perspective:1200px;
+  perspective-origin:50% 50%;
+  overflow:hidden;
+  cursor:grab;
 }
-#tlScroll::-webkit-scrollbar{width:3px;}
-#tlScroll::-webkit-scrollbar-thumb{background:var(--gold2);border-radius:2px;}
+#tlScene.grabbing{cursor:grabbing;}
 
-/* Hero section */
-.tl-hero{
-  position:relative;height:100vh;
-  display:flex;align-items:flex-end;
-  overflow:hidden;flex-shrink:0;
-}
-.tl-hero-bg{
-  position:absolute;inset:0;
-  background-size:cover;background-position:center top;
+/* The track that holds all cards — positioned in 3D */
+#tlTrack{
+  position:absolute;
+  top:50%;left:0;
+  height:0;
+  transform-style:preserve-3d;
+  will-change:transform;
+  transform:translateX(0px) translateZ(0px) scale(1);
   transform-origin:center center;
-  transition:transform .1s linear;
-  filter:brightness(.45) contrast(1.1) sepia(.15);
-}
-.tl-hero-grad{
-  position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(12,10,7,1) 0%,rgba(12,10,7,.3) 50%,rgba(12,10,7,.05) 100%);
-}
-.tl-hero-content{
-  position:relative;z-index:2;
-  padding:3rem 4rem 4rem;
-  width:100%;
-}
-.tl-hero-name{
-  font-family:var(--display);
-  font-size:clamp(3rem,8vw,6rem);
-  font-weight:600;color:var(--cream);
-  letter-spacing:.1em;line-height:.95;
-  margin-bottom:.6rem;
-  text-shadow:0 2px 40px rgba(0,0,0,.5);
-}
-.tl-hero-dates{
-  font-family:var(--mono);font-size:clamp(.8rem,1.5vw,1rem);
-  color:var(--gold);letter-spacing:.2em;margin-bottom:.6rem;
-}
-.tl-hero-tagline{
-  font-family:var(--serif);font-style:italic;
-  font-size:clamp(1rem,2vw,1.35rem);
-  color:rgba(240,230,204,.65);max-width:560px;line-height:1.55;
-}
-.tl-hero-scroll{
-  position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--muted);
-  display:flex;flex-direction:column;align-items:center;gap:.4rem;
-  animation:pulse 2s infinite;pointer-events:none;
-}
-@keyframes pulse{0%,100%{opacity:.4;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(4px)}}
-.tl-hero-scroll::after{content:'↓';font-size:14px;color:var(--gold);}
-
-/* Timeline spine + events */
-.tl-events-wrap{
-  position:relative;
-  padding:0 0 6rem;
 }
 
-/* Central spine */
-.tl-spine{
-  position:absolute;left:50%;top:0;bottom:0;
-  width:1px;
-  background:linear-gradient(to bottom,transparent,var(--gold2) 5%,var(--gold2) 95%,transparent);
-  transform:translateX(-50%);
+/* Timeline spine line (flat in 3D space) */
+.tl-spine-3d{
+  position:absolute;
+  top:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold2) 5%,var(--gold2) 95%,transparent);
+  transform:translateZ(0) translateY(-0.5px);
   pointer-events:none;
 }
 
-/* Individual event */
-.tl-event{
-  display:flex;align-items:flex-start;
-  padding:4rem 0;
-  position:relative;
-  opacity:0;transform:translateY(40px);
-  transition:opacity .8s ease,transform .8s ease;
+/* Year marker */
+.tl-year-mark{
+  position:absolute;
+  transform-style:preserve-3d;
+  top:0;
 }
-.tl-event.visible{opacity:1;transform:none;}
-
-/* Alternating left/right */
-.tl-event.left{flex-direction:row-reverse;}
-.tl-event.right{flex-direction:row;}
-
-/* The content side */
-.tl-ev-content{
-  width:calc(50% - 50px);
-  padding:0 2.5rem;
+.tl-year-tick{
+  position:absolute;
+  width:1px;background:var(--gold2);opacity:.4;
+  transform:translateX(-0.5px);
 }
-.tl-event.left .tl-ev-content{text-align:right;}
-
-/* The spine connector */
-.tl-ev-spine{
-  width:100px;flex-shrink:0;
-  display:flex;flex-direction:column;align-items:center;
-  padding-top:.5rem;position:relative;
-}
-.tl-ev-dot{
-  width:10px;height:10px;border-radius:50%;
-  border:1.5px solid var(--gold);
-  background:var(--dark);
-  box-shadow:0 0 0 3px rgba(201,168,76,.1);
-  z-index:2;flex-shrink:0;
-}
-.tl-ev-dot.death{
-  background:var(--gold);
-  box-shadow:0 0 0 4px rgba(201,168,76,.15),0 0 20px rgba(201,168,76,.3);
-  width:14px;height:14px;
-}
-.tl-ev-year-badge{
-  position:absolute;top:-1.2rem;
+.tl-year-label{
+  position:absolute;
   font-family:var(--mono);font-size:9px;
-  color:var(--gold);letter-spacing:.1em;
-  white-space:nowrap;
+  color:var(--muted2);letter-spacing:.06em;
+  white-space:nowrap;transform:translateX(-50%);
 }
 
-/* The empty side */
-.tl-ev-empty{width:calc(50% - 50px);}
+/* Event card in 3D */
+.tl-card-3d{
+  position:absolute;
+  top:0;
+  transform-style:preserve-3d;
+  cursor:pointer;
+}
+/* cards alternate above/below spine */
+.tl-card-inner{
+  position:absolute;
+  width:260px;
+  transform-origin:bottom center;
+  transition:transform .35s cubic-bezier(.25,.46,.45,.94);
+}
+.tl-card-3d.above .tl-card-inner{
+  bottom:20px;
+  transform-origin:bottom center;
+}
+.tl-card-3d.below .tl-card-inner{
+  top:20px;
+  transform-origin:top center;
+}
+.tl-card-3d:hover .tl-card-inner{
+  transform:scale(1.04) translateY(-4px);
+}
+.tl-card-3d.below:hover .tl-card-inner{
+  transform:scale(1.04) translateY(4px);
+}
 
-/* Card */
+/* Connector dot */
+.tl-ev-dot{
+  position:absolute;left:50%;
+  width:8px;height:8px;border-radius:50%;
+  border:1.5px solid var(--gold);background:var(--dark);
+  transform:translateX(-50%);
+  box-shadow:0 0 0 3px rgba(201,168,76,.08);
+  z-index:2;
+}
+.tl-card-3d.above .tl-ev-dot{bottom:-4px;}
+.tl-card-3d.below .tl-ev-dot{top:-4px;}
+.tl-ev-dot.death{background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.12),0 0 18px rgba(201,168,76,.25);width:12px;height:12px;}
+.tl-card-3d.above .tl-ev-dot.death{bottom:-6px;}
+.tl-card-3d.below .tl-ev-dot.death{top:-6px;}
+
+/* Card visual */
 .tl-ev-card{
   background:var(--card);
   border:1px solid var(--gold2);
-  border-radius:2px;
-  overflow:hidden;
-  transform:perspective(800px) rotateY(0deg);
-  transition:transform .4s ease,border-color .3s,box-shadow .3s;
+  border-radius:2px;overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.5);
+  transition:border-color .3s,box-shadow .3s;
 }
-.tl-event.left .tl-ev-card{transform-origin:right center;}
-.tl-event.right .tl-ev-card{transform-origin:left center;}
-.tl-ev-card:hover{
-  border-color:rgba(201,168,76,.45);
-  box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,76,.1);
+.tl-card-3d:hover .tl-ev-card{
+  border-color:rgba(201,168,76,.4);
+  box-shadow:0 20px 70px rgba(0,0,0,.7),0 0 0 1px rgba(201,168,76,.08);
 }
-.tl-event.left .tl-ev-card:hover{transform:perspective(800px) rotateY(-2deg) translateX(-4px);}
-.tl-event.right .tl-ev-card:hover{transform:perspective(800px) rotateY(2deg) translateX(4px);}
+.tl-ev-img{width:100%;height:150px;object-fit:cover;object-position:center top;display:block;filter:sepia(.05) contrast(1.06) brightness(.88);transition:filter .4s;}
+.tl-card-3d:hover .tl-ev-img{filter:sepia(0) contrast(1.08) brightness(.95);}
+.tl-ev-body{padding:.8rem .95rem .9rem;}
+.tl-ev-year{font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:.14em;margin-bottom:.25rem;}
+.tl-ev-type{font-family:var(--display);font-size:7px;letter-spacing:.28em;color:var(--muted);opacity:.65;margin-bottom:.28rem;}
+.tl-ev-title{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;}
+.tl-ev-text{font-family:var(--serif);font-size:.85rem;line-height:1.75;color:var(--txt);}
+.tl-ev-quote{margin-top:.6rem;padding:.5rem .7rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.04);font-family:var(--serif);font-style:italic;font-size:.82rem;color:var(--cream);line-height:1.5;}
 
-.tl-ev-img{
-  width:100%;height:200px;
-  object-fit:cover;object-position:center top;
-  display:block;
-  filter:sepia(.06) contrast(1.06) brightness(.9);
-  transition:filter .4s,transform .4s;
+/* Birth / Death caps */
+.tl-cap{
+  position:absolute;top:0;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
 }
-.tl-ev-card:hover .tl-ev-img{filter:sepia(0) contrast(1.08) brightness(.95);transform:scale(1.02);}
+.tl-cap-dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.1),0 0 24px rgba(201,168,76,.3);}
+.tl-cap-year{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.1em;white-space:nowrap;}
+.tl-cap-label{font-family:var(--display);font-size:7px;letter-spacing:.25em;color:var(--muted);white-space:nowrap;}
+.tl-cap.birth .tl-cap-year,.tl-cap.birth .tl-cap-label{order:-1;}
 
-.tl-ev-body{padding:.9rem 1.1rem 1rem;}
-.tl-ev-type{font-family:var(--display);font-size:7px;letter-spacing:.3em;color:var(--gold);opacity:.6;margin-bottom:.3rem;}
-.tl-ev-title{font-family:var(--serif);font-size:1.15rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.45rem;}
-.tl-ev-text{font-family:var(--serif);font-size:.9rem;line-height:1.75;color:var(--txt);}
-.tl-ev-quote{
-  margin-top:.7rem;padding:.6rem .8rem;
-  border-left:2px solid var(--gold);
-  background:rgba(201,168,76,.04);
-  font-family:var(--serif);font-style:italic;
-  font-size:.85rem;color:var(--cream);line-height:1.55;
-}
-.tl-event.left .tl-ev-quote{border-left:none;border-right:2px solid var(--gold);}
+/* YouTube card */
+.tl-ev-yt{width:100%;aspect-ratio:16/9;border:none;display:block;background:#000;}
 
-/* YouTube */
-.tl-ev-yt{width:100%;aspect-ratio:16/9;border:none;display:block;}
-.tl-ev-yt-label{
-  padding:.4rem .8rem;
-  font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--muted);
-  border-top:1px solid var(--gold2);
+/* Controls HUD */
+.tl-controls{
+  position:absolute;bottom:2.5rem;right:1.5rem;z-index:25;
+  display:flex;flex-direction:column;gap:6px;
 }
+.tl-ctrl-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(12,10,7,.85);border:1px solid var(--gold2);
+  color:var(--gold);font-family:var(--mono);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;backdrop-filter:blur(4px);
+}
+.tl-ctrl-btn:hover{background:rgba(201,168,76,.12);border-color:var(--gold);}
 
-/* Full-width atmospheric image dividers */
-.tl-divider{
-  width:100%;height:40vh;min-height:200px;
-  position:relative;overflow:hidden;
-  margin:0;
-}
-.tl-divider img{
-  width:100%;height:100%;object-fit:cover;object-position:center;
-  filter:brightness(.35) contrast(1.1) sepia(.2);
-}
-.tl-divider-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(to right,rgba(12,10,7,.7) 0%,transparent 30%,transparent 70%,rgba(12,10,7,.7) 100%);
-}
-.tl-divider-year{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-family:var(--display);font-size:clamp(3rem,8vw,6rem);
-  color:rgba(201,168,76,0.15);letter-spacing:.3em;
-  font-weight:600;white-space:nowrap;pointer-events:none;
-}
-
-/* Bottom scrubber */
+/* Scrubber */
 .tl-scrub{
-  position:fixed;bottom:0;left:0;right:0;z-index:25;
-  display:flex;align-items:center;
-  padding:0 1.5rem;height:36px;
-  background:rgba(12,10,7,.93);
-  border-top:1px solid var(--gold2);
-  backdrop-filter:blur(8px);
-  overflow-x:auto;scrollbar-width:none;
+  position:absolute;bottom:0;left:0;right:0;z-index:25;
+  height:32px;display:flex;align-items:center;
+  padding:0 1.5rem;gap:2px;
+  background:rgba(12,10,7,.92);border-top:1px solid var(--gold2);
+  backdrop-filter:blur(8px);overflow-x:auto;scrollbar-width:none;
 }
 .tl-scrub::-webkit-scrollbar{display:none;}
 .tl-scrub-dot{
   width:5px;height:5px;border-radius:50%;
-  background:var(--muted2);flex-shrink:0;cursor:pointer;
-  transition:background .2s,transform .2s;margin:0 3px;
+  background:var(--muted2);cursor:pointer;flex-shrink:0;
+  transition:background .2s,transform .25s;margin:0 4px;
 }
-.tl-scrub-dot:hover,.tl-scrub-dot.active{background:var(--gold);transform:scale(1.4);}
-.tl-scrub-label{
-  font-family:var(--mono);font-size:7px;letter-spacing:.1em;
-  color:var(--muted);margin:0 .8rem;white-space:nowrap;flex-shrink:0;
+.tl-scrub-dot:hover,.tl-scrub-dot.act{background:var(--gold);transform:scale(1.5);}
+.tl-scrub-cap{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--muted);margin:0 .6rem;white-space:nowrap;flex-shrink:0;}
+
+/* Zoom hint */
+.tl-zoom-hint{
+  position:absolute;bottom:3rem;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.18em;color:var(--muted);
+  z-index:25;pointer-events:none;white-space:nowrap;
+  opacity:0;animation:hintIn 1s 1.5s ease both, hintOut 1s 5s ease both;
 }
+@keyframes hintIn{from{opacity:0}to{opacity:.7}}
+@keyframes hintOut{from{opacity:.7}to{opacity:0;pointer-events:none}}
 </style>
 </head>
 <body>
@@ -361,11 +287,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
   </div>
 </div>
 
-<!-- CINEMATIC ZOOM -->
-<div id="zoomCanvas">
-  <img id="zoomImg" src="" alt="">
-  <div id="zoomVignette"></div>
-</div>
+<!-- TRANSITION -->
+<div id="zoomHole"></div>
 <div id="zoomDark"></div>
 
 <!-- LOAD -->
@@ -373,7 +296,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
   <img class="lp-img" id="lpImg" src="" alt="">
   <div class="lp-name" id="lpName"></div>
   <div class="lp-dates" id="lpDates"></div>
-  <div class="lp-track"><div class="lp-fill" id="lpFill"></div></div>
+  <div class="lp-bar"><div class="lp-fill" id="lpFill"></div></div>
   <div class="lp-step" id="lpStep">GATHERING RECORDS</div>
   <div class="lp-err" id="lpErr"></div>
 </div>
@@ -383,21 +306,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:va
   <div class="tl-bar">
     <button class="tl-back" id="tlBack">← MUSEUM</button>
     <div class="tl-info">
-      <div class="tl-name" id="tlName"></div>
-      <div class="tl-meta" id="tlMeta"></div>
+      <div class="tl-sname" id="tlName"></div>
+      <div class="tl-smeta" id="tlMeta"></div>
     </div>
     <div class="tl-tagline" id="tlTagline"></div>
   </div>
-  <div id="tlScroll">
-    <!-- filled by JS -->
+  <div id="tlScene">
+    <div id="tlTrack"></div>
   </div>
+  <div class="tl-controls">
+    <div class="tl-ctrl-btn" id="zIn" title="Zoom in">+</div>
+    <div class="tl-ctrl-btn" id="zOut" title="Zoom out">−</div>
+    <div class="tl-ctrl-btn" id="zFit" title="Fit" style="font-size:9px;letter-spacing:.05em">FIT</div>
+  </div>
+  <div class="tl-zoom-hint">SCROLL TO ZOOM · DRAG TO PAN</div>
   <div class="tl-scrub" id="tlScrub"></div>
 </div>
 
 <script>
-// ══════════════════════════════════════
+// ══════════════════════════════════════════
 //  STAR DATA
-// ══════════════════════════════════════
+// ══════════════════════════════════════════
 const STARS = [
   {name:"James Dean",slug:"James_Dean",years:"1931–1955"},
   {name:"Marilyn Monroe",slug:"Marilyn_Monroe",years:"1926–1962"},
@@ -418,22 +347,19 @@ const STARS = [
   {name:"Amy Winehouse",slug:"Amy_Winehouse",years:"1983–2011"},
   {name:"Whitney Houston",slug:"Whitney_Houston",years:"1963–2012"},
   {name:"Robin Williams",slug:"Robin_Williams",years:"1951–2014"},
-  {name:"Philip S. Hoffman",slug:"Philip_Seymour_Hoffman",years:"1967–2014"},
   {name:"David Bowie",slug:"David_Bowie",years:"1947–2016"},
   {name:"Prince",slug:"Prince_(musician)",years:"1958–2016"},
   {name:"Muhammad Ali",slug:"Muhammad_Ali",years:"1942–2016"},
+  {name:"Michael Jackson",slug:"Michael_Jackson",years:"1958–2009"},
   {name:"Kobe Bryant",slug:"Kobe_Bryant",years:"1978–2020"},
   {name:"Chadwick Boseman",slug:"Chadwick_Boseman",years:"1976–2020"},
   {name:"Diego Maradona",slug:"Diego_Maradona",years:"1960–2020"},
   {name:"Paul Walker",slug:"Paul_Walker",years:"1973–2013"},
-  {name:"Sinéad O'Connor",slug:"Sin%C3%A9ad_O%27Connor",years:"1966–2023"},
   {name:"Queen Elizabeth II",slug:"Elizabeth_II",years:"1926–2022"},
   {name:"Pelé",slug:"Pel%C3%A9",years:"1940–2022"},
   {name:"Anthony Bourdain",slug:"Anthony_Bourdain",years:"1956–2018"},
   {name:"Notorious B.I.G.",slug:"The_Notorious_B.I.G.",years:"1972–1997"},
-  {name:"Bill Withers",slug:"Bill_Withers",years:"1938–2020"},
   {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
-  {name:"Michael Jackson",slug:"Michael_Jackson",years:"1958–2009"},
   {name:"Frank Sinatra",slug:"Frank_Sinatra",years:"1915–1998"},
   {name:"Billie Holiday",slug:"Billie_Holiday",years:"1915–1959"},
   {name:"Miles Davis",slug:"Miles_Davis",years:"1926–1991"},
@@ -441,8 +367,6 @@ const STARS = [
   {name:"Johnny Cash",slug:"Johnny_Cash",years:"1932–2003"},
   {name:"Maya Angelou",slug:"Maya_Angelou",years:"1928–2014"},
   {name:"Martin Luther King Jr.",slug:"Martin_Luther_King_Jr.",years:"1929–1968"},
-  {name:"Malcolm X",slug:"Malcolm_X",years:"1925–1965"},
-  {name:"Che Guevara",slug:"Che_Guevara",years:"1928–1967"},
   {name:"John F. Kennedy",slug:"John_F._Kennedy",years:"1917–1963"},
   {name:"Albert Einstein",slug:"Albert_Einstein",years:"1879–1955"},
   {name:"Marie Curie",slug:"Marie_Curie",years:"1867–1934"},
@@ -450,520 +374,600 @@ const STARS = [
   {name:"Steve Jobs",slug:"Steve_Jobs",years:"1955–2011"},
   {name:"Pablo Picasso",slug:"Pablo_Picasso",years:"1881–1973"},
   {name:"Frida Kahlo",slug:"Frida_Kahlo",years:"1907–1954"},
-  {name:"Salvador Dali",slug:"Salvador_Dalí",years:"1904–1989"},
   {name:"Coco Chanel",slug:"Coco_Chanel",years:"1883–1971"},
   {name:"Charlie Chaplin",slug:"Charlie_Chaplin",years:"1889–1977"},
-  {name:"Humphrey Bogart",slug:"Humphrey_Bogart",years:"1899–1957"},
   {name:"Ernest Hemingway",slug:"Ernest_Hemingway",years:"1899–1961"},
   {name:"Winston Churchill",slug:"Winston_Churchill",years:"1874–1965"},
-  {name:"Napoleon Bonaparte",slug:"Napoleon",years:"1769–1821"},
-  {name:"Leonardo da Vinci",slug:"Leonardo_da_Vinci",years:"1452–1519"},
-  {name:"Janis Joplin",slug:"Janis_Joplin",years:"1943–1970"}, // intentional dup for grid variety
 ];
 
-// ══════════════════════════════════════
-//  MOSAIC — infinite, edge-autopan
-// ══════════════════════════════════════
-const TW = 195, TH = 255, TGAP = 3;
-const STEP_X = TW + TGAP, STEP_Y = TH + TGAP;
-const GRID_COLS = 9; // virtual columns before repeating pattern
-
+// ══════════════════════════════════════════
+//  INFINITE MOSAIC
+// ══════════════════════════════════════════
+const TW=192, TH=252, TG=3, SX=TW+TG, SY=TH+TG;
 const mCanvas = document.getElementById('mosaicCanvas');
-let camX = 0, camY = 0, velX = 0, velY = 0;
-let isDrag = false, didDrag = false;
-let dX0, dY0, cX0, cY0, lastDX, lastDY;
-let autoPX = 0, autoPY = 0;
-let mActive = true, rafId;
-let thumbs = {}; // slug → url
-const rendered = new Set(); // "col,row" already created
+let camX=0,camY=0,velX=0,velY=0;
+let isDrag=false,didDrag=false;
+let dX0,dY0,cX0,cY0,lvX,lvY;
+let edgePX=0,edgePY=0;
+let mActive=true,mRaf;
+let thumbs={};
+const rendered=new Set();
+let clickedTile=null;
 
-// Map (col,row) → unique star without duplication on same row
-function starAt(col, row) {
-  const n = STARS.length;
-  // Use absolute values and double modulo to guarantee valid index
-  const rowOffset = Math.abs(row * 7 + Math.abs(row) * 3) % n;
-  const colOffset = Math.abs(col * 13) % n;
-  const idx = (rowOffset + colOffset) % n;
-  return STARS[Math.abs(idx) % n];
+// Hash (col,row) → star index with good distribution, no negative issues
+function starIdx(col,row){
+  const c=((col%50)+50)%50, r=((row%50)+50)%50;
+  return (c*17+r*31+c*r*7)%STARS.length;
 }
 
-function mosaicInit() {
+function mInit(){
   renderTiles();
-  startMosaicLoop();
+  mLoop();
+  const ms=document.getElementById('mosaicScreen');
 
-  const ms = document.getElementById('mosaicScreen');
-
-  // Desktop mouse drag
-  ms.addEventListener('mousedown', e => {
-    isDrag = true; didDrag = false;
-    dX0 = e.clientX; dY0 = e.clientY;
-    cX0 = camX; cY0 = camY;
-    lastDX = e.clientX; lastDY = e.clientY;
-    velX = 0; velY = 0;
-    mCanvas.style.cursor = 'grabbing';
+  // Mouse drag
+  ms.addEventListener('mousedown',e=>{
+    isDrag=true;didDrag=false;
+    dX0=e.clientX;dY0=e.clientY;cX0=camX;cY0=camY;
+    lvX=e.clientX;lvY=e.clientY;velX=0;velY=0;
+    mCanvas.style.cursor='grabbing';
   });
-  window.addEventListener('mousemove', e => {
-    if (!isDrag) {
-      // edge auto-pan — move camera when mouse near edge
-      // INVERTED: mouse near right → camera moves right (content moves left, as expected)
-      const vw = window.innerWidth, vh = window.innerHeight;
-      const zone = 120, spd = 6;
-      const x = e.clientX, y = e.clientY;
-      autoPX = x < zone ? -spd * Math.pow((zone-x)/zone, 1.4)
-             : x > vw-zone ? spd * Math.pow((x-(vw-zone))/zone, 1.4) : 0;
-      autoPY = y < zone ? -spd * Math.pow((zone-y)/zone, 1.4)
-             : y > vh-zone ? spd * Math.pow((y-(vh-zone))/zone, 1.4) : 0;
+  window.addEventListener('mousemove',e=>{
+    if(isDrag){
+      const dx=e.clientX-dX0,dy=e.clientY-dY0;
+      if(Math.abs(dx)>4||Math.abs(dy)>4)didDrag=true;
+      // Natural drag: mouse right = content moves right (camera moves right)
+      velX=e.clientX-lvX; velY=e.clientY-lvY;
+      lvX=e.clientX; lvY=e.clientY;
+      camX=cX0+dx; camY=cY0+dy;
       return;
     }
-    const dx = e.clientX - dX0, dy = e.clientY - dY0;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) didDrag = true;
-    velX = e.clientX - lastDX; velY = e.clientY - lastDY;
-    lastDX = e.clientX; lastDY = e.clientY;
-    camX = cX0 + dx; camY = cY0 + dy;
+    // Edge autopan — INVERTED so content moves in natural direction
+    // Mouse at right edge → content scrolls left (camera moves left → content appears to move right revealing more)
+    // Actually: camera moving RIGHT means canvas moves RIGHT = you see content to the LEFT
+    // User expectation: near right edge = see more to the right = camera must move LEFT
+    const vw=window.innerWidth,vh=window.innerHeight;
+    const zone=110,spd=5.5;
+    const x=e.clientX,y=e.clientY;
+    // Near left edge → pan left (reveal more left) → camX decreases
+    // Near right edge → pan right (reveal more right) → camX increases... 
+    // Wait: cam moving right = canvas moves right = we see things on the LEFT.
+    // To reveal things on RIGHT: canvas must move LEFT = camX decreases.
+    edgePX = x<zone ? spd*Math.pow((zone-x)/zone,1.5)   // near left: camX+ = move canvas right = see left… wrong
+            : x>vw-zone ? -spd*Math.pow((x-(vw-zone))/zone,1.5) : 0; // near right: camX- = canvas left = see right ✓
+    edgePY = y<zone ? spd*Math.pow((zone-y)/zone,1.5)
+            : y>vh-zone ? -spd*Math.pow((y-(vh-zone))/zone,1.5) : 0;
   });
-  window.addEventListener('mouseup', () => { isDrag = false; mCanvas.style.cursor = ''; });
-  ms.addEventListener('mouseleave', () => { autoPX = 0; autoPY = 0; });
+  window.addEventListener('mouseup',()=>{ isDrag=false; mCanvas.style.cursor=''; });
+  ms.addEventListener('mouseleave',()=>{ edgePX=0; edgePY=0; });
 
-  // Mobile touch
-  let tX0, tY0, tCX0, tCY0, tLX, tLY, tMoved = false;
-  ms.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    isDrag = true; didDrag = false; tMoved = false;
-    tX0 = t.clientX; tY0 = t.clientY;
-    tCX0 = camX; tCY0 = camY;
-    tLX = t.clientX; tLY = t.clientY;
-    velX = 0; velY = 0;
-  }, {passive:true});
-  ms.addEventListener('touchmove', e => {
-    if (!isDrag) return;
-    const t = e.touches[0];
-    const dx = t.clientX - tX0, dy = t.clientY - tY0;
-    if (Math.abs(dx)>8||Math.abs(dy)>8){didDrag=true;tMoved=true;}
-    velX = t.clientX - tLX; velY = t.clientY - tLY;
-    tLX = t.clientX; tLY = t.clientY;
-    camX = tCX0 + dx; camY = tCY0 + dy;
-  }, {passive:true});
-  ms.addEventListener('touchend', e => {
-    isDrag = false;
-    if (!tMoved && e.changedTouches[0]) {
-      const t = e.changedTouches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const tile = el?.closest?.('.star-tile');
-      if (tile?._star) enterStar(tile._star, tile);
+  // Touch
+  let tX0,tY0,tCX0,tCY0,tLX,tLY,tMoved=false;
+  ms.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    isDrag=true;didDrag=false;tMoved=false;
+    tX0=t.clientX;tY0=t.clientY;tCX0=camX;tCY0=camY;
+    tLX=t.clientX;tLY=t.clientY;velX=0;velY=0;
+  },{passive:true});
+  ms.addEventListener('touchmove',e=>{
+    if(!isDrag)return;
+    const t=e.touches[0];
+    const dx=t.clientX-tX0,dy=t.clientY-tY0;
+    if(Math.abs(dx)>7||Math.abs(dy)>7){didDrag=true;tMoved=true;}
+    velX=t.clientX-tLX; velY=t.clientY-tLY;
+    tLX=t.clientX; tLY=t.clientY;
+    camX=tCX0+dx; camY=tCY0+dy;
+  },{passive:true});
+  ms.addEventListener('touchend',e=>{
+    isDrag=false;
+    if(!tMoved&&e.changedTouches[0]){
+      const t=e.changedTouches[0];
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const tile=el?.closest?.('.star-tile');
+      if(tile?._star)enterStar(tile._star,tile);
     }
   });
 }
 
-function startMosaicLoop() {
-  function loop() {
-    if (!mActive) return;
-    if (!isDrag) {
-      // momentum
-      velX *= 0.9; velY *= 0.9;
-      if (Math.abs(velX) > 0.05 || Math.abs(velY) > 0.05) { camX += velX; camY += velY; }
-      // autopan (additive on top of momentum)
-      if (autoPX || autoPY) { camX += autoPX; camY += autoPY; velX=0; velY=0; }
-    }
-    mCanvas.style.transform = `translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
-    renderTiles();
-    rafId = requestAnimationFrame(loop);
+function mLoop(){
+  if(!mActive)return;
+  if(!isDrag){
+    // Elastic momentum with easing
+    velX*=0.88; velY*=0.88;
+    if(Math.abs(velX)>0.08||Math.abs(velY)>0.08){ camX+=velX; camY+=velY; }
+    else{ velX=0; velY=0; }
+    if(edgePX||edgePY){ camX+=edgePX; camY+=edgePY; }
   }
-  rafId = requestAnimationFrame(loop);
+  mCanvas.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
+  renderTiles();
+  mRaf=requestAnimationFrame(mLoop);
 }
 
-function renderTiles() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const buf = 2;
-  const c0 = Math.floor((-camX - buf*STEP_X) / STEP_X);
-  const c1 = Math.ceil((-camX + vw + buf*STEP_X) / STEP_X);
-  const r0 = Math.floor((-camY - buf*STEP_Y) / STEP_Y);
-  const r1 = Math.ceil((-camY + vh + buf*STEP_Y) / STEP_Y);
-  for (let r = r0; r <= r1; r++) {
-    for (let c = c0; c <= c1; c++) {
-      const key = `${c},${r}`;
-      if (rendered.has(key)) continue;
-      rendered.add(key);
-      makeTile(starAt(c, r), c * STEP_X, r * STEP_Y);
-    }
+function renderTiles(){
+  const vw=window.innerWidth,vh=window.innerHeight,buf=2;
+  const c0=Math.floor((-camX-buf*SX)/SX), c1=Math.ceil((-camX+vw+buf*SX)/SX);
+  const r0=Math.floor((-camY-buf*SY)/SY), r1=Math.ceil((-camY+vh+buf*SY)/SY);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+    const key=`${c},${r}`;
+    if(rendered.has(key))continue;
+    rendered.add(key);
+    makeTile(STARS[starIdx(c,r)], c*SX, r*SY);
   }
 }
 
-function makeTile(star, tx, ty) {
-  const tile = document.createElement('div');
-  tile.className = 'star-tile';
-  tile.style.cssText = `left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;`;
-  tile._star = star;
-
-  const ph = document.createElement('div'); ph.className = 'star-ph';
-  ph.innerHTML = `<div class="star-ph-init">${star.name[0]}</div>`;
-  tile.appendChild(ph);
-  tile.appendChild(Object.assign(document.createElement('div'), {className:'star-tile-vig'}));
-  const info = document.createElement('div'); info.className = 'star-tile-info';
-  info.innerHTML = `<div class="star-tile-name">${star.name}</div><div class="star-tile-years">${star.years}</div>`;
-  tile.appendChild(info);
-
-  tile.addEventListener('click', () => { if (!didDrag) enterStar(star, tile); });
-  mCanvas.appendChild(tile);
-
-  const src = thumbs[star.slug];
-  if (src) { injectThumb(tile, ph, src); return; }
+function makeTile(star,tx,ty){
+  const t=document.createElement('div');
+  t.className='star-tile';
+  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;`;
+  t._star=star;
+  const ph=document.createElement('div'); ph.className='star-ph';
+  ph.innerHTML=`<div class="star-ph-i">${star.name[0]}</div>`;
+  t.appendChild(ph);
+  t.appendChild(Object.assign(document.createElement('div'),{className:'star-tile-shade'}));
+  const lb=document.createElement('div'); lb.className='star-tile-label';
+  lb.innerHTML=`<div class="stn">${star.name}</div><div class="sty">${star.years}</div>`;
+  t.appendChild(lb);
+  t.addEventListener('click',()=>{ if(!didDrag) enterStar(star,t); });
+  mCanvas.appendChild(t);
+  // load thumb
+  if(thumbs[star.slug]){ setThumb(t,ph,thumbs[star.slug]); return; }
   fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`)
-    .then(r => r.ok ? r.json() : null)
-    .then(d => {
-      if (!d?.thumbnail?.source) return;
-      thumbs[star.slug] = d.thumbnail.source;
-      // update all tiles for this star
-      mCanvas.querySelectorAll('.star-tile').forEach(t => {
-        if (t._star?.slug === star.slug) {
-          const p = t.querySelector('.star-ph');
-          if (p) injectThumb(t, p, d.thumbnail.source);
+    .then(r=>r.ok?r.json():null).then(d=>{
+      if(!d?.thumbnail?.source)return;
+      thumbs[star.slug]=d.thumbnail.source;
+      mCanvas.querySelectorAll('.star-tile').forEach(tile=>{
+        if(tile._star?.slug===star.slug){
+          const p=tile.querySelector('.star-ph');
+          if(p) setThumb(tile,p,d.thumbnail.source);
         }
       });
-    }).catch(() => {});
+    }).catch(()=>{});
 }
 
-function injectThumb(tile, ph, src) {
-  if (!ph?.parentNode) return;
-  const img = document.createElement('img');
-  img.src = src;
-  img.onload = () => { if (ph.parentNode) ph.replaceWith(img); };
+function setThumb(tile,ph,src){
+  if(!ph?.parentNode)return;
+  const img=document.createElement('img');
+  img.src=src;
+  img.onload=()=>{ if(ph?.parentNode) ph.replaceWith(img); };
 }
 
-// ══════════════════════════════════════
-//  CINEMATIC ZOOM TRANSITION
-// ══════════════════════════════════════
-function enterStar(star, tile) {
-  mActive = false; cancelAnimationFrame(rafId);
-  autoPX = 0; autoPY = 0;
+// ══════════════════════════════════════════
+//  CINEMATIC TRANSITION — hole + zoom through
+// ══════════════════════════════════════════
+function enterStar(star,tile){
+  mActive=false; cancelAnimationFrame(mRaf);
+  edgePX=0; edgePY=0;
+  clickedTile=tile;
 
-  const thumb = thumbs[star.slug] || null;
-  const rect = tile.getBoundingClientRect();
+  const rect=tile.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const maxR=Math.sqrt(vw*vw+vh*vh);
 
-  if (thumb) {
-    // Set up zoom image at tile position/size
-    const zc = document.getElementById('zoomCanvas');
-    const zi = document.getElementById('zoomImg');
-    const zv = document.getElementById('zoomVignette');
-    zc.style.display = 'block';
-    zi.src = thumb;
-    zi.style.cssText = `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;transition:none;`;
+  // 1. Fade out just the clicked tile's image
+  const img=tile.querySelector('img');
+  if(img){ img.style.transition='filter 0.4s ease, opacity 0.4s ease'; img.style.filter='brightness(0)'; img.style.opacity='0'; }
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        // Animate: expand image to fill screen + zoom in
-        const scaleX = window.innerWidth / rect.width;
-        const scaleY = window.innerHeight / rect.height;
-        const scale = Math.max(scaleX, scaleY) * 2.5;
-        const tx = window.innerWidth/2 - (rect.left + rect.width/2);
-        const ty = window.innerHeight/2 - (rect.top + rect.height/2);
+  // 2. Expand a dark radial hole from that tile outward
+  const hole=document.getElementById('zoomHole');
+  hole.style.display='block';
+  hole.style.setProperty('--hole-x', cx+'px');
+  hole.style.setProperty('--hole-y', cy+'px');
+  hole.style.setProperty('--hole-r', '0px');
+  hole.style.background=`radial-gradient(circle 0px at ${cx}px ${cy}px, rgba(12,10,7,0) 99%, rgba(12,10,7,0.0) 100%)`;
 
-        zi.style.transition = 'transform 1s cubic-bezier(.4,0,.2,1), filter 1s ease';
-        zi.style.transformOrigin = 'center center';
-        zi.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-        zi.style.filter = 'brightness(.2) contrast(1.1) sepia(.2)';
-        zv.style.transition = 'opacity .8s .1s ease';
-        zv.style.opacity = '1';
-
-        // Fade to dark
-        setTimeout(() => {
-          const zd = document.getElementById('zoomDark');
-          zd.style.pointerEvents = 'all';
-          zd.style.opacity = '1';
-        }, 600);
-
-        setTimeout(() => {
-          zc.style.display = 'none';
-          zi.style.transform = '';
-          zv.style.opacity = '0';
-          document.getElementById('mosaicScreen').style.display = 'none';
-          startJourney(star, thumb);
-        }, 1000);
-      });
-    });
-  } else {
-    const zd = document.getElementById('zoomDark');
-    zd.style.pointerEvents = 'all';
-    zd.style.opacity = '1';
-    setTimeout(() => {
-      document.getElementById('mosaicScreen').style.display = 'none';
-      startJourney(star, null);
-    }, 500);
+  // Animate hole expanding — done with JS since CSS custom props don't transition
+  let r=0, startT=null;
+  const dur=700;
+  function animHole(ts){
+    if(!startT)startT=ts;
+    const p=Math.min((ts-startT)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    r=ease*maxR*1.1;
+    // The hole is transparent, surrounded by dark
+    hole.style.background=`radial-gradient(circle ${r}px at ${cx}px ${cy}px, transparent 98%, rgba(12,10,7,1) 100%)`;
+    if(p<1){ requestAnimationFrame(animHole); }
+    else{
+      // 3. Final dark fade
+      const zd=document.getElementById('zoomDark');
+      zd.style.pointerEvents='all'; zd.style.opacity='1';
+      setTimeout(()=>{
+        hole.style.display='none';
+        document.getElementById('mosaicScreen').style.display='none';
+        startJourney(star, thumbs[star.slug]||null);
+      },450);
+    }
   }
+  requestAnimationFrame(animHole);
 }
 
-// ══════════════════════════════════════
+// ══════════════════════════════════════════
 //  LOADING
-// ══════════════════════════════════════
-function showLoad(star, thumb) {
+// ══════════════════════════════════════════
+function showLoad(star,thumb){
   document.getElementById('loadScreen').classList.add('on');
-  const img = document.getElementById('lpImg');
-  if (thumb) { img.src = thumb; img.style.display = 'block'; } else img.style.display = 'none';
-  document.getElementById('lpName').textContent = star.name.toUpperCase();
-  document.getElementById('lpDates').textContent = star.years || '';
-  document.getElementById('lpErr').textContent = '';
-  setLoad(5, 'GATHERING RECORDS');
+  const img=document.getElementById('lpImg');
+  if(thumb){img.src=thumb;img.style.display='block';}else img.style.display='none';
+  document.getElementById('lpName').textContent=star.name.toUpperCase();
+  document.getElementById('lpDates').textContent=star.years||'';
+  document.getElementById('lpErr').textContent='';
+  setLoad(5,'GATHERING RECORDS');
 }
-function setLoad(p, s) {
-  document.getElementById('lpFill').style.width = p + '%';
-  if (s) document.getElementById('lpStep').textContent = s;
+function setLoad(p,s){
+  document.getElementById('lpFill').style.width=p+'%';
+  if(s)document.getElementById('lpStep').textContent=s;
 }
-function hideLoad() { document.getElementById('loadScreen').classList.remove('on'); }
+function hideLoad(){ document.getElementById('loadScreen').classList.remove('on'); }
 
-// ══════════════════════════════════════
+// ══════════════════════════════════════════
 //  JOURNEY
-// ══════════════════════════════════════
-async function startJourney(star, thumb) {
-  showLoad(star, thumb);
-  try {
-    setLoad(20, 'CURATING TIMELINE');
-    const tl = await fetchTimeline(star.name);
-    setLoad(55, 'SOURCING PHOTOGRAPHS');
-    const wiki = await fetchWikiImages(tl.wikipediaSlug || star.slug);
-    setLoad(85, 'BUILDING EXHIBITION');
-    await sleep(250);
-    setLoad(100, '');
+// ══════════════════════════════════════════
+async function startJourney(star,thumb){
+  showLoad(star,thumb);
+  try{
+    setLoad(20,'CURATING TIMELINE');
+    const tl=await fetchTimeline(star.name);
+    setLoad(55,'SOURCING PHOTOGRAPHS');
+    const wiki=await fetchWikiImages(tl.wikipediaSlug||star.slug);
+    setLoad(88,'BUILDING EXHIBITION');
+    await sleep(200);
+    setLoad(100,'');
     await sleep(150);
     hideLoad();
-    buildTimeline(star, tl, wiki, thumb);
+    build3DTimeline(star,tl,wiki,thumb);
     document.getElementById('tlScreen').classList.add('on');
-    const zd = document.getElementById('zoomDark');
-    zd.style.opacity = '0';
-    setTimeout(() => { zd.style.pointerEvents = 'none'; }, 600);
-    initScrollReveal();
-    initParallax();
-  } catch(err) {
+    const zd=document.getElementById('zoomDark');
+    zd.style.opacity='0';
+    setTimeout(()=>{ zd.style.pointerEvents='none'; },600);
+  }catch(err){
     console.error(err);
-    document.getElementById('lpErr').textContent = err.message || 'Could not load. Please try again.';
-    setLoad(0, 'ERROR');
-    setTimeout(goHome, 3500);
+    document.getElementById('lpErr').textContent=err.message||'Could not load. Please try again.';
+    setLoad(0,'ERROR');
+    setTimeout(goHome,3500);
   }
 }
 
-function goHome() {
+function goHome(){
   document.getElementById('tlScreen').classList.remove('on');
   document.getElementById('loadScreen').classList.remove('on');
-  document.getElementById('mosaicScreen').style.display = 'block';
-  document.getElementById('zoomDark').style.opacity = '0';
-  setTimeout(() => { document.getElementById('zoomDark').style.pointerEvents = 'none'; }, 500);
-  mActive = true; velX = 0; velY = 0;
-  startMosaicLoop();
+  const ms=document.getElementById('mosaicScreen');
+  ms.style.display='block';
+  // restore clicked tile
+  if(clickedTile){
+    const img=clickedTile.querySelector('img');
+    if(img){ img.style.filter=''; img.style.opacity=''; img.style.transition=''; }
+    clickedTile=null;
+  }
+  const zd=document.getElementById('zoomDark');
+  zd.style.opacity='0';
+  setTimeout(()=>{ zd.style.pointerEvents='none'; },500);
+  mActive=true; velX=0; velY=0;
+  mLoop();
 }
-document.getElementById('tlBack').addEventListener('click', goHome);
+document.getElementById('tlBack').addEventListener('click',goHome);
 
-// ══════════════════════════════════════
-//  API: CLAUDE
-// ══════════════════════════════════════
-async function fetchTimeline(name) {
-  const r = await fetch('/.netlify/functions/claude', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({name})
-  });
-  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error||`Error ${r.status}`); }
-  const data = await r.json();
-  const raw = data.content?.find(b=>b.type==='text')?.text||'{}';
+// ══════════════════════════════════════════
+//  API
+// ══════════════════════════════════════════
+async function fetchTimeline(name){
+  const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Error ${r.status}`);}
+  const data=await r.json();
+  const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
   return JSON.parse(raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim());
 }
 
-// ══════════════════════════════════════
-//  API: WIKIPEDIA
-// ══════════════════════════════════════
-async function fetchWikiImages(slug) {
-  const s = slug.replace(/ /g,'_');
-  const out = {thumb:null, images:[]};
-  try {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
-    if (r.ok) { const d = await r.json(); out.thumb = d.thumbnail?.source||null; }
-  } catch(e){}
-  try {
-    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=24&format=json&origin=*`);
-    if (r.ok) {
-      const d = await r.json();
-      const pg = Object.values(d.query?.pages||{})[0];
-      const files = (pg?.images||[])
+async function fetchWikiImages(slug){
+  const s=slug.replace(/ /g,'_');
+  const out={thumb:null,images:[]};
+  try{
+    const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
+    if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}
+  }catch(e){}
+  try{
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=24&format=json&origin=*`);
+    if(r.ok){
+      const d=await r.json();
+      const pg=Object.values(d.query?.pages||{})[0];
+      const files=(pg?.images||[])
         .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
         .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|wikimedia/i.test(i.title))
         .slice(0,16).map(i=>i.title.replace('File:',''));
-      const urls = await Promise.all(files.map(resolveImg));
-      out.images = urls.filter(Boolean);
+      const urls=await Promise.all(files.map(resolveImg));
+      out.images=urls.filter(Boolean);
     }
-  } catch(e){}
+  }catch(e){}
   return out;
 }
 
-async function resolveImg(f) {
-  try {
-    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
-    const d = await r.json();
-    const url = Object.values(d.query?.pages||{})[0]?.imageinfo?.[0]?.url||null;
-    return (url&&/\.(jpg|jpeg|png)$/i.test(url))?url:null;
-  } catch(e){return null;}
+async function resolveImg(f){
+  try{
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
+    const d=await r.json();
+    const url=Object.values(d.query?.pages||{})[0]?.imageinfo?.[0]?.url||null;
+    return(url&&/\.(jpg|jpeg|png)$/i.test(url))?url:null;
+  }catch(e){return null;}
 }
 
-// ══════════════════════════════════════
-//  BUILD TIMELINE
-// ══════════════════════════════════════
-function buildTimeline(star, tl, wiki, heroThumb) {
-  const fullName = tl.fullName || star.name;
-  const diedPart = tl.died ? ` – ${tl.died}` : '';
-  document.getElementById('tlName').textContent = fullName;
-  document.getElementById('tlMeta').textContent = [tl.born?`${tl.born}${diedPart}`:'', (tl.fields||[]).join(' & '), tl.nationality].filter(Boolean).join(' · ');
-  document.getElementById('tlTagline').textContent = tl.tagline || '';
+// ══════════════════════════════════════════
+//  3D TIMELINE
+// ══════════════════════════════════════════
+let tlPanX=0, tlScale=1, tlTargetPanX=0, tlTargetScale=1;
+let tlDrag=false, tlDX0, tlPX0, tlVelX=0;
+let tlRaf, tlRunning=false;
+const PX_PER_YEAR=200;
+const MIN_SCALE=0.3, MAX_SCALE=2.2;
 
-  const allImgs = [heroThumb, wiki.thumb, ...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i);
-  const events = tl.events || [];
+function build3DTimeline(star,tl,wiki,heroThumb){
+  const fullName=tl.fullName||star.name;
+  const diedPart=tl.died?` – ${tl.died}`:'';
+  document.getElementById('tlName').textContent=fullName;
+  document.getElementById('tlMeta').textContent=[tl.born?`${tl.born}${diedPart}`:'', (tl.fields||[]).join(' & '),tl.nationality].filter(Boolean).join(' · ');
+  document.getElementById('tlTagline').textContent=tl.tagline||'';
 
-  const scroll = document.getElementById('tlScroll');
-  scroll.innerHTML = '';
+  const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const events=tl.events||[];
+  if(!events.length)return;
 
-  // ── HERO ──
-  const hero = document.createElement('div');
-  hero.className = 'tl-hero';
-  const heroBg = document.createElement('div');
-  heroBg.className = 'tl-hero-bg';
-  heroBg.style.backgroundImage = `url('${allImgs[0]||''}')`;
-  heroBg.dataset.parallax = '0.4';
-  hero.appendChild(heroBg);
-  hero.innerHTML += `<div class="tl-hero-grad"></div>`;
-  const hc = document.createElement('div'); hc.className = 'tl-hero-content';
-  hc.innerHTML = `
-    <div class="tl-hero-name">${fullName}</div>
-    <div class="tl-hero-dates">${tl.born||''}${diedPart}</div>
-    <div class="tl-hero-tagline">${tl.tagline||''}</div>
-  `;
-  hero.appendChild(hc);
-  hero.innerHTML += `<div class="tl-hero-scroll">SCROLL TO EXPLORE</div>`;
-  scroll.appendChild(hero);
+  const getY=str=>parseInt((str||'').toString().substring(0,4))||0;
+  const bornY=getY(tl.born), diedY=tl.died?getY(tl.died):bornY+70;
+  const span=Math.max(diedY-bornY,5);
+  const totalW=(span+4)*PX_PER_YEAR;
+  const PAD=PX_PER_YEAR*2;
 
-  // ── EVENTS ──
-  const evWrap = document.createElement('div');
-  evWrap.className = 'tl-events-wrap';
-  evWrap.innerHTML = '<div class="tl-spine"></div>';
+  const track=document.getElementById('tlTrack');
+  track.innerHTML='';
+  track.style.width=totalW+'px';
 
-  const scrub = document.getElementById('tlScrub');
-  scrub.innerHTML = '';
+  // Spine
+  const spine=document.createElement('div');
+  spine.className='tl-spine-3d';
+  spine.style.cssText=`left:0;width:${totalW}px;`;
+  track.appendChild(spine);
 
-  events.forEach((ev, i) => {
-    // Full-width atmospheric divider every 3 events
-    if (i > 0 && i % 3 === 0 && allImgs[i]) {
-      const div = document.createElement('div');
-      div.className = 'tl-divider';
-      div.innerHTML = `<img src="${allImgs[i]}" alt="" loading="lazy" onerror="this.closest('.tl-divider').remove()">
-        <div class="tl-divider-overlay"></div>
-        <div class="tl-divider-year">${ev.year||''}</div>`;
-      evWrap.appendChild(div);
-    }
+  // Year ticks
+  const tickStep=span>60?10:span>30?5:2;
+  const y0=bornY-bornY%tickStep, y1=diedY+tickStep;
+  for(let y=y0;y<=y1;y+=tickStep){
+    const x=PAD+(y-bornY)*PX_PER_YEAR;
+    const mk=document.createElement('div');
+    mk.className='tl-year-mark';
+    mk.style.left=x+'px';
+    const isMajor=y%10===0;
+    mk.innerHTML=`
+      <div class="tl-year-tick" style="top:${isMajor?-18:-10}px;height:${isMajor?36:20}px;"></div>
+      ${isMajor?`<div class="tl-year-label" style="top:${22}px;">${y}</div>`:''}
+    `;
+    track.appendChild(mk);
+  }
 
-    const side = i % 2 === 0 ? 'right' : 'left';
-    const evDiv = document.createElement('div');
-    evDiv.className = `tl-event ${side}`;
-    evDiv.dataset.evIdx = i;
+  // Birth cap
+  addCap3D(track,PAD,'birth',tl.born||bornY);
+  if(tl.died) addCap3D(track,PAD+(diedY-bornY)*PX_PER_YEAR,'death',tl.died);
 
-    // content
-    const content = document.createElement('div');
-    content.className = 'tl-ev-content';
+  // Event cards
+  const scrub=document.getElementById('tlScrub');
+  scrub.innerHTML=`<div class="tl-scrub-cap">${tl.born||bornY}</div>`;
 
-    const card = document.createElement('div');
-    card.className = 'tl-ev-card';
+  events.forEach((ev,i)=>{
+    const evY=getY(ev.year);
+    const x=PAD+(evY-bornY)*PX_PER_YEAR;
+    const isAbove=i%2===0;
 
-    const imgSrc = allImgs[(i + 1) % allImgs.length];
-    if (imgSrc && ev.type !== 'death') {
-      const ci = document.createElement('img');
-      ci.className = 'tl-ev-img';
-      ci.src = imgSrc; ci.alt = ev.title; ci.loading = 'lazy';
-      ci.onerror = () => ci.remove();
+    const wrap=document.createElement('div');
+    wrap.className=`tl-card-3d ${isAbove?'above':'below'}`;
+    wrap.style.left=(x-130)+'px'; // centre card
+    wrap.style.top='0';
+
+    // dot
+    const dot=document.createElement('div');
+    dot.className=`tl-ev-dot${ev.type==='death'?' death':''}`;
+    wrap.appendChild(dot);
+
+    // inner
+    const inner=document.createElement('div');
+    inner.className='tl-card-inner';
+    if(isAbove) inner.style.bottom='20px';
+    else inner.style.top='20px';
+
+    const card=document.createElement('div');
+    card.className='tl-ev-card';
+
+    // Image
+    const imgSrc=allImgs[i%Math.max(allImgs.length,1)];
+    if(imgSrc&&ev.type!=='death'){
+      const ci=document.createElement('img');
+      ci.className='tl-ev-img'; ci.src=imgSrc; ci.alt=ev.title; ci.loading='lazy';
+      ci.onerror=()=>ci.remove();
       card.appendChild(ci);
     }
 
-    // YouTube on death event
-    if (ev.type === 'death' || i === events.length - 1) {
-      const ytSrc = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent((tl.youtubeSearchTerms||[star.name+' documentary'])[0])}&rel=0&modestbranding=1`;
-      const yt = document.createElement('iframe');
-      yt.className = 'tl-ev-yt';
-      yt.src = ytSrc; yt.allowFullscreen = true; yt.loading = 'lazy';
+    // YouTube — use nocookie search embed
+    if(ev.type==='death'||i===events.length-1){
+      const q=encodeURIComponent((tl.youtubeSearchTerms||[star.name+' documentary life'])[0]);
+      // Use YouTube's list search — most reliable without API key
+      const yt=document.createElement('iframe');
+      yt.className='tl-ev-yt';
+      yt.src=`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&rel=0&modestbranding=1`;
+      yt.allowFullscreen=true; yt.loading='lazy';
       yt.setAttribute('allow','accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture');
       card.appendChild(yt);
-      card.innerHTML += `<div class="tl-ev-yt-label">DOCUMENTARY · YOUTUBE</div>`;
     }
 
-    const body = document.createElement('div'); body.className = 'tl-ev-body';
-    body.innerHTML = `
+    const body=document.createElement('div'); body.className='tl-ev-body';
+    body.innerHTML=`
+      <div class="tl-ev-year">${ev.year||''}</div>
       <div class="tl-ev-type">${(ev.type||'').toUpperCase()}</div>
       <div class="tl-ev-title">${ev.title||''}</div>
       <div class="tl-ev-text">${ev.text||''}</div>
       ${ev.quote?`<div class="tl-ev-quote">"${ev.quote.replace(/^[""\u201C\u201D]|[""\u201C\u201D]$/g,'')}"</div>`:''}
     `;
     card.appendChild(body);
-    content.appendChild(card);
+    inner.appendChild(card);
+    wrap.appendChild(inner);
+    track.appendChild(wrap);
 
-    // spine
-    const spine = document.createElement('div'); spine.className = 'tl-ev-spine';
-    const dot = document.createElement('div');
-    dot.className = `tl-ev-dot${ev.type==='death'?' death':''}`;
-    const badge = document.createElement('div'); badge.className='tl-ev-year-badge';
-    badge.textContent = ev.year||'';
-    spine.appendChild(badge); spine.appendChild(dot);
+    // Scrubber dot
+    const sd=document.createElement('div');
+    sd.className='tl-scrub-dot';
+    sd.title=`${ev.year} – ${ev.title}`;
+    sd.addEventListener('click',()=>{ tlTargetPanX=panToX(x); });
+    scrub.appendChild(sd);
+    wrap._scrubDot=sd;
+  });
+  scrub.innerHTML+=`<div class="tl-scrub-cap">${tl.died||diedY}</div>`;
 
-    const empty = document.createElement('div'); empty.className = 'tl-ev-empty';
+  // Init pan to birth
+  tlPanX=panToX(PAD);
+  tlTargetPanX=tlPanX;
+  tlScale=1; tlTargetScale=1;
+  applyTrack();
+  startTLLoop(events,PAD,bornY,totalW);
+  setupTLInteraction(PAD,bornY,diedY,totalW);
+  setupZoomBtns(PAD,bornY,diedY);
+}
 
-    if (side === 'right') { evDiv.appendChild(empty); evDiv.appendChild(spine); evDiv.appendChild(content); }
-    else { evDiv.appendChild(content); evDiv.appendChild(spine); evDiv.appendChild(empty); }
+function panToX(x){
+  return -x*tlScale+window.innerWidth/2;
+}
 
-    evWrap.appendChild(evDiv);
+function addCap3D(track,x,type,year){
+  const cap=document.createElement('div');
+  cap.className=`tl-cap ${type}`;
+  cap.style.left=(x-30)+'px';
+  const isAbove=type==='birth';
+  cap.innerHTML=isAbove
+    ? `<div class="tl-cap-label">${type.toUpperCase()}</div><div class="tl-cap-dot" style="margin-top:-7px"></div><div class="tl-cap-year" style="margin-top:-7px">${year}</div>`
+    : `<div class="tl-cap-year">${year}</div><div class="tl-cap-dot" style="margin-top:-7px"></div><div class="tl-cap-label" style="margin-top:-7px">${type.toUpperCase()}</div>`;
+  cap.style.top=isAbove?'-50px':'10px';
+  cap.style.position='absolute';
+  track.appendChild(cap);
+}
 
-    // scrubber dot
-    const dot2 = document.createElement('div');
-    dot2.className = 'tl-scrub-dot';
-    dot2.title = `${ev.year} ${ev.title}`;
-    dot2.addEventListener('click', () => evDiv.scrollIntoView({behavior:'smooth',block:'center'}));
-    if (i === 0) scrub.innerHTML = `<div class="tl-scrub-label">${tl.born||''}</div>`;
-    scrub.appendChild(dot2);
-    if (i === events.length - 1) scrub.innerHTML += `<div class="tl-scrub-label">${tl.died||''}</div>`;
+function applyTrack(){
+  const track=document.getElementById('tlTrack');
+  // Translate in X, apply scale from left
+  track.style.transform=`translateX(${tlPanX}px) scaleX(${tlScale})`;
+  track.style.transformOrigin='left center';
+}
+
+let tlLoopCards=[];
+function startTLLoop(events,PAD,bornY,totalW){
+  tlLoopCards=Array.from(document.querySelectorAll('.tl-card-3d'));
+  tlRunning=true;
+  function loop(){
+    if(!tlRunning)return;
+    // Smooth interpolation
+    const lerpF=0.1;
+    tlPanX+=(tlTargetPanX-tlPanX)*lerpF;
+    tlScale+=(tlTargetScale-tlScale)*lerpF;
+    // Clamp pan
+    const minPan=-(totalW*tlScale-window.innerWidth+100);
+    tlPanX=Math.max(minPan,Math.min(100,tlPanX));
+    applyTrack();
+    // Scrubber active
+    const vCentreWorld=(window.innerWidth/2-tlPanX)/tlScale;
+    tlLoopCards.forEach((wrap,i)=>{
+      const wx=parseFloat(wrap.style.left)+130;
+      const dist=Math.abs(wx-vCentreWorld);
+      const sd=wrap._scrubDot;
+      if(sd) sd.classList.toggle('act',dist<PX_PER_YEAR*0.8);
+    });
+    tlRaf=requestAnimationFrame(loop);
+  }
+  tlRaf=requestAnimationFrame(loop);
+}
+
+function setupTLInteraction(PAD,bornY,diedY,totalW){
+  const scene=document.getElementById('tlScene');
+  let startX,startPanX,lastX,tlVel=0;
+
+  scene.addEventListener('mousedown',e=>{
+    tlDrag=true;
+    startX=e.clientX; startPanX=tlPanX; lastX=e.clientX; tlVel=0;
+    scene.classList.add('grabbing');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!tlDrag)return;
+    const dx=e.clientX-startX;
+    tlVel=e.clientX-lastX; lastX=e.clientX;
+    tlTargetPanX=startPanX+dx;
+  });
+  window.addEventListener('mouseup',()=>{
+    if(!tlDrag)return;
+    tlDrag=false;
+    scene.classList.remove('grabbing');
+    // Apply momentum
+    tlTargetPanX+=tlVel*8;
   });
 
-  scroll.appendChild(evWrap);
+  // Touch
+  let tStartX,tStartPan,tLastX,tVel=0;
+  scene.addEventListener('touchstart',e=>{
+    tlDrag=true;
+    tStartX=e.touches[0].clientX; tStartPan=tlPanX; tLastX=tStartX; tVel=0;
+  },{passive:true});
+  scene.addEventListener('touchmove',e=>{
+    if(!tlDrag)return;
+    const dx=e.touches[0].clientX-tStartX;
+    tVel=e.touches[0].clientX-tLastX; tLastX=e.touches[0].clientX;
+    tlTargetPanX=tStartPan+dx;
+  },{passive:true});
+  scene.addEventListener('touchend',()=>{ tlDrag=false; tlTargetPanX+=tVel*8; });
+
+  // Scroll to zoom
+  scene.addEventListener('wheel',e=>{
+    e.preventDefault();
+    if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>Math.abs(e.deltaX)){
+      // Zoom around mouse position
+      const mouseX=e.clientX;
+      const worldX=(mouseX-tlPanX)/tlScale;
+      const delta=e.deltaY>0?0.92:1.09;
+      const newScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,tlTargetScale*delta));
+      tlTargetScale=newScale;
+      // Keep world point under mouse
+      tlTargetPanX=mouseX-worldX*newScale;
+    }else{
+      tlTargetPanX-=e.deltaX*1.5;
+    }
+  },{passive:false});
 }
 
-// ══════════════════════════════════════
-//  SCROLL REVEAL
-// ══════════════════════════════════════
-let revealObs;
-function initScrollReveal() {
-  if (revealObs) revealObs.disconnect();
-  revealObs = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }});
-  }, {threshold: 0.12, rootMargin: '0px 0px -60px 0px', root: document.getElementById('tlScroll')});
-  document.querySelectorAll('.tl-event').forEach(el => revealObs.observe(el));
-
-  // Scrubber active dot
-  const dotObs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      const idx = e.target.dataset.evIdx;
-      const dot = document.querySelectorAll('.tl-scrub-dot')[idx];
-      if (dot) dot.classList.toggle('active', e.isIntersecting);
-    });
-  }, {threshold: 0.5, root: document.getElementById('tlScroll')});
-  document.querySelectorAll('.tl-event').forEach(el => dotObs.observe(el));
+function setupZoomBtns(PAD,bornY,diedY){
+  document.getElementById('zIn').onclick=()=>{ tlTargetScale=Math.min(MAX_SCALE,tlTargetScale*1.3); };
+  document.getElementById('zOut').onclick=()=>{ tlTargetScale=Math.max(MIN_SCALE,tlTargetScale/1.3); };
+  document.getElementById('zFit').onclick=()=>{
+    const span=diedY-bornY;
+    const vw=window.innerWidth;
+    tlTargetScale=Math.max(MIN_SCALE,Math.min(1,(vw-240)/((span+4)*PX_PER_YEAR)));
+    tlTargetPanX=panToX(PAD);
+  };
 }
 
-// ══════════════════════════════════════
-//  PARALLAX
-// ══════════════════════════════════════
-function initParallax() {
-  const tlScroll = document.getElementById('tlScroll');
-  tlScroll.addEventListener('scroll', () => {
-    const scrolled = tlScroll.scrollTop;
-    // Hero parallax
-    const heroBg = document.querySelector('.tl-hero-bg');
-    if (heroBg) heroBg.style.transform = `translateY(${scrolled * 0.35}px)`;
-  }, {passive: true});
+function stopTL(){ tlRunning=false; cancelAnimationFrame(tlRaf); }
+
+function goHome(){
+  stopTL();
+  document.getElementById('tlScreen').classList.remove('on');
+  document.getElementById('loadScreen').classList.remove('on');
+  document.getElementById('mosaicScreen').style.display='block';
+  if(clickedTile){
+    const img=clickedTile.querySelector('img');
+    if(img){img.style.filter='';img.style.opacity='';img.style.transition='';}
+    clickedTile=null;
+  }
+  const zd=document.getElementById('zoomDark');
+  zd.style.opacity='0';
+  setTimeout(()=>{ zd.style.pointerEvents='none'; },500);
+  mActive=true; velX=0; velY=0; mLoop();
 }
+document.getElementById('tlBack').addEventListener('click',goHome);
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-// ══════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════
-mosaicInit();
+// ══════════════════════════════════════════
+mInit();
 </script>
 </body>
 </html>
