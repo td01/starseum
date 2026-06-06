@@ -33,15 +33,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   transition:filter .5s ease,transform .6s cubic-bezier(.25,.46,.45,.94);
   display:block;pointer-events:none;
 }
-/* Default dim state when another tile is hovered */
-#mosaicCanvas.has-hover .star-tile img{
-  filter:grayscale(60%) brightness(0.35) contrast(1.1);
-  transition:filter .4s ease;
+/* Default tile brightness */
+.star-tile img{
+  filter:grayscale(30%) brightness(0.72) contrast(1.12);
+  transition:filter .5s ease,transform .6s cubic-bezier(.25,.46,.45,.94);
 }
-/* Hovered tile lights up */
-#mosaicCanvas.has-hover .star-tile.lit img{
+/* After idle timeout: dim others when one is hovered */
+#mosaicCanvas.idle.has-hover .star-tile img{
+  filter:grayscale(60%) brightness(0.32) contrast(1.1);
+  transition:filter .5s ease;
+}
+/* Hovered tile always lights up in idle mode */
+#mosaicCanvas.idle.has-hover .star-tile.lit img{
   filter:grayscale(0%) brightness(1.0) contrast(1.06);
   transform:scale(1.05);
+}
+/* During pan: all full brightness */
+#mosaicCanvas.panning .star-tile img{
+  filter:grayscale(15%) brightness(0.85) contrast(1.08) !important;
+  transition:filter .3s ease;
 }
 .star-tile-shade{
   position:absolute;inset:0;
@@ -462,13 +472,29 @@ let hoveredTile=null,clickedTile=null;
 
 function starAt(c,r){
   const n=STARS.length;
-  const ic=((c%n)+n)%n, ir=((r%n)+n)%n;
-  return STARS[(ic*17+ir*31+ic*ir*7+ir*ir*3)%n];
+  // Each row uses a different prime stride so columns never repeat the same face
+  const primes=[7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67];
+  const rowPrime=primes[Math.abs(r)%primes.length];
+  const rowSeed=Math.abs(r*37+r*r*13)%n;
+  return STARS[(rowSeed+Math.abs(c)*rowPrime)%n];
+}
+
+let idleTimer=null;
+function resetIdle(){
+  mc.classList.remove('idle');
+  mc.classList.add('panning');
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{
+    mc.classList.remove('panning');
+    mc.classList.add('idle');
+  },5000);
 }
 
 function mInit(){
   renderTiles();
   mLoop();
+  // Start idle timer on page load
+  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },5000);
   const ms=document.getElementById('mosaicScreen');
 
   ms.addEventListener('mousedown',e=>{
@@ -476,6 +502,7 @@ function mInit(){
     mDX0=e.clientX;mDY0=e.clientY;mCX0=camX;mCY0=camY;
     mLX=e.clientX;mLY=e.clientY;velX=0;velY=0;
     mc.style.cursor='grabbing';
+    resetIdle();
     e.preventDefault();
   },{passive:false});
 
@@ -491,8 +518,12 @@ function mInit(){
     // Edge autopan
     const vw=window.innerWidth,vh=window.innerHeight,z=110,spd=5;
     const x=e.clientX,y=e.clientY;
-    edgePX=x<z?-spd*Math.pow((z-x)/z,1.5):x>vw-z?spd*Math.pow((x-(vw-z))/z,1.5):0;
-    edgePY=y<z?-spd*Math.pow((z-y)/z,1.5):y>vh-z?spd*Math.pow((y-(vh-z))/z,1.5):0;
+    // Near left edge → reveal more left → canvas moves right → camX increases → positive
+    // Near right edge → reveal more right → canvas moves left → camX decreases → negative
+    // Near top edge → reveal more above → camY increases → positive
+    // Near bottom edge → reveal more below → camY decreases → negative
+    edgePX=x<z? spd*Math.pow((z-x)/z,1.5):x>vw-z?-spd*Math.pow((x-(vw-z))/z,1.5):0;
+    edgePY=y<z? spd*Math.pow((z-y)/z,1.5):y>vh-z?-spd*Math.pow((y-(vh-z))/z,1.5):0;
   });
 
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
@@ -544,7 +575,7 @@ function mLoop(){
     velX*=0.87;velY*=0.87;
     if(Math.abs(velX)>0.05||Math.abs(velY)>0.05){camX+=velX;camY+=velY;}
     else{velX=0;velY=0;}
-    if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;}
+    if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;resetIdle();}
   }
   mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
   renderTiles();
@@ -693,9 +724,11 @@ async function startJourney(star,thumb){
     zd.style.opacity='0';
     setTimeout(()=>{zd.style.pointerEvents='none';},600);
   }catch(err){
-    console.error(err);
-    document.getElementById('lpErr').textContent=err.message||'Could not load. Try again.';
-    setLoad(0,'ERROR');setTimeout(goHome,3500);
+    console.error('Journey error:',err);
+    const msg=err.message||'Could not load.';
+    document.getElementById('lpErr').textContent=msg+' (tap to return)';
+    setLoad(0,'ERROR');
+    document.getElementById('loadScreen').addEventListener('click',goHome,{once:true});
   }
 }
 
@@ -724,8 +757,11 @@ async function fetchTimeline(name){
   const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Server error ${r.status}`);}
   const data=await r.json();
+  if(data.error){throw new Error(data.error.message||data.error||'API error');}
   const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
-  return JSON.parse(raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim());
+  const clean=raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim();
+  if(!clean||clean==='{}'){ throw new Error('No timeline data returned'); }
+  return JSON.parse(clean);
 }
 
 // ══════════════════════════════════════════════════
@@ -981,11 +1017,11 @@ function drawSpine(){
   }
 
   // Birth + death caps
-  drawCap(ctx2,panX+PAD*zoom,spineY,tl.born||bornY,'BIRTH');
-  if(tlData.died)drawCap(ctx2,panX+(PAD+(diedY-bornY)*PX_PER_YEAR)*zoom,spineY,tlData.died,'DEATH',true);
+  drawCap(ctx2,panX+PAD*zoom,spineY,(tlData&&tlData.born)||bornY,'BIRTH');
+  if(tlData&&tlData.died)drawCap(ctx2,panX+(PAD+(diedY-bornY)*PX_PER_YEAR)*zoom,spineY,tlData.died,'DEATH',true);
 
   // Event dots
-  (tlData.events||[]).forEach(ev=>{
+  ((tlData&&tlData.events)||[]).forEach(ev=>{
     const evY=parseInt((ev.year||'').toString().substring(0,4))||0;
     const wx=PAD+(evY-bornY)*PX_PER_YEAR;
     const sx=panX+wx*zoom;
