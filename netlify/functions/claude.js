@@ -31,7 +31,7 @@ exports.handler = async function(event, context) {
   }
 
   const payload = JSON.stringify({
-    model: "claude-sonnet-4-5",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: parsed.max_tokens || 1400,
     messages: parsed.messages
   });
@@ -56,20 +56,17 @@ exports.handler = async function(event, context) {
       let data = "";
       res.on("data", (chunk) => { data += chunk; });
       res.on("end", () => {
-        resolve({
-          statusCode: res.statusCode,
-          headers,
-          body: data
-        });
+        resolve({ statusCode: res.statusCode, headers, body: data });
       });
     });
 
     req.on("error", (e) => {
-      resolve({
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({ error: "Upstream error: " + e.message })
-      });
+      resolve({ statusCode: 502, headers, body: JSON.stringify({ error: e.message }) });
+    });
+
+    req.setTimeout(25000, () => {
+      req.destroy();
+      resolve({ statusCode: 504, headers, body: JSON.stringify({ error: "Request timed out" }) });
     });
 
     req.write(payload);
