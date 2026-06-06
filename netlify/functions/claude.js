@@ -1,14 +1,17 @@
-const https = require("https");
-
 exports.handler = async function(event, context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Content-Type": "application/json"
   };
 
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
+    return { statusCode: 204, headers, body: "" };
+  }
+
+  if (event.httpMethod === "GET") {
+    return { statusCode: 200, headers, body: JSON.stringify({ status: "ok" }) };
   }
 
   if (event.httpMethod !== "POST") {
@@ -17,12 +20,15 @@ exports.handler = async function(event, context) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "API key not configured" }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }) };
   }
 
   let parsed;
-  try { parsed = JSON.parse(event.body); }
-  catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad request" }) }; }
+  try {
+    parsed = JSON.parse(event.body);
+  } catch(e) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
+  }
 
   const payload = JSON.stringify({
     model: "claude-sonnet-4-20250514",
@@ -30,27 +36,42 @@ exports.handler = async function(event, context) {
     messages: parsed.messages
   });
 
+  const https = require("https");
+
   return new Promise((resolve) => {
-    const req = https.request({
+    const options = {
       hostname: "api.anthropic.com",
+      port: 443,
       path: "/v1/messages",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(payload),
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(payload)
+        "anthropic-version": "2023-06-01"
       }
-    }, (res) => {
+    };
+
+    const req = https.request(options, (res) => {
       let data = "";
-      res.on("data", chunk => data += chunk);
+      res.on("data", (chunk) => { data += chunk; });
       res.on("end", () => {
-        resolve({ statusCode: res.statusCode, headers, body: data });
+        resolve({
+          statusCode: res.statusCode,
+          headers,
+          body: data
+        });
       });
     });
+
     req.on("error", (e) => {
-      resolve({ statusCode: 500, headers, body: JSON.stringify({ error: e.message }) });
+      resolve({
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({ error: "Upstream error: " + e.message })
+      });
     });
+
     req.write(payload);
     req.end();
   });
