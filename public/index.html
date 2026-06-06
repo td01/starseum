@@ -308,69 +308,156 @@ const STARS = [
   {name:"Bob Dylan",slug:"Bob_Dylan",years:"1941–"},
 ];
 
-// ══════════ MOSAIC ══════════
+// ══════════ INFINITE MOSAIC ══════════
 const TILE_W = 200, TILE_H = 260, GAP = 3;
-const COLS = 10;
+const COLS = 8; // tiles per row in virtual grid
+const STEP_X = TILE_W + GAP, STEP_Y = TILE_H + GAP;
+
 const canvas = document.getElementById('mosaicCanvas');
 let camX = 0, camY = 0;
+let velX = 0, velY = 0;
 let isDragging = false, hasDragged = false;
-let dragX0, dragY0, camX0, camY0;
+let dragX0, dragY0, camX0, camY0, lastDragX, lastDragY;
 let thumbCache = {};
-const renderedIndices = new Set();
+const renderedKeys = new Set(); // "col,row" keys already created
+let autoPanX = 0, autoPanY = 0; // edge-proximity autopan
+let mosaicActive = true;
+let rafId;
+
+// Infinite grid: map any (col,row) → a star deterministically
+function starAt(col, row) {
+  // Use a large prime shuffle so adjacent tiles feel varied
+  const idx = Math.abs((col * 2971 + row * 1049 + col * row * 31) % STARS.length);
+  return STARS[idx];
+}
 
 function initMosaic() {
-  // Start centred
-  camX = -(COLS * (TILE_W + GAP) / 2 - window.innerWidth / 2);
-  camY = -(Math.ceil(STARS.length / COLS) * (TILE_H + GAP) / 2 - window.innerHeight / 2);
-  applyCamera();
+  // Start camera so grid is centred
+  camX = 0; camY = 0;
   renderVisibleTiles();
+  startLoop();
 
   const ms = document.getElementById('mosaicScreen');
-  ms.addEventListener('mousedown', e => { isDragging = true; hasDragged = false; dragX0 = e.clientX; dragY0 = e.clientY; camX0 = camX; camY0 = camY; canvas.classList.add('dragging'); });
+
+  // ── Mouse drag ──
+  ms.addEventListener('mousedown', e => {
+    isDragging = true; hasDragged = false;
+    dragX0 = e.clientX; dragY0 = e.clientY;
+    camX0 = camX; camY0 = camY;
+    lastDragX = e.clientX; lastDragY = e.clientY;
+    velX = 0; velY = 0;
+    canvas.classList.add('dragging');
+  });
   window.addEventListener('mousemove', e => {
     if (!isDragging) return;
     const dx = e.clientX - dragX0, dy = e.clientY - dragY0;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasDragged = true;
+    velX = e.clientX - lastDragX; velY = e.clientY - lastDragY;
+    lastDragX = e.clientX; lastDragY = e.clientY;
     camX = camX0 + dx; camY = camY0 + dy;
-    applyCamera(); renderVisibleTiles();
   });
   window.addEventListener('mouseup', () => { isDragging = false; canvas.classList.remove('dragging'); });
-  ms.addEventListener('touchstart', e => { const t = e.touches[0]; isDragging = true; hasDragged = false; dragX0 = t.clientX; dragY0 = t.clientY; camX0 = camX; camY0 = camY; }, {passive:true});
-  window.addEventListener('touchmove', e => {
-    if (!isDragging) return;
+
+  // ── Mouse proximity edge-pan (desktop) ──
+  ms.addEventListener('mousemove', e => {
+    if (isDragging) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const zone = 100, maxSpd = 5;
+    const lx = e.clientX, ly = e.clientY;
+    autoPanX = lx < zone ? -maxSpd * (1 - lx / zone)
+             : lx > vw - zone ? maxSpd * (1 - (vw - lx) / zone) : 0;
+    autoPanY = ly < zone ? -maxSpd * (1 - ly / vh * zone / zone)
+             : ly > vh - zone ? maxSpd * (1 - (vh - ly) / zone) : 0;
+    // fine-tune: use actual distance
+    autoPanX = lx < zone ? -maxSpd * Math.pow(1 - lx / zone, 1.5)
+             : lx > vw - zone ? maxSpd * Math.pow(1 - (vw - lx) / zone, 1.5) : 0;
+    autoPanY = ly < zone ? -maxSpd * Math.pow(1 - ly / zone, 1.5)
+             : ly > vh - zone ? maxSpd * Math.pow(1 - (vh - ly) / zone, 1.5) : 0;
+  });
+  ms.addEventListener('mouseleave', () => { autoPanX = 0; autoPanY = 0; });
+
+  // ── Touch (mobile) ──
+  let touchStartX, touchStartY, touchStartCamX, touchStartCamY, touchLastX, touchLastY, touchMoved;
+  ms.addEventListener('touchstart', e => {
     const t = e.touches[0];
-    const dx = t.clientX - dragX0, dy = t.clientY - dragY0;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasDragged = true;
-    camX = camX0 + dx; camY = camY0 + dy;
-    applyCamera(); renderVisibleTiles();
+    isDragging = true; hasDragged = false; touchMoved = false;
+    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchStartCamX = camX; touchStartCamY = camY;
+    touchLastX = t.clientX; touchLastY = t.clientY;
+    velX = 0; velY = 0;
   }, {passive:true});
-  window.addEventListener('touchend', () => { isDragging = false; });
-}
 
-function applyCamera() {
-  canvas.style.transform = `translate(${camX}px,${camY}px)`;
-}
+  ms.addEventListener('touchmove', e => {
+    if (!isDragging || !e.touches[0]) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { hasDragged = true; touchMoved = true; }
+    velX = t.clientX - touchLastX; velY = t.clientY - touchLastY;
+    touchLastX = t.clientX; touchLastY = t.clientY;
+    camX = touchStartCamX + dx; camY = touchStartCamY + dy;
+  }, {passive:true});
 
-function renderVisibleTiles() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const pad = 1; // tiles outside viewport buffer
-  STARS.forEach((star, i) => {
-    const col = i % COLS, row = Math.floor(i / COLS);
-    const tx = col * (TILE_W + GAP), ty = row * (TILE_H + GAP);
-    const screenX = tx + camX, screenY = ty + camY;
-    const visible = screenX + TILE_W > -TILE_W * pad && screenX < vw + TILE_W * pad &&
-                    screenY + TILE_H > -TILE_H * pad && screenY < vh + TILE_H * pad;
-    if (visible && !renderedIndices.has(i)) {
-      renderedIndices.add(i);
-      createTile(star, i, tx, ty);
+  ms.addEventListener('touchend', e => {
+    isDragging = false;
+    // Tap = no movement = select
+    if (!touchMoved && e.changedTouches[0]) {
+      const t = e.changedTouches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const tile = el?.closest('.star-tile');
+      if (tile?._star) enterStar(tile._star, tile);
     }
   });
 }
 
-function createTile(star, i, tx, ty) {
+function startLoop() {
+  function loop() {
+    if (!mosaicActive) return;
+    if (!isDragging) {
+      // momentum
+      if (Math.abs(velX) > 0.1 || Math.abs(velY) > 0.1) {
+        camX += velX; camY += velY;
+        velX *= 0.92; velY *= 0.92;
+      }
+      // edge autopan
+      if (autoPanX || autoPanY) {
+        camX += autoPanX; camY += autoPanY;
+        velX = 0; velY = 0;
+      }
+    }
+    canvas.style.transform = `translate(${camX}px,${camY}px)`;
+    renderVisibleTiles();
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function renderVisibleTiles() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const buf = 1.5; // buffer in tile units
+
+  // Figure out which grid cols/rows are visible
+  const colMin = Math.floor((-camX - buf * STEP_X) / STEP_X);
+  const colMax = Math.ceil((-camX + vw + buf * STEP_X) / STEP_X);
+  const rowMin = Math.floor((-camY - buf * STEP_Y) / STEP_Y);
+  const rowMax = Math.ceil((-camY + vh + buf * STEP_Y) / STEP_Y);
+
+  for (let row = rowMin; row <= rowMax; row++) {
+    for (let col = colMin; col <= colMax; col++) {
+      const key = `${col},${row}`;
+      if (renderedKeys.has(key)) continue;
+      renderedKeys.add(key);
+      const star = starAt(col, row);
+      const tx = col * STEP_X, ty = row * STEP_Y;
+      createTile(star, key, tx, ty);
+    }
+  }
+}
+
+function createTile(star, key, tx, ty) {
   const tile = document.createElement('div');
   tile.className = 'star-tile';
   tile.style.cssText = `left:${tx}px;top:${ty}px;width:${TILE_W}px;height:${TILE_H}px;`;
+  tile._star = star;
 
   const ph = document.createElement('div'); ph.className = 'star-ph';
   ph.innerHTML = `<div class="star-ph-init">${star.name[0]}</div>`;
@@ -381,25 +468,40 @@ function createTile(star, i, tx, ty) {
   info.innerHTML = `<div class="star-tile-name">${star.name}</div><div class="star-tile-years">${star.years}</div>`;
   tile.appendChild(info);
 
+  // Desktop click
   tile.addEventListener('click', () => { if (!hasDragged) enterStar(star, tile); });
   canvas.appendChild(tile);
 
-  // load thumb
+  // Load thumb
   if (thumbCache[star.slug]) { injectImg(tile, ph, thumbCache[star.slug]); return; }
   fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`)
-    .then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.thumbnail?.source) { thumbCache[star.slug] = d.thumbnail.source; injectImg(tile, ph, d.thumbnail.source); }
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (d?.thumbnail?.source) {
+        thumbCache[star.slug] = d.thumbnail.source;
+        // inject into ALL tiles for this star
+        document.querySelectorAll('.star-tile').forEach(t => {
+          if (t._star?.slug === star.slug) {
+            const p = t.querySelector('.star-ph');
+            if (p) injectImg(t, p, d.thumbnail.source);
+          }
+        });
+      }
     }).catch(() => {});
 }
 
 function injectImg(tile, ph, src) {
+  if (!ph || !ph.parentNode) return;
   const img = document.createElement('img');
   img.src = src;
-  img.onload = () => ph.replaceWith(img);
+  img.onload = () => { if (ph.parentNode) ph.replaceWith(img); };
 }
 
 // ══════════ ENTER STAR ══════════
 function enterStar(star, tile) {
+  mosaicActive = false;
+  cancelAnimationFrame(rafId);
+  autoPanX = 0; autoPanY = 0;
   const zd = document.getElementById('zoomDark');
   zd.style.pointerEvents = 'all';
   zd.style.opacity = '1';
@@ -466,6 +568,9 @@ function goHome() {
   const zd = document.getElementById('zoomDark');
   zd.style.opacity = '0';
   setTimeout(() => { zd.style.pointerEvents = 'none'; }, 500);
+  mosaicActive = true;
+  velX = 0; velY = 0;
+  startLoop();
 }
 document.getElementById('tlBack').addEventListener('click', goHome);
 
