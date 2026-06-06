@@ -184,12 +184,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   position:absolute;
   top:0;left:0;
   width:100%;height:100%;
-  z-index:15;
+  z-index:20;
   pointer-events:none;
   overflow:visible;
+  isolation:isolate;
 }
 #tlCards .tl-card{
   pointer-events:auto;
+  visibility:visible !important;
+  opacity:1;
 }
 
 /* Individual timeline card */
@@ -204,14 +207,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .tl-card.below{transform-origin:center top;}
 
 .tl-card-inner{
-  background:var(--card);
-  border:1px solid var(--gold2);
+  background:#181410;
+  border:1px solid rgba(201,168,76,0.22);
   border-radius:2px;
   overflow:hidden;
   display:block;
   transform:translateZ(0);
   transition:border-color .3s,box-shadow .3s,transform .35s cubic-bezier(.25,.46,.45,.94);
   box-shadow:0 4px 24px rgba(0,0,0,.6);
+  min-height:80px;
 }
 .tl-card:hover .tl-card-inner{
   border-color:rgba(201,168,76,.5);
@@ -1181,6 +1185,10 @@ function positionCards(){
   const spineY=vh*SPINE_Y_RATIO;
   const GAP=20;
 
+  if(domCards.length>0&&!window._posLogDone){
+    window._posLogDone=true;
+    console.log('positionCards: spineY=',Math.round(vh*SPINE_Y_RATIO),'zoom=',zoom.toFixed(3),'panX=',Math.round(panX),'domCards=',domCards.length);
+  }
   domCards.forEach((card,i)=>{
     const ev=card._ev;
     const evY=parseInt((ev.year||'').toString().substring(0,4))||0;
@@ -1214,6 +1222,7 @@ function positionCards(){
     }
 
     card.style.cssText=`position:absolute;left:${Math.round(cardX)}px;top:${Math.round(cardY)}px;width:${Math.round(cardW)}px;display:block;`;
+    if(i===0&&!window._cardLogDone){window._cardLogDone=true;console.log('Card 0:',{cardX:Math.round(cardX),cardY:Math.round(cardY),cardW:Math.round(cardW),sx:Math.round(sx),spineY:Math.round(spineY),connH:Math.round(connH),cardH,isAbove});}
 
     // Connector sizing
     const conn=card._conn;
@@ -1223,10 +1232,14 @@ function positionCards(){
       else{conn.style.top='0';conn.style.bottom='';}
     }
 
-    // Visibility
-    const offscreen=sx<-cardW-20||sx>vw+cardW+20;
-    card.style.opacity=offscreen?'0':'1';
-    card.style.pointerEvents=offscreen?'none':'auto';
+    // Visibility - only hide when truly far off screen
+    const offscreen=sx<-cardW*2||sx>vw+cardW*2;
+    if(offscreen){
+      card.style.visibility='hidden';
+    }else{
+      card.style.visibility='visible';
+      card.style.opacity='1';
+    }
   });
 }
 
