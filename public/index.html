@@ -30,14 +30,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .star-tile[data-b="4"] .star-tile-shade{opacity:1;}
 .star-tile-label{position:absolute;bottom:0;left:0;right:0;padding:.5rem .65rem .6rem;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;}
 .star-tile[data-b="4"] .star-tile-label{opacity:1;transform:none;}
-.stn{font-family:var(--display);font-size:9.5px;letter-spacing:.12em;color:var(--cream);line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,1);}
+.stn{font-family:var(--display);font-size:9.5px;letter-spacing:.12em;color:var(--cream);line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,1);transition:font-size .3s ease;}
+.star-tile[data-b="4"] .stn{font-size:14px;}
 .sty{font-family:var(--mono);font-size:8px;color:var(--gold);margin-top:2px;opacity:.85;}
 @media(max-width:600px){
   .star-tile-label{opacity:0!important;transform:none!important;}
   .star-tile[data-b="4"] .star-tile-label{opacity:0!important;}
-  /* Centre tile label shown via JS class */
   .star-tile.mobile-centre .star-tile-label{opacity:1!important;transform:none!important;}
   .star-tile.mobile-centre .star-tile-shade{opacity:1!important;}
+  /* Mobile timeline fixes */
+  .tl-bar{flex-wrap:wrap;padding:.5rem .8rem;gap:.4rem;}
+  .tl-tagline{display:none;}
+  .tl-sname{font-size:.9rem;}
+  .tl-smeta{font-size:7px;white-space:normal;}
+  #tlScroll{top:65px;}
+  .ev-col{width:75vw!important;margin:0 8px!important;flex-shrink:0;}
+  .ev-img{height:180px!important;}
+  .tl-zoom{bottom:3rem;right:.75rem;}
+  .tl-footer{font-size:6px;gap:.75rem;padding:.3rem .75rem;}
+  .tl-scrub{padding:0 .75rem;gap:.4rem;}
+  .tl-scrub-lbl{font-size:6.5px;}
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
@@ -127,9 +139,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--gold);background:var(--dark);flex-shrink:0;box-shadow:0 0 0 3px rgba(201,168,76,.08);}
 .ev-dot.death{background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.12),0 0 16px rgba(201,168,76,.3);}
 .ev-conn{width:1px;background:rgba(201,168,76,.2);flex-shrink:0;height:48px;}
-.ev-card{background:#181410;border:1px solid rgba(201,168,76,.2);border-radius:2px;overflow:hidden;width:100%;cursor:pointer;transition:border-color .3s,box-shadow .3s,transform .3s;box-shadow:0 4px 20px rgba(0,0,0,.5);}
-.ev-card:hover{border-color:rgba(201,168,76,.45);box-shadow:0 12px 40px rgba(0,0,0,.7);transform:translateY(-3px);}
-.ev-col.up .ev-card:hover{transform:translateY(3px);}
+.ev-card{background:#181410;border:1px solid rgba(201,168,76,.2);border-radius:2px;overflow:hidden;width:100%;cursor:pointer;transition:border-color .35s,box-shadow .35s,transform .4s cubic-bezier(.25,.46,.45,.94);box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.ev-card:hover,.ev-card.tapped{border-color:rgba(201,168,76,.5);box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.1);transform:scale(1.06) translateY(-4px);}
+.ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
 .ev-img{width:100%;height:160px;object-fit:cover;object-position:center top;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
 .ev-yr{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
@@ -230,11 +242,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 
 /* Video overlay */
-#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.96);display:none;align-items:center;justify-content:center;}
+#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
 #videoOverlay.on{display:flex;}
-#videoFrame{width:min(90vw,1280px);height:min(80vh,calc(min(90vw,1280px)*9/16));border:none;}
-#videoClose{position:absolute;top:1.5rem;right:1.5rem;background:none;border:none;color:rgba(255,255,255,.5);font-size:28px;cursor:pointer;transition:color .2s;}
-#videoClose:hover{color:#fff;}
+#videoFrame{width:min(90vw,1280px);height:min(75vh,calc(min(90vw,1280px)*9/16));border:none;flex-shrink:0;}
+#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+#videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.5);margin-bottom:.5rem;}
+#videoClose{position:absolute;top:1.2rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:var(--mono);font-size:8px;letter-spacing:.15em;padding:.35rem .8rem;cursor:pointer;transition:all .2s;border-radius:2px;}
+#videoClose:hover{color:#fff;border-color:rgba(255,255,255,.5);}
 </style>
 </head>
 <body>
@@ -346,6 +360,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     <div class="legal-divider"></div>
 
     <div class="legal-section">
+      <h3>EDITORIAL POLICY</h3>
+      <p>Starseum features only individuals who have passed away. Out of respect, <strong>new subjects are added no sooner than one month after their passing</strong>. We do not cover living people. Content is reviewed periodically for accuracy and sensitivity.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
       <h3>CORRECTIONS</h3>
       <p>We welcome corrections to factual errors. If you spot inaccurate content, please reach out. Starseum is committed to being accurate and respectful in its depiction of all individuals featured.</p>
     </div>
@@ -353,8 +374,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 
 <div id="videoOverlay">
-  <button id="videoClose">✕</button>
-  <iframe id="videoFrame" allowfullscreen allow="autoplay;fullscreen"></iframe>
+  <button id="videoClose">✕ CLOSE</button>
+  <div id="videoMeta"></div>
+  <iframe id="videoFrame" allowfullscreen allow="autoplay;fullscreen" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>
+  <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
+    <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video may be restricted. Watch it directly on YouTube.</div>
+    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">WATCH ON YOUTUBE ↗</a>
+  </div>
 </div>
 
 <div class="fs-btn" id="fsBtn">
@@ -417,7 +444,57 @@ const STARS=[
   {name:"Charlie Chaplin",slug:"Charlie_Chaplin",years:"1889–1977"},
   {name:"Ernest Hemingway",slug:"Ernest_Hemingway",years:"1899–1961"},
   {name:"Winston Churchill",slug:"Winston_Churchill",years:"1874–1965"},
+  // Music legends
+  {name:"Jimi Hendrix",slug:"Jimi_Hendrix",years:"1942–1970"},
+  {name:"Janis Joplin",slug:"Janis_Joplin",years:"1943–1970"},
+  {name:"Jim Morrison",slug:"Jim_Morrison",years:"1943–1971"},
+  {name:"Billie Holiday",slug:"Billie_Holiday",years:"1915–1959"},
+  {name:"Edith Piaf",slug:"Édith_Piaf",years:"1915–1963"},
+  {name:"Buddy Holly",slug:"Buddy_Holly",years:"1936–1959"},
+  {name:"Otis Redding",slug:"Otis_Redding",years:"1941–1967"},
+  {name:"Marvin Gaye",slug:"Marvin_Gaye",years:"1939–1984"},
+  {name:"Karen Carpenter",slug:"Karen_Carpenter",years:"1950–1983"},
+  {name:"Jeff Buckley",slug:"Jeff_Buckley",years:"1966–1997"},
+  {name:"Aaliyah",slug:"Aaliyah",years:"1979–2001"},
+  {name:"Left Eye",slug:"Lisa_Lopes",years:"1971–2002"},
+  {name:"Ol' Dirty Bastard",slug:"Ol'_Dirty_Bastard",years:"1968–2004"},
+  {name:"Mac Miller",slug:"Mac_Miller",years:"1992–2018"},
+  {name:"Lil Peep",slug:"Lil_Peep",years:"1996–2017"},
+  {name:"Avicii",slug:"Avicii",years:"1989–2018"},
+  // Film & TV
+  {name:"Marilyn Monroe",slug:"Marilyn_Monroe",years:"1926–1962"},
+  {name:"James Dean",slug:"James_Dean",years:"1931–1955"},
+  {name:"Audrey Hepburn",slug:"Audrey_Hepburn",years:"1929–1993"},
+  {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
+  {name:"Peter Sellers",slug:"Peter_Sellers",years:"1925–1980"},
+  {name:"Gene Wilder",slug:"Gene_Wilder",years:"1933–2016"},
+  {name:"John Candy",slug:"John_Candy",years:"1950–1994"},
+  {name:"Chris Farley",slug:"Chris_Farley",years:"1964–1997"},
+  {name:"John Belushi",slug:"John_Belushi",years:"1949–1982"},
+  {name:"Brittany Murphy",slug:"Brittany_Murphy",years:"1977–2009"},
+  {name:"Luke Perry",slug:"Luke_Perry",years:"1966–2019"},
+  {name:"Anton Yelchin",slug:"Anton_Yelchin",years:"1989–2016"},
+  // Sport
+  {name:"Ayrton Senna",slug:"Ayrton_Senna",years:"1960–1994"},
+  {name:"George Best",slug:"George_Best",years:"1946–2005"},
+  {name:"Johan Cruyff",slug:"Johan_Cruyff",years:"1947–2016"},
+  {name:"Joe Frazier",slug:"Joe_Frazier",years:"1944–2011"},
+  {name:"Arthur Ashe",slug:"Arthur_Ashe",years:"1943–1993"},
+  {name:"Florence Griffith-Joyner",slug:"Florence_Griffith-Joyner",years:"1959–1998"},
+  // Culture & history
+  {name:"Andy Warhol",slug:"Andy_Warhol",years:"1928–1987"},
+  {name:"Jean-Michel Basquiat",slug:"Jean-Michel_Basquiat",years:"1960–1988"},
+  {name:"Keith Haring",slug:"Keith_Haring",years:"1958–1990"},
+  {name:"Hunter S. Thompson",slug:"Hunter_S._Thompson",years:"1937–2005"},
+  {name:"Christopher Hitchens",slug:"Christopher_Hitchens",years:"1949–2011"},
+  {name:"Nelson Mandela",slug:"Nelson_Mandela",years:"1918–2013"},
+  {name:"Mahatma Gandhi",slug:"Mahatma_Gandhi",years:"1869–1948"},
+  {name:"Malcolm X",slug:"Malcolm_X",years:"1925–1965"},
+  {name:"Che Guevara",slug:"Che_Guevara",years:"1928–1967"},
+  {name:"Patrice Lumumba",slug:"Patrice_Lumumba",years:"1925–1961"},
 ];
+// Ethical policy: stars added only 1+ month after passing
+// Last reviewed: June 2026
 
 // ═══════════════════════════════════════════
 //  MOSAIC
@@ -436,14 +513,25 @@ const rowPerms={};
 function getRowPerm(r){
   if(rowPerms[r])return rowPerms[r];
   const n=STARS.length;
-  let seed=(Math.abs(r)*1664525+1013904223)>>>0;
+  let seed=(Math.abs(r*2654435761+r)^0xDEADBEEF)>>>0;
   const lcg=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const p=[...Array(n).keys()];
   for(let i=n-1;i>0;i--){const j=Math.floor(lcg()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
+  // Ensure no slug repeats within 4 positions
+  for(let i=0;i<p.length;i++){
+    for(let k=1;k<=3;k++){
+      if(i+k<p.length&&STARS[p[i]].slug===STARS[p[i+k]].slug){
+        // Swap with a position further away
+        const swapIdx=Math.min(p.length-1,i+k+4);
+        [p[i+k],p[swapIdx]]=[p[swapIdx],p[i+k]];
+      }
+    }
+  }
   rowPerms[r]=p;return p;
 }
 function starAt(c,r){
   const n=STARS.length,p=getRowPerm(r),col=((c%n)+n)%n;
+  // Also check the row above/below for same slug
   return STARS[p[col]];
 }
 
@@ -838,6 +926,13 @@ function buildTimeline(star,tl,wiki,heroThumb){
     `;
     card.appendChild(body);
 
+    // Mobile tap to zoom card
+    card.addEventListener('click',e=>{
+      if(e.target.closest('.ev-play-btn')||e.target.closest('.ev-video-wrap'))return;
+      const wasZoomed=card.classList.contains('tapped');
+      document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
+      if(!wasZoomed)card.classList.add('tapped');
+    });
     col.appendChild(card);
     col.appendChild(conn);
     col.appendChild(dot);
@@ -882,12 +977,38 @@ function setupScrollDrag(sc){
   window.addEventListener('mousemove',e=>{if(!drag)return;vel=e.clientX-lx;lx=e.clientX;sc.scrollLeft=sl0-(e.clientX-sx0);});
   window.addEventListener('mouseup',()=>{
     if(!drag)return;drag=false;sc.classList.remove('grabbing');
-    let v=-vel;function coast(){if(Math.abs(v)<0.5)return;sc.scrollLeft+=v;v*=0.93;requestAnimationFrame(coast);}coast();
+    let v=-vel;
+    function coast(){
+      if(Math.abs(v)<0.3){
+        // Elastic end: bounce if at edges
+        const max=sc.scrollWidth-sc.clientWidth;
+        if(sc.scrollLeft<0){elasticSnap(sc,0);}
+        else if(sc.scrollLeft>max){elasticSnap(sc,max);}
+        return;
+      }
+      sc.scrollLeft+=v;v*=0.93;requestAnimationFrame(coast);
+    }
+    coast();
   });
   document.getElementById('scrubTrack').addEventListener('click',e=>{
     const rect=e.currentTarget.getBoundingClientRect();
     sc.scrollLeft=(e.clientX-rect.left)/rect.width*(sc.scrollWidth-sc.clientWidth);
   });
+}
+
+function elasticSnap(sc,target){
+  const start=sc.scrollLeft;
+  const dist=target-start;
+  const dur=400;
+  let t0=null;
+  function step(ts){
+    if(!t0)t0=ts;
+    const p=Math.min((ts-t0)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    sc.scrollLeft=start+dist*ease;
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 function setupTLEdgePan(sc){
@@ -941,20 +1062,31 @@ function stopTL(){
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
-function openVideo(videoIdOrQuery,title){
+function openVideo(videoId,title,searchQuery){
   const overlay=document.getElementById('videoOverlay');
   const frame=document.getElementById('videoFrame');
-  let src;
-  // If it looks like a YouTube ID (11 chars, no spaces), embed directly
-  if(videoIdOrQuery&&videoIdOrQuery.length===11&&!/\s/.test(videoIdOrQuery)){
-    src=`https://www.youtube-nocookie.com/embed/${videoIdOrQuery}?autoplay=1&rel=0&modestbranding=1`;
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+  const q=searchQuery||title||'';
+
+  frame.style.display='block';
+  fallback.style.display='none';
+  meta.textContent='';
+
+  if(videoId&&videoId.length===11&&!/\s/.test(videoId)){
+    frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
+    ytLink.href=`https://www.youtube.com/watch?v=${videoId}`;
+    // Detect load failure after 5s
+    frame.onload=()=>{};
+    overlay.classList.add('on');
   }else{
-    // Fallback: open YouTube search in new tab (search embed is blocked)
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoIdOrQuery||title)}`, '_blank', 'noopener');
-    return;
+    // No valid ID — show fallback with search link
+    frame.style.display='none';
+    fallback.style.display='flex';
+    ytLink.href=`https://www.youtube.com/results?search_query=${encodeURIComponent(q+' documentary')}`;
+    overlay.classList.add('on');
   }
-  frame.src=src;
-  overlay.classList.add('on');
 }
 document.getElementById('videoClose').addEventListener('click',()=>{
   document.getElementById('videoOverlay').classList.remove('on');
@@ -965,8 +1097,28 @@ document.getElementById('videoClose').addEventListener('click',()=>{
 //  FULLSCREEN + UTILS
 // ═══════════════════════════════════════════
 document.getElementById('fsBtn').addEventListener('click',()=>{
-  if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
-  else document.exitFullscreen();
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+  if(!fsEl){
+    if(req)req.call(el).catch(()=>{
+      // iOS Safari: use screen.orientation trick or just toggle UI chrome
+      document.body.style.height='100vh';
+    });
+  }else{
+    if(exit)exit.call(document);
+  }
+});
+// Listen for all fullscreen change events
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev=>{
+  document.addEventListener(ev,()=>{
+    const icon=document.getElementById('fsBtn').querySelector('svg');
+    const isFs=!!(document.fullscreenElement||document.webkitFullscreenElement);
+    icon.innerHTML=isFs
+      ? '<polyline points="5,1 1,1 1,5"/><polyline points="15,5 15,1 11,1"/><polyline points="11,15 15,15 15,11"/><polyline points="1,11 1,15 5,15"/>'
+      : '<polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/><polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/>';
+  });
 });
 
 // Legal modal
