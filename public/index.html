@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="referrer" content="no-referrer-when-downgrade">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Starseum — A Museum of Extraordinary Lives</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
@@ -84,7 +85,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 .intro-sub{
   font-family:var(--serif);font-style:italic;
-  font-size:1rem;letter-spacing:.06em;
+  font-size:1.25rem;letter-spacing:.06em;
   color:var(--muted);opacity:0;
   animation:introFade .8s ease 1.4s forwards;
 }
@@ -144,8 +145,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
 .ev-img{width:100%;height:160px;object-fit:cover;object-position:center top;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
-.ev-yr{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
-.ev-title{font-family:var(--display);font-size:1rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;letter-spacing:.04em;}
+.ev-yr{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
+.ev-title{font-family:var(--display);font-size:1.25rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;letter-spacing:.03em;}
 .ev-text{font-family:var(--serif);font-size:.85rem;line-height:1.65;color:var(--txt);opacity:.85;}
 .ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
 .ev-quote{margin-top:.4rem;padding:.55rem .7rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:.88rem;color:var(--cream);line-height:1.55;letter-spacing:.01em;}
@@ -373,10 +374,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </div>
 </div>
 
-<div id="videoOverlay">
+<div id="videoOverlay" id="videoOverlay">
   <button id="videoClose">✕ CLOSE</button>
   <div id="videoMeta"></div>
-  <iframe id="videoFrame" allowfullscreen allow="autoplay;fullscreen" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>
+  <iframe id="videoFrame" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
   <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
     <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
     <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video may be restricted. Watch it directly on YouTube.</div>
@@ -718,25 +719,9 @@ function showLoad(star,thumb,clone,clX,clY,clW,clH){
   ls.classList.add('on');
   const img=document.getElementById('lpImg');
   // Place lpImg exactly where clone is, then it stays — no double image
-  if(thumb&&clX!==undefined){
-    img.src=thumb;img.style.display='block';
-    img.style.cssText=`display:block;position:fixed;left:${clX}px;top:${clY}px;width:${clW}px;height:${clH}px;object-fit:cover;object-position:center top;border:1px solid rgba(201,168,76,.2);z-index:210;transition:none;`;
-    // Remove clone immediately — lpImg is already in the same position
-    if(clone&&clone.parentNode)document.body.removeChild(clone);
-    // After load screen settles, animate lpImg to final centred position
-    setTimeout(()=>{
-      const vw=window.innerWidth,vh=window.innerHeight;
-      const finalW=88,finalH=116;
-      const finalX=(vw-finalW)/2,finalY=vh*0.28;
-      img.style.transition='left .55s cubic-bezier(.4,0,.2,1),top .55s cubic-bezier(.4,0,.2,1),width .5s,height .5s,border-radius .5s';
-      img.style.left=finalX+'px';img.style.top=finalY+'px';
-      img.style.width=finalW+'px';img.style.height=finalH+'px';
-    },80);
-  }else{
-    img.style.cssText='display:block;opacity:1;';
-    if(thumb){img.src=thumb;}else img.style.display='none';
-    if(clone&&clone.parentNode)document.body.removeChild(clone);
-  }
+  if(clone&&clone.parentNode)document.body.removeChild(clone);
+  if(thumb){img.src=thumb;img.style.display='block';}else{img.style.display='none';}
+  img.style.cssText='display:block;';
   document.getElementById('lpName').textContent=star.name.toUpperCase();
   document.getElementById('lpDates').textContent=star.years||'';
   document.getElementById('lpErr').textContent='';
@@ -830,7 +815,8 @@ async function resolveImg(f){
 let tlScale=1.4,tlRunning=false,tlRaf;
 
 function buildTimeline(star,tl,wiki,heroThumb){
-  const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  // Deduplicate by URL and filter out portrait-style duplicates
+  const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i).filter(Boolean);
   const fullName=tl.fullName||star.name;
   const diedPart=tl.died?` – ${tl.died}`:'';
   document.getElementById('tlName').textContent=fullName;
@@ -871,13 +857,15 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const hasVideo=!!(ev.youtubeId||(isDeath&&!ev.youtubeId));
     const videoQuery=ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     // Use sequential images starting from index 1 (skip heroThumb for cards)
-    const cardImg=allImgs.length>1?allImgs[1+(i%(allImgs.length-1))]:allImgs[0];
+    // Distribute images evenly, skip heroThumb (index 0) for cards
+    const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
+    const cardImg=imgPool[i%imgPool.length];
 
     if(hasVideo){
       // Video card — show thumbnail placeholder + play button, embed on click
       const vWrap=document.createElement('div');
       vWrap.className='ev-video-wrap';
-      vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;';
+      vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;border-top:2px solid rgba(201,168,76,0.4);';
 
       // Thumbnail: use Wikipedia image as poster
       if(cardImg){
@@ -899,8 +887,8 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
       // Video label
       const vlbl=document.createElement('div');
-      vlbl.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:.3rem .5rem;background:linear-gradient(to top,rgba(0,0,0,.8),transparent);font-family:var(--mono);font-size:7px;letter-spacing:.12em;color:rgba(201,168,76,.7);pointer-events:none;';
-      vlbl.textContent='▶ WATCH';
+      vlbl.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:.5rem .7rem;background:linear-gradient(to top,rgba(0,0,0,.92),transparent);font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--gold);pointer-events:none;';
+      vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
       vWrap.appendChild(vlbl);
 
       vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
@@ -953,6 +941,12 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupZoom();
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
+  // Tap outside card collapses zoomed card
+  sc.addEventListener('click',e=>{
+    if(!e.target.closest('.ev-card')){
+      document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
+    }
+  });
   tlRunning=true;
 }
 
@@ -1088,9 +1082,15 @@ function openVideo(videoId,title,searchQuery){
     overlay.classList.add('on');
   }
 }
-document.getElementById('videoClose').addEventListener('click',()=>{
+function closeVideo(){
   document.getElementById('videoOverlay').classList.remove('on');
   document.getElementById('videoFrame').src='';
+  document.getElementById('videoFallback').style.display='none';
+  document.getElementById('videoFrame').style.display='block';
+}
+document.getElementById('videoClose').addEventListener('click',closeVideo);
+document.getElementById('videoOverlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeVideo();
 });
 
 // ═══════════════════════════════════════════
@@ -1127,8 +1127,7 @@ document.getElementById('legalClose').addEventListener('click',()=>document.getE
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     document.getElementById('legalModal').classList.remove('on');
-    document.getElementById('videoOverlay').classList.remove('on');
-    document.getElementById('videoFrame').src='';
+    closeVideo();
   }
 });
 document.getElementById('legalModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');});
