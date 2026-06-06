@@ -17,7 +17,7 @@ exports.handler = async function(event, context) {
   try { parsed = JSON.parse(event.body); } catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad JSON" }) }; }
 
   const name = parsed.name;
-  const prompt = `You are a museum curator creating a detailed life timeline for ${name}.
+  const prompt = `You are a museum curator creating an immersive life timeline for ${name}.
 Return ONLY valid JSON, no markdown, no explanation:
 {
   "fullName": "full birth name",
@@ -25,27 +25,27 @@ Return ONLY valid JSON, no markdown, no explanation:
   "died": "YYYY-MM-DD or YYYY or null",
   "nationality": "nationality",
   "fields": ["field1","field2"],
-  "tagline": "one poetic sentence max 12 words",
+  "tagline": "one evocative sentence max 10 words",
   "wikipediaSlug": "Wikipedia_Article_Slug",
-  "youtubeSearchTerms": ["search term 1 for documentary","search term 2 for interview","search term 3 for performance"],
+  "youtubeSearchTerms": ["${name} full documentary", "${name} interview", "${name} greatest moments"],
   "events": [
-    {"year":"YYYY","title":"event title","text":"2 sentences about this moment","type":"birth|childhood|education|career|achievement|personal|death","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":"famous quote or null"},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":null},
-    {"year":"YYYY","title":"","text":"","type":"","quote":"famous quote or null"}
+    {
+      "year": "YYYY",
+      "title": "Short punchy headline (5 words max)",
+      "text": "Two vivid sentences about this moment.",
+      "type": "birth|childhood|education|career|achievement|personal|death",
+      "quote": "verified real quote or null",
+      "videoSearch": "specific YouTube search for footage of this exact moment e.g. '${name} 1985 interview' or null"
+    }
   ]
 }
-Include at least 10 events spanning their entire life from birth to death. The last event must be their death. Include real specific dates where known.`;
+Include exactly 10 events from birth to death. Last event must be type death.
+For videoSearch: provide specific searches that will find real YouTube footage — concert performances, film clips, interviews, documentaries, news footage of key moments. Be specific with years and event names. At least 5 events should have a videoSearch value.
+Quotes must be real and verifiable — if uncertain, use null.`;
 
   const payload = JSON.stringify({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1800,
+    max_tokens: 2000,
     messages: [{ role: "user", content: prompt }]
   });
 
