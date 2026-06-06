@@ -40,8 +40,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 /* After idle timeout: dim others when one is hovered */
 #mosaicCanvas.idle.has-hover .star-tile img{
-  filter:grayscale(60%) brightness(0.32) contrast(1.1);
-  transition:filter .5s ease;
+  filter:grayscale(60%) brightness(0.28) contrast(1.1);
+  transition:filter 1.2s ease;
 }
 /* Hovered tile always lights up in idle mode */
 #mosaicCanvas.idle.has-hover .star-tile.lit img{
@@ -471,12 +471,18 @@ const rendered=new Set();
 let hoveredTile=null,clickedTile=null;
 
 function starAt(c,r){
+  // Each row is a full permutation of STARS with no adjacent duplicates
+  // Use Knuth shuffle seeded by row number
   const n=STARS.length;
-  // Each row uses a different prime stride so columns never repeat the same face
-  const primes=[7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67];
-  const rowPrime=primes[Math.abs(r)%primes.length];
-  const rowSeed=Math.abs(r*37+r*r*13)%n;
-  return STARS[(rowSeed+Math.abs(c)*rowPrime)%n];
+  function seededRand(seed){
+    let s=seed^0x12345678;
+    return ()=>{s=Math.imul(s^(s>>>16),0x45d9f3b);s=Math.imul(s^(s>>>16),0x45d9f3b);s=s^(s>>>16);return(s>>>0)/4294967296;};
+  }
+  const rng=seededRand(Math.abs(r)*2654435761+7);
+  const perm=[...Array(n).keys()];
+  for(let i=n-1;i>0;i--){const j=Math.floor(rng()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]];}
+  const col=((c%n)+n)%n;
+  return STARS[perm[col]];
 }
 
 let idleTimer=null;
@@ -487,14 +493,14 @@ function resetIdle(){
   idleTimer=setTimeout(()=>{
     mc.classList.remove('panning');
     mc.classList.add('idle');
-  },5000);
+  },2000);
 }
 
 function mInit(){
   renderTiles();
   mLoop();
   // Start idle timer on page load
-  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },5000);
+  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },2000);
   const ms=document.getElementById('mosaicScreen');
 
   ms.addEventListener('mousedown',e=>{
@@ -516,14 +522,12 @@ function mInit(){
       return;
     }
     // Edge autopan
-    const vw=window.innerWidth,vh=window.innerHeight,z=110,spd=5;
+    const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
-    // Near left edge → reveal more left → canvas moves right → camX increases → positive
-    // Near right edge → reveal more right → canvas moves left → camX decreases → negative
-    // Near top edge → reveal more above → camY increases → positive
-    // Near bottom edge → reveal more below → camY decreases → negative
-    edgePX=x<z? spd*Math.pow((z-x)/z,1.5):x>vw-z?-spd*Math.pow((x-(vw-z))/z,1.5):0;
-    edgePY=y<z? spd*Math.pow((z-y)/z,1.5):y>vh-z?-spd*Math.pow((y-(vh-z))/z,1.5):0;
+    // Edge zone 154px. Speed ramps quadratically closer to edge. Max 8px/frame.
+    const z2=154,spd2=8;
+    edgePX=x<z2? spd2*Math.pow((z2-x)/z2,2):x>vw-z2?-spd2*Math.pow((x-(vw-z2))/z2,2):0;
+    edgePY=y<z2? spd2*Math.pow((z2-y)/z2,2):y>vh-z2?-spd2*Math.pow((y-(vh-z2))/z2,2):0;
   });
 
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
@@ -572,8 +576,8 @@ function setHover(tile){
 function mLoop(){
   if(!mActive)return;
   if(!mDrag){
-    velX*=0.87;velY*=0.87;
-    if(Math.abs(velX)>0.05||Math.abs(velY)>0.05){camX+=velX;camY+=velY;}
+    velX*=0.94;velY*=0.94;
+    if(Math.abs(velX)>0.02||Math.abs(velY)>0.02){camX+=velX;camY+=velY;}
     else{velX=0;velY=0;}
     if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;resetIdle();}
   }
@@ -638,66 +642,93 @@ function enterStar(star,tile){
   mActive=false;cancelAnimationFrame(mRaf);
   edgePX=0;edgePY=0;clickedTile=tile;
 
+  const thumb=thumbs[star.slug]||null;
   const rect=tile.getBoundingClientRect();
-  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
   const vw=window.innerWidth,vh=window.innerHeight;
-  const maxR=Math.hypot(Math.max(cx,vw-cx),Math.max(cy,vh-cy));
 
-  // Canvas-based hole expand
-  const tl2=document.getElementById('transLayer');
-  const hc=document.getElementById('holeCanvas');
-  tl2.style.display='block';
-  hc.width=vw;hc.height=vh;
-  const ctx=hc.getContext('2d');
+  // Phase 1: Clone the tile image and animate it to centre
+  // while all other tiles fade to black
+  const clone=document.createElement('div');
+  const tileW=rect.width,tileH=rect.height;
+  const targetW=Math.min(200,vw*0.28);
+  const targetH=targetW*(tileH/tileW);
+  const targetX=(vw-targetW)/2;
+  const targetY=(vh-targetH)/2 - vh*0.08; // slightly above centre
 
-  // Fade tile image out
-  const tileImg=tile.querySelector('img');
-  if(tileImg){tileImg.style.transition='opacity .35s ease';tileImg.style.opacity='0';}
-
-  let r=0,startT=null;const dur=750;
-  function frame(ts){
-    if(!startT)startT=ts;
-    const p=Math.min((ts-startT)/dur,1);
-    const ease=1-Math.pow(1-p,2.8);
-    r=ease*maxR*1.05;
-    // Draw dark overlay with circular cutout
-    ctx.clearRect(0,0,vw,vh);
-    ctx.fillStyle='rgba(10,8,6,1)';
-    ctx.fillRect(0,0,vw,vh);
-    // Cut hole — travel through the gap
-    ctx.globalCompositeOperation='destination-out';
-    const grad=ctx.createRadialGradient(cx,cy,Math.max(0,r*.85),cx,cy,r);
-    grad.addColorStop(0,'rgba(0,0,0,1)');
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=grad;
-    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    ctx.globalCompositeOperation='source-over';
-    if(p<1){requestAnimationFrame(frame);}
-    else{
-      // Fade to solid dark
-      const zd=document.getElementById('zoomDark');
-      zd.style.pointerEvents='all';zd.style.opacity='1';
-      setTimeout(()=>{
-        tl2.style.display='none';
-        document.getElementById('mosaicScreen').style.display='none';
-        startJourney(star,thumbs[star.slug]||null);
-      },420);
-    }
+  clone.style.cssText=`
+    position:fixed;z-index:80;pointer-events:none;overflow:hidden;
+    left:${rect.left}px;top:${rect.top}px;
+    width:${tileW}px;height:${tileH}px;
+    transition:left .65s cubic-bezier(.4,0,.2,1),top .65s cubic-bezier(.4,0,.2,1),
+               width .65s cubic-bezier(.4,0,.2,1),height .65s cubic-bezier(.4,0,.2,1),
+               border-radius .65s ease;
+    border-radius:2px;
+  `;
+  if(thumb){
+    const ci=document.createElement('img');
+    ci.src=thumb;
+    ci.style.cssText='width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';
+    clone.appendChild(ci);
   }
-  requestAnimationFrame(frame);
+  document.body.appendChild(clone);
+
+  // Dark overlay that fades in over the mosaic
+  const overlay=document.createElement('div');
+  overlay.style.cssText=`
+    position:fixed;inset:0;z-index:70;
+    background:var(--dark);opacity:0;
+    transition:opacity .5s ease;pointer-events:none;
+  `;
+  document.body.appendChild(overlay);
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      // Fade out mosaic
+      overlay.style.opacity='1';
+      // Animate tile to centre
+      clone.style.left=targetX+'px';
+      clone.style.top=targetY+'px';
+      clone.style.width=targetW+'px';
+      clone.style.height=targetH+'px';
+    });
+  });
+
+  setTimeout(()=>{
+    // Show load screen behind clone
+    document.getElementById('mosaicScreen').style.display='none';
+    document.body.removeChild(overlay);
+    // Load screen appears — clone stays on top briefly
+    startJourney(star,thumb,clone,targetX,targetY,targetW,targetH);
+  },680);
 }
 
 // ══════════════════════════════════════════════════
 //  LOADING
 // ══════════════════════════════════════════════════
-function showLoad(star,thumb){
-  document.getElementById('loadScreen').classList.add('on');
+function showLoad(star,thumb,clone,clX,clY,clW,clH){
+  const ls=document.getElementById('loadScreen');
+  ls.classList.add('on');
   const img=document.getElementById('lpImg');
   if(thumb){img.src=thumb;img.style.display='block';}else img.style.display='none';
   document.getElementById('lpName').textContent=star.name.toUpperCase();
   document.getElementById('lpDates').textContent=star.years||'';
   document.getElementById('lpErr').textContent='';
   setLoad(5,'GATHERING RECORDS');
+  // Animate clone into load screen portrait position, then remove
+  if(clone){
+    const lsRect=img.getBoundingClientRect();
+    setTimeout(()=>{
+      if(clone.parentNode){
+        clone.style.transition='left .4s ease,top .4s ease,width .4s ease,height .4s ease,opacity .3s ease';
+        clone.style.left=lsRect.left+'px';
+        clone.style.top=lsRect.top+'px';
+        clone.style.width=lsRect.width+'px';
+        clone.style.height=lsRect.height+'px';
+        clone.style.opacity='0';
+        setTimeout(()=>{ if(clone.parentNode)document.body.removeChild(clone); },450);
+      }
+    },50);
+  }
 }
 function setLoad(p,s){
   document.getElementById('lpFill').style.width=p+'%';
@@ -708,8 +739,8 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // ══════════════════════════════════════════════════
 //  JOURNEY ORCHESTRATION
 // ══════════════════════════════════════════════════
-async function startJourney(star,thumb){
-  showLoad(star,thumb);
+async function startJourney(star,thumb,clone,clX,clY,clW,clH){
+  showLoad(star,thumb,clone,clX,clY,clW,clH);
   try{
     setLoad(20,'CURATING TIMELINE');
     const tl=await fetchTimeline(star.name);
@@ -1111,6 +1142,17 @@ function updateScrubber(){
 // ──────────────────────────────────────
 //  INTERACTIONS
 // ──────────────────────────────────────
+function setupScrubber(){
+  const track=document.getElementById('scrubTrack');
+  if(!track)return;
+  track.addEventListener('click',e=>{
+    const rect=track.getBoundingClientRect();
+    const p=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+    const worldX=PAD+p*(diedY-bornY)*PX_PER_YEAR;
+    targetPanX=screenCentreFor(worldX);
+  });
+}
+
 function setupTLInteraction(){
   const scene=document.getElementById('tlScene')||document.getElementById('tlCanvas');
   const cvEl=document.getElementById('tlCanvas');
