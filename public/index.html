@@ -135,6 +135,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-yr{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
 .ev-title{font-family:var(--display);font-size:1rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;letter-spacing:.04em;}
 .ev-text{font-family:var(--serif);font-size:.85rem;line-height:1.65;color:var(--txt);opacity:.85;}
+.ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
 .ev-quote{margin-top:.4rem;padding:.55rem .7rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:.88rem;color:var(--cream);line-height:1.55;letter-spacing:.01em;}
 .ev-body{padding:.8rem 1rem 1rem;}
 .ev-play-wrap{position:relative;}
@@ -160,8 +161,73 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .fs-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.1);}
 .fs-btn svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:1.5;stroke-linecap:round;}
 
-/* Disclaimer */
-#disclaimer{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:500;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--muted);opacity:.5;pointer-events:none;white-space:nowrap;text-align:center;}
+/* Legal footer — timeline only */
+.tl-footer{
+  position:absolute;bottom:36px;left:0;right:0;z-index:22;
+  display:flex;align-items:center;justify-content:center;gap:1.5rem;
+  padding:.35rem 1.5rem;
+  background:linear-gradient(to top,rgba(10,8,6,.85) 0%,transparent 100%);
+  pointer-events:none;
+}
+.tl-footer a, .tl-footer span{
+  font-family:var(--mono);font-size:7px;letter-spacing:.1em;
+  color:var(--muted);opacity:.5;text-decoration:none;
+  pointer-events:auto;cursor:pointer;
+  transition:opacity .2s;white-space:nowrap;
+}
+.tl-footer a:hover, .tl-footer span:hover{opacity:.9;}
+.tl-footer-sep{opacity:.2!important;pointer-events:none!important;}
+
+/* Legal modal */
+#legalModal{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(10,8,6,.92);backdrop-filter:blur(12px);
+  display:none;align-items:center;justify-content:center;
+  padding:2rem;
+}
+#legalModal.on{display:flex;}
+.legal-box{
+  max-width:560px;width:100%;
+  background:#13110D;
+  border:1px solid var(--gold2);
+  border-radius:3px;
+  padding:2.5rem 2.5rem 2rem;
+  position:relative;max-height:80vh;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;
+}
+.legal-close{
+  position:absolute;top:1rem;right:1.25rem;
+  background:none;border:none;color:var(--muted);
+  font-family:var(--mono);font-size:11px;cursor:pointer;
+  transition:color .2s;letter-spacing:.1em;
+}
+.legal-close:hover{color:var(--gold);}
+.legal-title{
+  font-family:var(--display);font-size:1rem;font-weight:600;
+  color:var(--cream);letter-spacing:.15em;margin-bottom:.3rem;
+}
+.legal-sub{
+  font-family:var(--mono);font-size:8px;letter-spacing:.15em;
+  color:var(--gold);opacity:.7;margin-bottom:1.5rem;
+}
+.legal-section{margin-bottom:1.25rem;}
+.legal-section h3{
+  font-family:var(--display);font-size:8px;letter-spacing:.2em;
+  color:var(--gold);opacity:.7;margin-bottom:.4rem;
+}
+.legal-section p{
+  font-family:var(--serif);font-size:.85rem;line-height:1.7;
+  color:var(--muted);
+}
+.legal-section p strong{color:var(--txt);}
+.legal-divider{height:1px;background:var(--gold2);margin:1.25rem 0;opacity:.5;}
+
+/* Quote uncertainty badge */
+.ev-quote-badge{
+  display:inline-block;font-family:var(--mono);font-size:6px;
+  letter-spacing:.1em;color:var(--muted);opacity:.5;
+  margin-top:.3rem;
+}
 
 /* Video overlay */
 #videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.96);display:none;align-items:center;justify-content:center;}
@@ -218,6 +284,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     <div class="tl-zbtn" id="zOut">−</div>
     <div class="tl-zbtn sm" id="zFit">FIT</div>
   </div>
+  <div class="tl-footer">
+    <span id="legalBtn">LEGAL &amp; DISCLAIMER</span>
+    <span class="tl-footer-sep">·</span>
+    <span>AI-GENERATED CONTENT</span>
+    <span class="tl-footer-sep">·</span>
+    <span>IMAGES © WIKIMEDIA COMMONS CC-BY-SA</span>
+    <span class="tl-footer-sep">·</span>
+    <span>IN MEMORIAM · EDUCATIONAL USE ONLY</span>
+  </div>
   <div class="tl-scrub">
     <div class="tl-scrub-lbl" id="scrubBirth"></div>
     <div class="tl-scrub-track" id="scrubTrack">
@@ -225,6 +300,55 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <div class="tl-scrub-thumb" id="scrubThumb"></div>
     </div>
     <div class="tl-scrub-lbl" id="scrubDeath"></div>
+  </div>
+</div>
+
+<!-- Legal Modal -->
+<div id="legalModal">
+  <div class="legal-box">
+    <button class="legal-close" id="legalClose">✕ CLOSE</button>
+    <div class="legal-title">STARSEUM</div>
+    <div class="legal-sub">LEGAL NOTICE &amp; DISCLAIMER</div>
+
+    <div class="legal-section">
+      <h3>AI-GENERATED CONTENT</h3>
+      <p>Biographical content, timelines, and quotes on this site are generated by <strong>Claude AI (Anthropic)</strong> and may contain inaccuracies, errors, or misattributed quotations. Starseum does not guarantee the accuracy of any AI-generated content. Quotes in particular should be treated as <strong>illustrative rather than verified</strong> — AI systems are known to misattribute or fabricate quotations.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>IN MEMORIAM</h3>
+      <p>Starseum is created <strong>as a respectful tribute</strong> to individuals who have passed. It is intended solely for educational, memorial, and cultural appreciation purposes. It is not affiliated with, endorsed by, or connected to any estate, rights holder, or official representative of any person featured.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>IMAGES &amp; MEDIA</h3>
+      <p>Photographs are sourced from <strong>Wikimedia Commons</strong> under Creative Commons licences (CC-BY-SA and public domain). Video content links to <strong>YouTube</strong> and is subject to YouTube's Terms of Service. Starseum does not host or own any video content.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>NO COMMERCIAL USE</h3>
+      <p>This site does not use any individual's name, likeness, or biographical information for commercial gain. No content is sold or monetised. If you are a rights holder and have concerns about any content, please contact us to request a correction or removal.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>QUOTES &amp; ATTRIBUTION</h3>
+      <p>Quotes displayed on this site are generated by AI and <strong>have not been independently verified</strong>. They are presented as illustrative of the subject's known views and should not be treated as confirmed primary sources. If you identify a misattributed or fabricated quote, please contact us immediately.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>CORRECTIONS</h3>
+      <p>We welcome corrections to factual errors. If you spot inaccurate content, please reach out. Starseum is committed to being accurate and respectful in its depiction of all individuals featured.</p>
+    </div>
   </div>
 </div>
 
@@ -237,7 +361,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <svg viewBox="0 0 16 16"><polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/><polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/></svg>
 </div>
 
-<div id="disclaimer">Content sourced from Wikipedia · Images via Wikimedia Commons · For educational purposes only</div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -619,7 +742,7 @@ async function resolveImg(f){
 // ═══════════════════════════════════════════
 //  TIMELINE — simple flexbox strip
 // ═══════════════════════════════════════════
-let tlScale=1,tlRunning=false,tlRaf;
+let tlScale=1.4,tlRunning=false,tlRaf;
 
 function buildTimeline(star,tl,wiki,heroThumb){
   const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i);
@@ -659,20 +782,49 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const card=document.createElement('div');
     card.className='ev-card';
 
-    if(imgSrc){
+    // Determine if this event has video
+    const hasVideo=!!(ev.videoSearch||(isDeath&&tl.youtubeSearchTerms));
+    const videoQuery=ev.videoSearch||(isDeath?(tl.youtubeSearchTerms||[star.name+' documentary'])[0]:null);
+
+    if(hasVideo){
+      // Video card — show thumbnail placeholder + play button, embed on click
+      const vWrap=document.createElement('div');
+      vWrap.className='ev-video-wrap';
+      vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;';
+
+      // Thumbnail: use Wikipedia image as poster
+      if(imgSrc){
+        const thumb=document.createElement('img');
+        thumb.className='ev-img';thumb.src=imgSrc;thumb.alt=ev.title||'';thumb.loading='lazy';
+        thumb.onerror=()=>{};
+        vWrap.appendChild(thumb);
+      }else{
+        const ph=document.createElement('div');
+        ph.style.cssText='height:160px;background:#13110C;display:flex;align-items:center;justify-content:center;';
+        ph.innerHTML='<svg width="48" height="48" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.3)"/></svg>';
+        vWrap.appendChild(ph);
+      }
+
+      // Play overlay
+      const pb=document.createElement('div');pb.className='ev-play-btn';
+      pb.innerHTML=`<svg viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="39" stroke="rgba(201,168,76,0.85)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.95)"/></svg>`;
+      vWrap.appendChild(pb);
+
+      // Video label
+      const vlbl=document.createElement('div');
+      vlbl.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:.3rem .5rem;background:linear-gradient(to top,rgba(0,0,0,.8),transparent);font-family:var(--mono);font-size:7px;letter-spacing:.12em;color:rgba(201,168,76,.7);pointer-events:none;';
+      vlbl.textContent='▶ WATCH';
+      vWrap.appendChild(vlbl);
+
+      vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
+      card.appendChild(vWrap);
+    }else if(imgSrc){
       const wrap=document.createElement('div');
       wrap.className='ev-play-wrap';
       const img=document.createElement('img');
       img.className='ev-img';img.src=imgSrc;img.alt=ev.title||'';img.loading='lazy';
       img.onerror=()=>wrap.remove();
       wrap.appendChild(img);
-      if(isDeath){
-        const pb=document.createElement('div');pb.className='ev-play-btn';
-        pb.innerHTML=`<svg viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="39" stroke="rgba(201,168,76,0.85)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.95)"/></svg>`;
-        wrap.appendChild(pb);
-        const q=(tl.youtubeSearchTerms||[star.name+' documentary'])[0];
-        card.addEventListener('click',()=>openVideo(q,ev.title));
-      }
       card.appendChild(wrap);
     }
 
@@ -695,8 +847,11 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
   if(tl.died)strip.appendChild(makeCap(tl.died,'DEATH'));
 
-  // Scroll to start
+  // Apply initial zoom level
   const sc=document.getElementById('tlScroll');
+  const strip2=document.getElementById('tlStrip');
+  strip2.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
+  strip2.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(160*tlScale)+'px');
   sc.scrollLeft=0;
 
   // Setup interactions
@@ -788,9 +943,13 @@ function stopTL(){
 //  VIDEO
 // ═══════════════════════════════════════════
 function openVideo(query,title){
-  // YouTube search embed requires API key — open in new tab instead
-  const q=encodeURIComponent(query+' full documentary');
-  window.open(`https://www.youtube.com/results?search_query=${q}`,'_blank','noopener');
+  const overlay=document.getElementById('videoOverlay');
+  const frame=document.getElementById('videoFrame');
+  // Use youtube-nocookie embed with search — shows a search results playlist
+  // This is the most reliable approach without an API key
+  const q=encodeURIComponent(query);
+  frame.src=`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&rel=0&modestbranding=1&autoplay=0`;
+  overlay.classList.add('on');
 }
 document.getElementById('videoClose').addEventListener('click',()=>{
   document.getElementById('videoOverlay').classList.remove('on');
@@ -804,6 +963,18 @@ document.getElementById('fsBtn').addEventListener('click',()=>{
   if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
   else document.exitFullscreen();
 });
+
+// Legal modal
+document.getElementById('legalBtn').addEventListener('click',()=>document.getElementById('legalModal').classList.add('on'));
+document.getElementById('legalClose').addEventListener('click',()=>document.getElementById('legalModal').classList.remove('on'));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.getElementById('legalModal').classList.remove('on');
+    document.getElementById('videoOverlay').classList.remove('on');
+    document.getElementById('videoFrame').src='';
+  }
+});
+document.getElementById('legalModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');});
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 window.addEventListener('resize',()=>{
