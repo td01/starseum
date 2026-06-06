@@ -257,9 +257,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   width:1px;background:var(--gold2);
   pointer-events:none;
   left:50%;transform:translateX(-50%);
-  bottom:0;
+  bottom:-40px; /* extends downward from above-card */
+  height:40px;
 }
-.tl-card.below .tl-connector{bottom:auto;top:0;}
+.tl-card.below .tl-connector{
+  bottom:auto;
+  top:-40px; /* extends upward from below-card */
+  height:40px;
+}
 
 /* Dot on spine */
 .tl-dot{
@@ -981,6 +986,25 @@ function buildTimeline(star,tl,wiki,heroThumb){
     card._ev=ev;
     cardsEl.appendChild(card);
     domCards.push(card);
+  });
+
+  // Position card tops once (they only change horizontally during pan/zoom)
+  const vh2=window.innerHeight;
+  const spineY2=Math.round(vh2*SPINE_Y_RATIO);
+  const CONN_BASE=40;
+  domCards.forEach((card,i)=>{
+    const isAbove=card._isAbove;
+    // Use large fixed connector + card height estimates
+    const connH=CONN_BASE;
+    if(isAbove){
+      // anchor bottom of card to spineY - gap - connH
+      card.style.top='auto';
+      card.style.bottom=(vh2-spineY2+connH)+'px';
+    }else{
+      card.style.top=(spineY2+connH)+'px';
+    }
+    card.style.position='absolute';
+    card.style.display='block';
   });
 
   // Scrubber
