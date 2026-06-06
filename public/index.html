@@ -3,430 +3,745 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Starseum — A Museum of Extraordinary Lives</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<title>Starseum</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --gold: #C9A84C; --gold-dim: rgba(201,168,76,0.2); --gold-dim2: rgba(201,168,76,0.45);
-  --cream: #F0E6CC; --dark: #0C0A07; --panel: #131109; --card: #181410;
-  --txt: #DDD5BE; --muted: #7A7060;
-  --serif: 'Cormorant Garamond', Georgia, serif; --display: 'Cinzel', serif;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:rgba(201,168,76,0.25);--gold3:rgba(201,168,76,0.08);
+  --cream:#F0E6CC;--dark:#0C0A07;--panel:#13110D;--card:#1A1610;
+  --txt:#DDD5BE;--muted:#6A6050;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --display:'Cinzel',serif;--mono:'DM Mono',monospace;
 }
-html { scroll-behavior: smooth; }
-body { background: var(--dark); color: var(--txt); font-family: 'Inter', system-ui, sans-serif; font-weight: 300; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);color:var(--txt);-webkit-font-smoothing:antialiased;}
 
-/* SCREENS */
-.screen { display: none; }
-.screen.active { display: block; animation: fadeUp .5s ease both; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
-
-/* ── MOSAIC HOME ── */
-#homeScreen { position: relative; width: 100vw; height: 100vh; overflow: hidden; cursor: crosshair; }
-
-.mosaic-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  width: 100%; height: 100%;
-  gap: 3px;
+/* ═══════════════════════════════════════════
+   MOSAIC SCREEN
+═══════════════════════════════════════════ */
+#mosaicScreen{
+  position:fixed;inset:0;
+  overflow:hidden;
+  cursor:crosshair;
+  z-index:1;
 }
 
-.star-cell {
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  background: #111;
+#mosaicCanvas{
+  position:absolute;
+  /* draggable infinite canvas */
+  will-change:transform;
+  transition:none;
 }
 
-.star-cell img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  filter: grayscale(30%) brightness(0.8) contrast(1.1);
-  transition: filter .4s ease, transform .5s ease;
-  display: block;
+.star-tile{
+  position:absolute;
+  width:220px;height:280px;
+  overflow:hidden;
+  cursor:pointer;
+  background:#111;
+  border:1px solid rgba(255,255,255,0.04);
 }
-
-.star-cell:hover img {
-  filter: grayscale(0%) brightness(1.05) contrast(1.1);
-  transform: scale(1.08);
+.star-tile img{
+  width:100%;height:100%;
+  object-fit:cover;object-position:center top;
+  filter:grayscale(40%) brightness(0.75) contrast(1.1);
+  transition:filter .5s,transform .6s cubic-bezier(.25,.46,.45,.94);
+  display:block;pointer-events:none;
 }
-
-.star-cell-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity .3s;
+.star-tile:hover img{
+  filter:grayscale(0%) brightness(0.95) contrast(1.05);
+  transform:scale(1.06);
 }
-.star-cell:hover .star-cell-overlay { opacity: 1; }
-
-.star-cell-name {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: .4rem .5rem;
-  font-family: var(--display);
-  font-size: clamp(7px, 1vw, 11px);
-  letter-spacing: .08em;
-  color: var(--cream);
-  opacity: 0;
-  transition: opacity .3s;
-  text-align: center;
-  line-height: 1.2;
+.star-tile-vignette{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 45%);
+  opacity:0;transition:opacity .35s;
 }
-.star-cell:hover .star-cell-name { opacity: 1; }
+.star-tile:hover .star-tile-vignette{opacity:1;}
+.star-tile-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:.6rem .75rem;
+  opacity:0;transition:opacity .35s;
+  transform:translateY(4px);
+  transition:opacity .3s,transform .3s;
+}
+.star-tile:hover .star-tile-info{opacity:1;transform:none;}
+.star-tile-name{
+  font-family:var(--display);
+  font-size:11px;letter-spacing:.12em;
+  color:var(--cream);line-height:1.3;
+}
+.star-tile-years{
+  font-family:var(--mono);
+  font-size:9px;color:var(--gold);
+  margin-top:2px;letter-spacing:.05em;
+}
+.star-tile-placeholder{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:.4rem;background:var(--card);
+}
+.star-tile-initial{
+  font-family:var(--display);
+  font-size:3rem;color:rgba(201,168,76,0.3);
+  line-height:1;
+}
 
 /* Wordmark overlay */
-.home-wordmark-wrap {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  pointer-events: none;
-  z-index: 10;
-  background: rgba(12,10,7,0.55);
-  backdrop-filter: blur(4px);
-  padding: 1.5rem 2.5rem;
-  border: 1px solid var(--gold-dim);
+.mosaic-header{
+  position:fixed;top:0;left:0;right:0;
+  padding:1.5rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  z-index:50;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(12,10,7,0.85) 0%,transparent 100%);
 }
-.home-wordmark {
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 5vw, 3.5rem);
-  font-weight: 600;
-  letter-spacing: .2em;
-  color: var(--cream);
-  line-height: 1;
+.mosaic-wordmark{
+  font-family:var(--display);
+  font-size:1.1rem;letter-spacing:.3em;
+  color:var(--cream);font-weight:600;
 }
-.home-wordmark-ai { color: var(--gold); font-size: .4em; vertical-align: super; }
-.home-rule { width: 48px; height: 1px; background: var(--gold); margin: .7rem auto; opacity: .7; }
-.home-sub {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(.75rem, 1.5vw, 1rem);
-  color: rgba(240,230,204,0.7);
-  letter-spacing: .04em;
+.mosaic-wordmark span{color:var(--gold);font-size:.65em;vertical-align:super;}
+.mosaic-hint{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:.1em;color:var(--muted);
+  pointer-events:none;
 }
 
-/* Zoom transition overlay */
-#zoomOverlay {
-  position: fixed; inset: 0;
-  background: var(--dark);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 200;
-  transition: opacity .5s ease;
+/* drag hint pulse */
+.drag-hint{
+  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+  color:var(--muted);z-index:50;
+  animation:hintFade 3s ease 1.5s both;
 }
-#zoomOverlay.active { opacity: 1; pointer-events: all; }
+@keyframes hintFade{0%{opacity:0}20%{opacity:1}70%{opacity:1}100%{opacity:0;pointer-events:none}}
 
-/* ── LOADING ── */
-#loadScreen {
-  min-height: 100vh; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 3rem 2rem; text-align: center;
-  background: radial-gradient(ellipse at 50% 30%, rgba(201,168,76,0.05) 0%, transparent 60%);
+/* ═══════════════════════════════════════════
+   ZOOM TRANSITION
+═══════════════════════════════════════════ */
+#zoomLayer{
+  position:fixed;inset:0;z-index:100;
+  pointer-events:none;
+  display:none;
 }
-.load-name { font-family: var(--display); font-size: clamp(1.8rem,6vw,3rem); color: var(--cream); letter-spacing:.14em; margin-bottom:.4rem; }
-.load-sub { font-family: var(--serif); font-style:italic; color:var(--muted); font-size:1.1rem; margin-bottom:2.5rem; }
-.prog-track { width:300px; height:1px; background:rgba(201,168,76,.12); margin:0 auto 1.5rem; border-radius:1px; overflow:hidden; }
-.prog-fill { height:100%; background:linear-gradient(90deg,var(--gold-dim2),var(--gold)); width:0%; transition:width .6s cubic-bezier(.4,0,.2,1); }
-.load-step { font-size:9px; letter-spacing:3.5px; color:var(--muted); font-family:var(--display); min-height:1rem; }
-.err-msg { color:#c0674a; font-size:14px; margin-top:1.5rem; font-family:var(--serif); font-style:italic; max-width:420px; line-height:1.6; }
+.zoom-ring{
+  position:absolute;
+  border-radius:50%;
+  border:1px solid rgba(201,168,76,0.4);
+  transform:translate(-50%,-50%) scale(0);
+  transition:transform .6s cubic-bezier(.4,0,.2,1),opacity .6s;
+  opacity:0;
+}
+#zoomDark{
+  position:fixed;inset:0;z-index:110;
+  background:var(--dark);opacity:0;
+  pointer-events:none;
+  transition:opacity .5s ease;
+}
 
-/* ── TIMELINE ── */
-#timelineScreen { min-height:100vh; }
-.tl-header {
-  position:sticky; top:0;
-  background:rgba(12,10,7,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--gold-dim);
-  padding:.9rem 2rem; display:flex; align-items:center; gap:1.5rem; z-index:100;
+/* ═══════════════════════════════════════════
+   LOADING SCREEN
+═══════════════════════════════════════════ */
+#loadScreen{
+  position:fixed;inset:0;z-index:200;
+  display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  background:var(--dark);
 }
-.tl-back { background:none; border:none; color:var(--muted); font-family:var(--display); font-size:9px; letter-spacing:2.5px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:color .2s; padding:0; flex-shrink:0; }
-.tl-back:hover { color:var(--gold); }
-.tl-title-wrap { flex:1; min-width:0; }
-.tl-name { font-family:var(--display); font-size:clamp(.95rem,3vw,1.4rem); font-weight:600; color:var(--cream); letter-spacing:.08em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tl-meta { font-family:var(--serif); font-style:italic; font-size:.82rem; color:var(--muted); margin-top:1px; }
-.tl-nav { display:flex; overflow-x:auto; border-bottom:1px solid var(--gold-dim); background:var(--panel); scrollbar-width:none; }
-.tl-nav::-webkit-scrollbar { display:none; }
-.tl-tab { font-family:var(--display); font-size:9px; letter-spacing:2.5px; color:var(--muted); padding:.65rem 1.2rem; cursor:pointer; border:none; border-bottom:2px solid transparent; background:none; transition:all .2s; white-space:nowrap; }
-.tl-tab:hover { color:var(--gold); }
-.tl-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
-.tl-hero { position:relative; height:clamp(280px,55vh,520px); overflow:hidden; display:flex; align-items:flex-end; }
-.tl-hero-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top; filter:brightness(.52) contrast(1.05) sepia(.15); }
-.tl-hero-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(12,10,7,1) 0%,rgba(12,10,7,.55) 40%,rgba(12,10,7,.1) 100%); }
-.tl-hero-text { position:relative; padding:2.5rem 2.5rem 2rem; z-index:2; width:100%; }
-.tl-hero-name { font-family:var(--display); font-size:clamp(2rem,7vw,4.5rem); font-weight:600; color:var(--cream); letter-spacing:.12em; line-height:1; margin-bottom:.4rem; }
-.tl-hero-dates { font-family:var(--serif); font-style:italic; font-size:1.1rem; color:rgba(201,168,76,.8); margin-bottom:.3rem; }
-.tl-hero-tagline { font-family:var(--serif); font-style:italic; font-size:1rem; color:rgba(221,213,190,.65); max-width:580px; line-height:1.5; }
-.tl-body { padding:0 2rem 4rem; max-width:800px; margin:0 auto; }
-.chapter { display:grid; grid-template-columns:72px 1fr; gap:1.5rem; padding:2.5rem 0; border-bottom:1px solid var(--gold-dim); opacity:0; transform:translateY(28px); transition:opacity .7s ease,transform .7s ease; }
-.chapter:last-child { border-bottom:none; }
-.chapter.visible { opacity:1; transform:none; }
-.ch-year { font-family:var(--display); font-size:.9rem; color:var(--gold); letter-spacing:.05em; text-align:right; padding-top:.25rem; }
-.ch-content { border-left:1px solid var(--gold-dim); padding-left:1.5rem; }
-.ch-label { font-family:var(--display); font-size:8px; letter-spacing:3.5px; color:var(--gold); opacity:.6; margin-bottom:.4rem; }
-.ch-title { font-family:var(--serif); font-size:1.5rem; font-weight:600; color:var(--cream); line-height:1.2; margin-bottom:.6rem; }
-.ch-text { font-family:var(--serif); font-size:1.06rem; line-height:1.9; color:var(--txt); }
-.media-block { margin-top:1.25rem; }
-.img-grid { display:grid; gap:.75rem; }
-.img-grid.two { grid-template-columns:1fr 1fr; }
-.arch-img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:2px; border:1px solid var(--gold-dim); background:var(--card); display:block; filter:sepia(.1) contrast(1.05); transition:filter .35s; }
-.arch-img:hover { filter:sepia(0) contrast(1.08); }
-.media-cap { font-size:10px; letter-spacing:1.5px; color:var(--muted); margin-top:5px; opacity:.65; }
-.yt-wrap { width:100%; aspect-ratio:16/9; border-radius:2px; overflow:hidden; border:1px solid var(--gold-dim); background:#000; }
-.yt-wrap iframe { width:100%; height:100%; border:none; display:block; }
-.quote-pull { margin-top:1.25rem; padding:1rem 1.3rem; border-left:2px solid var(--gold); background:rgba(201,168,76,.04); }
-.quote-pull p { font-family:var(--serif); font-style:italic; font-size:1.1rem; color:var(--cream); line-height:1.65; }
-.quote-pull cite { display:block; margin-top:.45rem; font-size:9px; letter-spacing:2.5px; color:var(--muted); font-style:normal; font-family:var(--display); }
-.fact-pills { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.9rem; }
-.fact-pill { border:1px solid var(--gold-dim); color:var(--gold); font-size:9px; letter-spacing:2px; padding:4px 10px; border-radius:1px; font-family:var(--display); opacity:.7; }
-.tl-footer { text-align:center; padding:2.5rem 2rem; border-top:1px solid var(--gold-dim); }
-.tl-footer p { font-family:var(--serif); font-style:italic; font-size:.85rem; color:var(--muted); margin-bottom:1rem; opacity:.7; }
-.explore-btn { background:transparent; border:1px solid var(--gold); color:var(--gold); font-family:var(--display); font-size:9px; letter-spacing:2.5px; padding:.65rem 1.5rem; border-radius:2px; cursor:pointer; transition:background .2s; }
-.explore-btn:hover { background:rgba(201,168,76,.1); }
-@media (max-width:600px) {
-  .tl-body { padding:0 1rem 3rem; }
-  .tl-header { padding:.75rem 1rem; }
-  .chapter { grid-template-columns:52px 1fr; gap:1rem; padding:2rem 0; }
-  .img-grid.two { grid-template-columns:1fr; }
-  .ch-content { padding-left:1rem; }
-  .mosaic-grid { grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(10,1fr); }
+#loadScreen.active{display:flex;}
+.load-portrait{
+  width:120px;height:150px;
+  object-fit:cover;object-position:center top;
+  border:1px solid var(--gold2);
+  margin-bottom:2rem;
+  filter:grayscale(30%) sepia(.15);
+  opacity:0;animation:loadImgIn .6s .2s ease both;
 }
+@keyframes loadImgIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
+.load-name{
+  font-family:var(--display);
+  font-size:clamp(1.8rem,5vw,3rem);
+  color:var(--cream);letter-spacing:.14em;
+  margin-bottom:.3rem;
+  opacity:0;animation:loadImgIn .5s .35s ease both;
+}
+.load-dates{
+  font-family:var(--mono);font-size:11px;
+  color:var(--gold);letter-spacing:.15em;
+  margin-bottom:2.5rem;
+  opacity:0;animation:loadImgIn .5s .45s ease both;
+}
+.load-bar-wrap{
+  width:240px;height:1px;
+  background:rgba(201,168,76,.12);
+  margin:0 auto 1rem;overflow:hidden;
+  opacity:0;animation:loadImgIn .4s .55s ease both;
+}
+.load-bar{height:100%;background:var(--gold);width:0%;transition:width .5s ease;}
+.load-step{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:.2em;color:var(--muted);
+  opacity:0;animation:loadImgIn .4s .6s ease both;
+}
+.load-err{
+  color:#c0674a;font-size:13px;margin-top:1.5rem;
+  font-family:var(--serif);font-style:italic;max-width:380px;text-align:center;
+}
+
+/* ═══════════════════════════════════════════
+   TIMELINE SCREEN
+═══════════════════════════════════════════ */
+#timelineScreen{
+  position:fixed;inset:0;z-index:200;
+  display:none;flex-direction:column;
+  background:var(--dark);
+  overflow:hidden;
+}
+#timelineScreen.active{display:flex;}
+
+.tl-topbar{
+  display:flex;align-items:center;gap:1.5rem;
+  padding:.85rem 1.5rem;
+  border-bottom:1px solid var(--gold2);
+  flex-shrink:0;
+  background:rgba(12,10,7,.97);
+  backdrop-filter:blur(10px);
+}
+.tl-back-btn{
+  background:none;border:none;cursor:pointer;
+  font-family:var(--display);font-size:9px;
+  letter-spacing:2.5px;color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+  transition:color .2s;padding:0;flex-shrink:0;
+}
+.tl-back-btn:hover{color:var(--gold);}
+.tl-star-name{
+  font-family:var(--display);
+  font-size:clamp(.9rem,2.5vw,1.3rem);
+  font-weight:600;color:var(--cream);
+  letter-spacing:.08em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tl-star-meta{
+  font-family:var(--mono);font-size:9px;
+  color:var(--muted);margin-top:1px;letter-spacing:.1em;
+}
+.tl-spacer{flex:1;}
+.tl-tagline{
+  font-family:var(--serif);font-style:italic;
+  font-size:.85rem;color:var(--muted);
+  max-width:300px;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* Horizontal scroll container */
+.tl-scroll{
+  flex:1;
+  overflow-x:auto;overflow-y:hidden;
+  display:flex;align-items:stretch;
+  scrollbar-width:thin;
+  scrollbar-color:var(--gold2) transparent;
+  cursor:grab;
+  user-select:none;
+}
+.tl-scroll:active{cursor:grabbing;}
+.tl-scroll::-webkit-scrollbar{height:3px;}
+.tl-scroll::-webkit-scrollbar-track{background:transparent;}
+.tl-scroll::-webkit-scrollbar-thumb{background:var(--gold2);border-radius:2px;}
+
+.tl-inner{
+  display:flex;align-items:center;
+  padding:0 6vw;
+  min-height:100%;
+  position:relative;
+}
+
+/* Spine */
+.tl-spine{
+  position:absolute;
+  top:50%;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold2) 5%,var(--gold2) 95%,transparent);
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
+/* Birth / death caps */
+.tl-cap{
+  display:flex;flex-direction:column;align-items:center;
+  flex-shrink:0;z-index:2;
+}
+.tl-cap-year{
+  font-family:var(--mono);font-size:11px;
+  color:var(--gold);letter-spacing:.1em;margin-bottom:.4rem;
+}
+.tl-cap-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 12px var(--gold);
+}
+.tl-cap-label{
+  font-family:var(--display);font-size:8px;
+  letter-spacing:.2em;color:var(--muted);
+  margin-top:.4rem;
+}
+
+/* Chapter cards */
+.tl-chapter{
+  display:flex;flex-direction:column;
+  flex-shrink:0;
+  width:280px;
+  margin:0 3rem;
+  position:relative;
+  z-index:2;
+  opacity:0;
+  animation:cardIn .5s ease both;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+.tl-chapter.above{
+  align-self:flex-start;
+  padding-top:2rem;
+}
+.tl-chapter.below{
+  align-self:flex-end;
+  padding-bottom:2rem;
+}
+
+/* connector line from spine to card */
+.tl-chapter::before{
+  content:'';
+  position:absolute;
+  left:50%;width:1px;
+  background:var(--gold2);
+  pointer-events:none;
+}
+.tl-chapter.above::before{
+  top:auto;bottom:0;
+  height:calc(50vh - 2rem - 100% + 1rem);
+  transform:translateX(-50%);
+}
+.tl-chapter.below::before{
+  top:0;
+  height:calc(50vh - 2rem - 100% + 1rem);
+  transform:translateX(-50%);
+}
+
+.tl-node-dot{
+  position:absolute;left:50%;
+  width:8px;height:8px;
+  border-radius:50%;
+  border:1px solid var(--gold);
+  background:var(--dark);
+  transform:translateX(-50%);
+  z-index:3;
+}
+.tl-chapter.above .tl-node-dot{bottom:-4px;}
+.tl-chapter.below .tl-node-dot{top:-4px;}
+
+.tl-card{
+  background:var(--card);
+  border:1px solid var(--gold2);
+  border-radius:2px;
+  overflow:hidden;
+  transition:border-color .25s;
+}
+.tl-card:hover{border-color:rgba(201,168,76,0.5);}
+
+.tl-card-img{
+  width:100%;height:160px;
+  object-fit:cover;
+  object-position:center top;
+  display:block;
+  filter:sepia(.08) contrast(1.05);
+}
+.tl-card-body{padding:.85rem 1rem;}
+.tl-card-year{
+  font-family:var(--mono);font-size:9px;
+  color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;
+}
+.tl-card-label{
+  font-family:var(--display);font-size:8px;
+  letter-spacing:.25em;color:var(--muted);
+  opacity:.7;margin-bottom:.3rem;
+}
+.tl-card-title{
+  font-family:var(--serif);font-size:1.1rem;
+  font-weight:600;color:var(--cream);
+  line-height:1.2;margin-bottom:.5rem;
+}
+.tl-card-text{
+  font-family:var(--serif);font-size:.9rem;
+  line-height:1.7;color:var(--txt);
+}
+.tl-card-quote{
+  margin-top:.75rem;
+  padding:.6rem .8rem;
+  border-left:2px solid var(--gold);
+  background:rgba(201,168,76,.04);
+  font-family:var(--serif);font-style:italic;
+  font-size:.88rem;color:var(--cream);line-height:1.55;
+}
+
+/* Video card */
+.tl-yt{
+  width:100%;aspect-ratio:16/9;
+  border:none;display:block;
+}
+
+/* Bottom scrubber */
+.tl-scrubber{
+  display:flex;align-items:center;
+  gap:.75rem;
+  padding:.6rem 1.5rem;
+  border-top:1px solid var(--gold2);
+  background:rgba(12,10,7,.95);
+  flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.tl-scrubber::-webkit-scrollbar{display:none;}
+.tl-scrub-item{
+  font-family:var(--mono);font-size:8px;
+  letter-spacing:.1em;color:var(--muted);
+  cursor:pointer;white-space:nowrap;
+  padding:.25rem .5rem;
+  border-bottom:1px solid transparent;
+  transition:all .2s;
+}
+.tl-scrub-item:hover,.tl-scrub-item.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tl-scrub-sep{width:20px;height:1px;background:var(--gold2);flex-shrink:0;}
 </style>
 </head>
 <body>
 
-<div id="zoomOverlay"></div>
-
-<!-- HOME: MOSAIC -->
-<div id="homeScreen" class="screen active">
-  <div class="mosaic-grid" id="mosaicGrid"></div>
-  <div class="home-wordmark-wrap">
-    <div class="home-wordmark">STARSEUM<span class="home-wordmark-ai">AI</span></div>
-    <div class="home-rule"></div>
-    <div class="home-sub">Click a face to enter their museum</div>
+<!-- ══ MOSAIC ══════════════════════════════════════════ -->
+<div id="mosaicScreen">
+  <div id="mosaicCanvas"></div>
+  <div class="mosaic-header">
+    <div class="mosaic-wordmark">STARSEUM<span>AI</span></div>
+    <div class="mosaic-hint">DRAG TO EXPLORE · CLICK TO ENTER</div>
   </div>
+  <div class="drag-hint">↕ ↔ DRAG TO EXPLORE</div>
 </div>
 
-<!-- LOADING -->
-<div id="loadScreen" class="screen">
+<!-- ══ ZOOM ════════════════════════════════════════════ -->
+<div id="zoomLayer">
+  <div class="zoom-ring" id="zr1"></div>
+  <div class="zoom-ring" id="zr2"></div>
+</div>
+<div id="zoomDark"></div>
+
+<!-- ══ LOADING ═════════════════════════════════════════ -->
+<div id="loadScreen">
+  <img class="load-portrait" id="loadPortrait" src="" alt="">
   <div class="load-name" id="loadName"></div>
-  <div class="load-sub">Preparing the exhibition…</div>
-  <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+  <div class="load-dates" id="loadDates"></div>
+  <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
   <div class="load-step" id="loadStep">GATHERING RECORDS</div>
-  <div class="err-msg" id="errMsg"></div>
+  <div class="load-err" id="loadErr"></div>
 </div>
 
-<!-- TIMELINE -->
-<div id="timelineScreen" class="screen">
-  <div class="tl-header">
-    <button class="tl-back" id="backBtn">← MUSEUM</button>
-    <div class="tl-title-wrap">
-      <div class="tl-name" id="tlName"></div>
-      <div class="tl-meta" id="tlMeta"></div>
+<!-- ══ TIMELINE ════════════════════════════════════════ -->
+<div id="timelineScreen">
+  <div class="tl-topbar">
+    <button class="tl-back-btn" id="backBtn">← MUSEUM</button>
+    <div>
+      <div class="tl-star-name" id="tlName"></div>
+      <div class="tl-star-meta" id="tlMeta"></div>
+    </div>
+    <div class="tl-spacer"></div>
+    <div class="tl-tagline" id="tlTagline"></div>
+  </div>
+  <div class="tl-scroll" id="tlScroll">
+    <div class="tl-inner" id="tlInner">
+      <div class="tl-spine"></div>
     </div>
   </div>
-  <div class="tl-nav" id="tlNav"></div>
-  <div class="tl-hero" id="tlHero">
-    <img class="tl-hero-img" id="tlHeroImg" src="" alt="" />
-    <div class="tl-hero-grad"></div>
-    <div class="tl-hero-text">
-      <div class="tl-hero-name" id="tlHeroName"></div>
-      <div class="tl-hero-dates" id="tlHeroDates"></div>
-      <div class="tl-hero-tagline" id="tlHeroTagline"></div>
-    </div>
-  </div>
-  <div class="tl-body" id="tlBody"></div>
-  <div class="tl-footer">
-    <p>Content curated from publicly available records. Images via Wikimedia Commons.</p>
-    <button class="explore-btn" id="exploreBtn">← RETURN TO MUSEUM</button>
-  </div>
+  <div class="tl-scrubber" id="tlScrubber"></div>
 </div>
 
 <script>
-// ── STARS ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
 const STARS = [
-  { name: "Queen Elizabeth II", slug: "Elizabeth_II" },
-  { name: "Elvis Presley",      slug: "Elvis_Presley" },
-  { name: "Paul Walker",        slug: "Paul_Walker" },
-  { name: "Kobe Bryant",        slug: "Kobe_Bryant" },
-  { name: "Robbie Coltrane",    slug: "Robbie_Coltrane" },
-  { name: "River Phoenix",      slug: "River_Phoenix" },
-  { name: "Diego Maradona",     slug: "Diego_Maradona" },
-  { name: "Sinéad O'Connor",    slug: "Sinéad_O%27Connor" },
-  { name: "Robin Williams",     slug: "Robin_Williams" },
-  { name: "Philip Seymour Hoffman", slug: "Philip_Seymour_Hoffman" },
-  { name: "Tupac Shakur",       slug: "Tupac_Shakur" },
-  { name: "Whitney Houston",    slug: "Whitney_Houston" },
-  { name: "Bob Marley",         slug: "Bob_Marley" },
-  { name: "Bruce Lee",          slug: "Bruce_Lee" },
-  { name: "Chadwick Boseman",   slug: "Chadwick_Boseman" },
-  { name: "John Lennon",        slug: "John_Lennon" },
-  { name: "Heath Ledger",       slug: "Heath_Ledger" },
-  { name: "Prince",             slug: "Prince_(musician)" },
-  { name: "James Dean",         slug: "James_Dean" },
-  { name: "Amy Winehouse",      slug: "Amy_Winehouse" },
-  { name: "Anthony Bourdain",   slug: "Anthony_Bourdain" },
-  { name: "Marlon Brando",      slug: "Marlon_Brando" },
-  { name: "Audrey Hepburn",     slug: "Audrey_Hepburn" },
-  { name: "Kurt Cobain",        slug: "Kurt_Cobain" },
-  { name: "Princess Diana",     slug: "Diana,_Princess_of_Wales" },
-  { name: "Michael Gambon",     slug: "Michael_Gambon" },
-  { name: "Pelé",               slug: "Pelé" },
-  { name: "Johnny Cash",        slug: "Johnny_Cash" },
-  { name: "Ray Liotta",         slug: "Ray_Liotta" },
-  { name: "Freddie Mercury",    slug: "Freddie_Mercury" },
-  { name: "John Hurt",          slug: "John_Hurt" },
-  { name: "Notorious B.I.G.",   slug: "The_Notorious_B.I.G." },
-  { name: "Marilyn Monroe",     slug: "Marilyn_Monroe" },
-  { name: "Bill Withers",       slug: "Bill_Withers" },
-  { name: "David Bowie",        slug: "David_Bowie" },
-  { name: "Muhammad Ali",       slug: "Muhammad_Ali" },
-  { name: "Maya Angelou",       slug: "Maya_Angelou" },
-  { name: "Frida Kahlo",        slug: "Frida_Kahlo" },
-  { name: "Pablo Picasso",      slug: "Pablo_Picasso" },
-  { name: "Nikola Tesla",       slug: "Nikola_Tesla" },
+  {name:"Queen Elizabeth II", slug:"Elizabeth_II",              years:"1926–2022"},
+  {name:"Elvis Presley",       slug:"Elvis_Presley",             years:"1935–1977"},
+  {name:"Paul Walker",         slug:"Paul_Walker",               years:"1973–2013"},
+  {name:"Kobe Bryant",         slug:"Kobe_Bryant",               years:"1978–2020"},
+  {name:"River Phoenix",       slug:"River_Phoenix",             years:"1970–1993"},
+  {name:"Diego Maradona",      slug:"Diego_Maradona",            years:"1960–2020"},
+  {name:"Sinéad O'Connor",     slug:"Sin%C3%A9ad_O%27Connor",   years:"1966–2023"},
+  {name:"Robin Williams",      slug:"Robin_Williams",            years:"1951–2014"},
+  {name:"Tupac Shakur",        slug:"Tupac_Shakur",              years:"1971–1996"},
+  {name:"Whitney Houston",     slug:"Whitney_Houston",           years:"1963–2012"},
+  {name:"Bob Marley",          slug:"Bob_Marley",                years:"1945–1981"},
+  {name:"Bruce Lee",           slug:"Bruce_Lee",                 years:"1940–1973"},
+  {name:"Chadwick Boseman",    slug:"Chadwick_Boseman",          years:"1976–2020"},
+  {name:"John Lennon",         slug:"John_Lennon",               years:"1940–1980"},
+  {name:"Heath Ledger",        slug:"Heath_Ledger",              years:"1979–2008"},
+  {name:"Prince",              slug:"Prince_(musician)",         years:"1958–2016"},
+  {name:"James Dean",          slug:"James_Dean",                years:"1931–1955"},
+  {name:"Amy Winehouse",       slug:"Amy_Winehouse",             years:"1983–2011"},
+  {name:"Audrey Hepburn",      slug:"Audrey_Hepburn",            years:"1929–1993"},
+  {name:"Kurt Cobain",         slug:"Kurt_Cobain",               years:"1967–1994"},
+  {name:"Princess Diana",      slug:"Diana,_Princess_of_Wales", years:"1961–1997"},
+  {name:"Pelé",                slug:"Pel%C3%A9",                 years:"1940–2022"},
+  {name:"Freddie Mercury",     slug:"Freddie_Mercury",           years:"1946–1991"},
+  {name:"Marilyn Monroe",      slug:"Marilyn_Monroe",            years:"1926–1962"},
+  {name:"David Bowie",         slug:"David_Bowie",               years:"1947–2016"},
+  {name:"Muhammad Ali",        slug:"Muhammad_Ali",              years:"1942–2016"},
+  {name:"Maya Angelou",        slug:"Maya_Angelou",              years:"1928–2014"},
+  {name:"Frida Kahlo",         slug:"Frida_Kahlo",               years:"1907–1954"},
+  {name:"Pablo Picasso",       slug:"Pablo_Picasso",             years:"1881–1973"},
+  {name:"Nikola Tesla",        slug:"Nikola_Tesla",              years:"1856–1943"},
+  {name:"Johnny Cash",         slug:"Johnny_Cash",               years:"1932–2003"},
+  {name:"Anthony Bourdain",    slug:"Anthony_Bourdain",          years:"1956–2018"},
+  {name:"Notorious B.I.G.",    slug:"The_Notorious_B.I.G.",      years:"1972–1997"},
+  {name:"Philip S. Hoffman",   slug:"Philip_Seymour_Hoffman",    years:"1967–2014"},
+  {name:"Bill Withers",        slug:"Bill_Withers",              years:"1938–2020"},
+  {name:"Marlon Brando",       slug:"Marlon_Brando",             years:"1924–2004"},
+  {name:"Michael Jackson",     slug:"Michael_Jackson",           years:"1958–2009"},
+  {name:"Jimi Hendrix",        slug:"Jimi_Hendrix",              years:"1942–1970"},
+  {name:"Aretha Franklin",     slug:"Aretha_Franklin",           years:"1942–2018"},
+  {name:"Steve Jobs",          slug:"Steve_Jobs",                years:"1955–2011"},
 ];
 
-// ── BUILD MOSAIC ─────────────────────────────────────────────────
-const grid = document.getElementById('mosaicGrid');
+// ══════════════════════════════════════════════════════
+//  MOSAIC — infinite draggable grid
+// ══════════════════════════════════════════════════════
+const COLS = 8, TILE_W = 220, TILE_H = 280, GAP = 4;
+const ROWS = Math.ceil(STARS.length / COLS);
 
-async function buildMosaic() {
-  // Fetch all thumbnails in parallel
-  const thumbs = await Promise.all(STARS.map(s => getThumb(s.slug)));
+let canvasX = 0, canvasY = 0;
+let dragging = false, dragStartX, dragStartY, canvasStartX, canvasStartY;
+let thumbCache = {};
+
+const canvas = document.getElementById('mosaicCanvas');
+
+function initMosaic() {
+  canvas.style.cssText = `width:${COLS*(TILE_W+GAP)}px;height:${ROWS*(TILE_H+GAP)}px;`;
+  canvasX = -(COLS*(TILE_W+GAP)/2 - window.innerWidth/2);
+  canvasY = -(ROWS*(TILE_H+GAP)/2 - window.innerHeight/2);
+  applyCanvasPos();
+
   STARS.forEach((star, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'star-cell';
-    cell.dataset.name = star.name;
-    cell.dataset.slug = star.slug;
+    const col = i % COLS, row = Math.floor(i / COLS);
+    const tile = document.createElement('div');
+    tile.className = 'star-tile';
+    tile.style.cssText = `left:${col*(TILE_W+GAP)}px;top:${row*(TILE_H+GAP)}px;width:${TILE_W}px;height:${TILE_H}px;`;
+    tile.dataset.idx = i;
 
-    if (thumbs[i]) {
-      const img = document.createElement('img');
-      img.src = thumbs[i];
-      img.alt = star.name;
-      img.loading = 'lazy';
-      img.onerror = () => { img.style.display='none'; cell.style.background='#1a1510'; };
-      cell.appendChild(img);
-    } else {
-      cell.style.background = '#1a1510';
-      const ph = document.createElement('div');
-      ph.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:10px;letter-spacing:2px;color:var(--muted);padding:8px;text-align:center;';
-      ph.textContent = star.name.toUpperCase();
-      cell.appendChild(ph);
-    }
+    const ph = document.createElement('div');
+    ph.className = 'star-tile-placeholder';
+    ph.innerHTML = `<div class="star-tile-initial">${star.name[0]}</div>`;
+    tile.appendChild(ph);
 
-    const overlay = document.createElement('div');
-    overlay.className = 'star-cell-overlay';
-    cell.appendChild(overlay);
+    const vig = document.createElement('div'); vig.className='star-tile-vignette';
+    tile.appendChild(vig);
 
-    const nameEl = document.createElement('div');
-    nameEl.className = 'star-cell-name';
-    nameEl.textContent = star.name;
-    cell.appendChild(nameEl);
+    const info = document.createElement('div'); info.className='star-tile-info';
+    info.innerHTML=`<div class="star-tile-name">${star.name}</div><div class="star-tile-years">${star.years}</div>`;
+    tile.appendChild(info);
 
-    cell.addEventListener('click', () => zoomAndLoad(cell, star));
-    grid.appendChild(cell);
+    tile.addEventListener('click', () => { if(!wasDragging) enterStar(star, tile); });
+    canvas.appendChild(tile);
+
+    // lazy-load thumb
+    loadThumb(star, tile, ph);
   });
+
+  // Drag
+  const ms = document.getElementById('mosaicScreen');
+  ms.addEventListener('mousedown', startDrag);
+  ms.addEventListener('touchstart', e => startDrag(e.touches[0]), {passive:true});
+  window.addEventListener('mousemove', onDrag);
+  window.addEventListener('touchmove', e => onDrag(e.touches[0]), {passive:true});
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
 }
 
-async function getThumb(slug) {
+let wasDragging = false;
+
+function startDrag(e) {
+  dragging = true; wasDragging = false;
+  dragStartX = e.clientX; dragStartY = e.clientY;
+  canvasStartX = canvasX; canvasStartY = canvasY;
+}
+
+function onDrag(e) {
+  if (!dragging) return;
+  const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) wasDragging = true;
+  canvasX = canvasStartX + dx;
+  canvasY = canvasStartY + dy;
+  applyCanvasPos();
+}
+
+function endDrag() { dragging = false; }
+
+function applyCanvasPos() {
+  canvas.style.transform = `translate(${canvasX}px,${canvasY}px)`;
+}
+
+async function loadThumb(star, tile, ph) {
+  if (thumbCache[star.slug]) { setImg(tile, ph, thumbCache[star.slug], star); return; }
   try {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`);
-    if (!r.ok) return null;
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`);
+    if (!r.ok) return;
     const d = await r.json();
-    return d.thumbnail?.source || null;
-  } catch(e) { return null; }
+    if (d.thumbnail?.source) {
+      thumbCache[star.slug] = d.thumbnail.source;
+      setImg(tile, ph, d.thumbnail.source, star);
+    }
+  } catch(e) {}
 }
 
-// ── ZOOM TRANSITION ───────────────────────────────────────────────
-function zoomAndLoad(cell, star) {
-  const overlay = document.getElementById('zoomOverlay');
-  overlay.classList.add('active');
+function setImg(tile, ph, src, star) {
+  const img = document.createElement('img');
+  img.src = src; img.alt = star.name;
+  img.onload = () => { ph.replaceWith(img); };
+  img.onerror = () => {};
+}
+
+// ══════════════════════════════════════════════════════
+//  ENTER STAR — zoom transition
+// ══════════════════════════════════════════════════════
+function enterStar(star, tile) {
+  const rect = tile.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+
+  // animate rings
+  const zl = document.getElementById('zoomLayer');
+  zl.style.display = 'block';
+  const thumb = thumbCache[star.slug] || '';
+
+  [document.getElementById('zr1'), document.getElementById('zr2')].forEach((r, i) => {
+    r.style.cssText = `left:${cx}px;top:${cy}px;width:${40+i*30}px;height:${40+i*30}px;`;
+    requestAnimationFrame(() => {
+      r.style.transform = `translate(-50%,-50%) scale(${18 + i*12})`;
+      r.style.opacity = '0';
+      r.style.transition = `transform ${0.7+i*.15}s cubic-bezier(.4,0,.2,1), opacity ${0.7+i*.15}s`;
+    });
+  });
+
+  // fade to dark
+  const zd = document.getElementById('zoomDark');
+  zd.style.pointerEvents = 'all';
+  setTimeout(() => { zd.style.opacity = '1'; }, 200);
+
   setTimeout(() => {
-    startJourney(star.name, star.slug);
-    overlay.classList.remove('active');
-  }, 500);
+    zl.style.display = 'none';
+    document.getElementById('zr1').style.transform = 'translate(-50%,-50%) scale(0)';
+    document.getElementById('zr2').style.transform = 'translate(-50%,-50%) scale(0)';
+    startJourney(star, thumb);
+  }, 700);
 }
 
-// ── SCREEN MANAGER ────────────────────────────────────────────────
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'instant' });
+// ══════════════════════════════════════════════════════
+//  LOADING
+// ══════════════════════════════════════════════════════
+function showLoad(star, thumb) {
+  const ls = document.getElementById('loadScreen');
+  ls.classList.add('active');
+  if (thumb) { document.getElementById('loadPortrait').src = thumb; document.getElementById('loadPortrait').style.display='block'; }
+  else { document.getElementById('loadPortrait').style.display='none'; }
+  document.getElementById('loadName').textContent = star.name.toUpperCase();
+  document.getElementById('loadDates').textContent = star.years || '';
+  document.getElementById('loadErr').textContent = '';
+  setBar(5, 'GATHERING RECORDS');
 }
 
-function setProgress(pct, step) {
-  document.getElementById('progFill').style.width = pct + '%';
-  if (step !== undefined) document.getElementById('loadStep').textContent = step;
+function setBar(pct, step) {
+  document.getElementById('loadBar').style.width = pct + '%';
+  if (step) document.getElementById('loadStep').textContent = step;
 }
 
-// ── EVENTS ────────────────────────────────────────────────────────
-document.getElementById('backBtn').addEventListener('click', () => show('homeScreen'));
-document.getElementById('exploreBtn').addEventListener('click', () => show('homeScreen'));
+function hideLoad() {
+  document.getElementById('loadScreen').classList.remove('active');
+}
 
-// ── MAIN FLOW ─────────────────────────────────────────────────────
-async function startJourney(name, slug) {
-  show('loadScreen');
-  document.getElementById('loadName').textContent = name.toUpperCase();
-  document.getElementById('errMsg').textContent = '';
-  setProgress(5, 'GATHERING RECORDS');
+// ══════════════════════════════════════════════════════
+//  MAIN JOURNEY
+// ══════════════════════════════════════════════════════
+async function startJourney(star, thumb) {
+  document.getElementById('mosaicScreen').style.display = 'none';
+  showLoad(star, thumb);
 
   try {
-    setProgress(15, 'CURATING CHAPTERS');
-    const tlData = await fetchTimeline(name);
+    setBar(15, 'CURATING TIMELINE');
+    const tlData = await fetchTimeline(star.name);
 
-    setProgress(52, 'SOURCING PHOTOGRAPHS');
-    const wikiData = await fetchWikipedia(tlData.wikipediaSlug || slug || name);
+    setBar(50, 'SOURCING PHOTOGRAPHS');
+    const wikiData = await fetchWikiImages(tlData.wikipediaSlug || star.slug);
 
-    setProgress(88, 'BUILDING EXHIBITION');
+    setBar(85, 'BUILDING EXHIBITION');
     await sleep(300);
-    setProgress(100, '');
-    await sleep(200);
+    setBar(100, '');
+    await sleep(250);
 
-    renderTimeline(name, tlData, wikiData);
-    show('timelineScreen');
-  } catch (err) {
+    hideLoad();
+    renderTimeline(star, tlData, wikiData, thumb);
+    document.getElementById('timelineScreen').classList.add('active');
+
+    const zd = document.getElementById('zoomDark');
+    zd.style.opacity = '0';
+    setTimeout(() => { zd.style.pointerEvents = 'none'; }, 600);
+
+  } catch(err) {
     console.error(err);
-    document.getElementById('errMsg').textContent = 'Could not load exhibition: ' + (err.message || 'Unknown error');
-    setProgress(0, 'ERROR');
+    document.getElementById('loadErr').textContent = 'Could not load exhibition: ' + (err.message||'Please try again');
+    setBar(0, 'ERROR');
+    setTimeout(() => { goHome(); }, 3000);
   }
 }
 
-// ── API: Claude ───────────────────────────────────────────────────
+function goHome() {
+  document.getElementById('timelineScreen').classList.remove('active');
+  document.getElementById('loadScreen').classList.remove('active');
+  document.getElementById('mosaicScreen').style.display = 'block';
+  const zd = document.getElementById('zoomDark');
+  zd.style.opacity = '0';
+  setTimeout(() => { zd.style.pointerEvents = 'none'; }, 500);
+}
+
+document.getElementById('backBtn').addEventListener('click', goHome);
+
+// ══════════════════════════════════════════════════════
+//  API: Claude
+// ══════════════════════════════════════════════════════
 async function fetchTimeline(name) {
   const resp = await fetch('/.netlify/functions/claude', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name })
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name })
   });
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error || `Server error ${resp.status}`);
-  }
-
+  if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error||`Error ${resp.status}`); }
   const data = await resp.json();
-  const raw = data.content?.find(b => b.type === 'text')?.text || '{}';
-  const clean = raw.replace(/^```json\s*|^```\s*|```\s*$/gm, '').trim();
-  return JSON.parse(clean);
+  const raw = data.content?.find(b=>b.type==='text')?.text||'{}';
+  return JSON.parse(raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim());
 }
 
-// ── API: Wikipedia ────────────────────────────────────────────────
-async function fetchWikipedia(slug) {
-  const s = slug.replace(/ /g, '_');
+// ══════════════════════════════════════════════════════
+//  API: Wikipedia images
+// ══════════════════════════════════════════════════════
+async function fetchWikiImages(slug) {
+  const s = slug.replace(/ /g,'_');
   const out = { thumb: null, images: [] };
   try {
     const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
-    if (r.ok) { const d = await r.json(); out.thumb = d.thumbnail?.source || null; }
+    if (r.ok) { const d = await r.json(); out.thumb = d.thumbnail?.source||null; }
   } catch(e) {}
   try {
-    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=16&format=json&origin=*`);
+    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=20&format=json&origin=*`);
     if (r.ok) {
       const d = await r.json();
-      const pg = Object.values(d.query?.pages || {})[0];
-      const files = (pg?.images || [])
-        .filter(i => /\.(jpg|jpeg|png)$/i.test(i.title))
-        .filter(i => !/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|red_x|lock|ribbon|star|award/i.test(i.title))
-        .slice(0, 10).map(i => i.title.replace('File:', ''));
+      const pg = Object.values(d.query?.pages||{})[0];
+      const files = (pg?.images||[])
+        .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
+        .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|star_icon|award|seal/i.test(i.title))
+        .slice(0,12).map(i=>i.title.replace('File:',''));
       const urls = await Promise.all(files.map(resolveImg));
       out.images = urls.filter(Boolean);
     }
@@ -438,84 +753,121 @@ async function resolveImg(filename) {
   try {
     const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
     const d = await r.json();
-    const url = Object.values(d.query?.pages || {})[0]?.imageinfo?.[0]?.url || null;
-    return (url && /\.(jpg|jpeg|png)$/i.test(url)) ? url : null;
-  } catch(e) { return null; }
+    const url = Object.values(d.query?.pages||{})[0]?.imageinfo?.[0]?.url||null;
+    return (url&&/\.(jpg|jpeg|png)$/i.test(url))?url:null;
+  } catch(e){return null;}
 }
 
-// ── RENDER ────────────────────────────────────────────────────────
-function renderTimeline(name, tl, wiki) {
-  const fullName = tl.fullName || name;
-  const diedPart = tl.died ? ` — ${tl.died}` : '';
-  const meta = [tl.born ? `b. ${tl.born}${diedPart}` : '', (tl.fields||[]).join(' & '), tl.nationality].filter(Boolean).join(' · ');
+// ══════════════════════════════════════════════════════
+//  RENDER HORIZONTAL TIMELINE
+// ══════════════════════════════════════════════════════
+function renderTimeline(star, tl, wiki, heroThumb) {
+  const fullName = tl.fullName || star.name;
+  const diedPart = tl.died ? ` – ${tl.died}` : '';
+  const meta = `${tl.born||''}${diedPart} · ${(tl.fields||[]).join(' & ')}${tl.nationality?' · '+tl.nationality:''}`;
 
   document.getElementById('tlName').textContent = fullName;
   document.getElementById('tlMeta').textContent = meta;
-  document.getElementById('tlHeroName').textContent = fullName;
-  document.getElementById('tlHeroDates').textContent = tl.born ? `${tl.born}${diedPart}` : '';
-  document.getElementById('tlHeroTagline').textContent = tl.tagline || '';
+  document.getElementById('tlTagline').textContent = tl.tagline || '';
 
-  const heroEl = document.getElementById('tlHero');
-  const heroImg = document.getElementById('tlHeroImg');
-  const heroSrc = wiki.thumb || wiki.images[0] || '';
-  if (heroSrc) {
-    heroImg.src = heroSrc; heroImg.alt = fullName;
-    heroImg.onerror = () => { heroEl.style.display = 'none'; };
-  } else { heroEl.style.display = 'none'; }
+  const allImgs = [heroThumb, wiki.thumb, ...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i);
 
-  const nav = document.getElementById('tlNav');
-  nav.innerHTML = '';
-  (tl.chapters||[]).forEach((ch, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'tl-tab' + (i===0?' active':'');
-    btn.textContent = ch.label.toUpperCase();
-    btn.addEventListener('click', function() {
-      nav.querySelectorAll('.tl-tab').forEach(t=>t.classList.remove('active'));
-      this.classList.add('active');
-      document.getElementById('ch-'+ch.id)?.scrollIntoView({behavior:'smooth',block:'start'});
+  const inner = document.getElementById('tlInner');
+  // clear previous (keep spine)
+  Array.from(inner.children).forEach(c=>{ if(!c.classList.contains('tl-spine')) c.remove(); });
+
+  const scrubber = document.getElementById('tlScrubber');
+  scrubber.innerHTML = '';
+
+  // Birth cap
+  inner.appendChild(makeCap(tl.born||'', 'BIRTH'));
+
+  const chapters = tl.chapters || [];
+
+  chapters.forEach((ch, i) => {
+    // scrubber item
+    const si = document.createElement('div');
+    si.className = 'tl-scrub-item';
+    si.textContent = `${ch.year||''} ${ch.label.toUpperCase()}`;
+    si.addEventListener('click', () => {
+      const el = document.getElementById('tlch-'+ch.id);
+      if (el) el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
     });
-    nav.appendChild(btn);
-  });
+    scrubber.appendChild(si);
+    if (i < chapters.length-1) { const sep = document.createElement('div'); sep.className='tl-scrub-sep'; scrubber.appendChild(sep); }
 
-  const allImgs = [wiki.thumb, ...wiki.images].filter(Boolean);
-  const body = document.getElementById('tlBody');
-  body.innerHTML = '';
+    // chapter card
+    const div = document.createElement('div');
+    div.className = `tl-chapter ${i%2===0?'above':'below'}`;
+    div.id = 'tlch-'+ch.id;
+    div.style.animationDelay = `${i*0.12}s`;
 
-  (tl.chapters||[]).forEach((ch, i) => {
-    const el = document.createElement('div');
-    el.className = 'chapter'; el.id = 'ch-'+ch.id;
-    const imgA = allImgs[i]||null, imgB = allImgs[i+4]||null;
-    let mediaHtml = '';
-    if (i===0&&imgA) {
-      mediaHtml=`<div class="media-block"><div class="img-grid"><img class="arch-img" src="${imgA}" alt="${fullName}" loading="lazy" onerror="this.closest('.media-block').remove()"></div><p class="media-cap">Portrait · Wikimedia Commons</p></div>`;
-    } else if (i===1) {
-      const imgs2=[imgA,imgB].filter(Boolean).slice(0,2);
-      if (imgs2.length) {
-        const gc=imgs2.length===2?'img-grid two':'img-grid';
-        mediaHtml=`<div class="media-block"><div class="${gc}">${imgs2.map(u=>`<img class="arch-img" src="${u}" alt="${ch.title}" loading="lazy" onerror="this.remove()">`).join('')}</div><p class="media-cap">Archive photograph · Wikimedia Commons</p></div>`;
-      }
-    } else if (i===2&&imgA) {
-      mediaHtml=`<div class="media-block"><div class="img-grid"><img class="arch-img" src="${imgA}" alt="${ch.title}" loading="lazy" onerror="this.closest('.media-block').remove()"></div><p class="media-cap">Archive photograph · Wikimedia Commons</p></div>`;
-    } else if (i===3) {
-      if (tl.youtubeId) mediaHtml=`<div class="media-block"><div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${tl.youtubeId}?rel=0&modestbranding=1" allowfullscreen loading="lazy"></iframe></div><p class="media-cap" style="margin-top:6px">Documentary · YouTube</p></div>`;
-      if (imgA) mediaHtml+=`<div class="media-block" style="margin-top:.9rem"><div class="img-grid"><img class="arch-img" src="${imgA}" alt="${ch.title}" loading="lazy" onerror="this.closest('.media-block').remove()"></div><p class="media-cap">Archive photograph · Wikimedia Commons</p></div>`;
+    const dot = document.createElement('div'); dot.className='tl-node-dot';
+    div.appendChild(dot);
+
+    const card = document.createElement('div'); card.className='tl-card';
+
+    // image
+    const img = allImgs[i+1] || allImgs[i] || null;
+    if (img) {
+      const cardImg = document.createElement('img');
+      cardImg.className = 'tl-card-img';
+      cardImg.src = img; cardImg.alt = ch.title;
+      cardImg.onerror = () => cardImg.remove();
+      card.appendChild(cardImg);
     }
-    const quoteHtml = ch.quote?`<div class="quote-pull"><p>"${ch.quote.replace(/^[""\u201C\u201D]|[""\u201C\u201D]$/g,'')}"</p><cite>— ${fullName.toUpperCase()}</cite></div>`:'';
-    const pillsHtml = i===0&&(tl.fields?.length||tl.nationality)?`<div class="fact-pills">${(tl.fields||[]).map(f=>`<span class="fact-pill">${f.toUpperCase()}</span>`).join('')}${tl.nationality?`<span class="fact-pill">${tl.nationality.toUpperCase()}</span>`:''}</div>`:'';
-    el.innerHTML=`<div class="ch-year">${ch.year||''}</div><div class="ch-content"><div class="ch-label">CHAPTER ${i+1} · ${ch.label.toUpperCase()}</div><div class="ch-title">${ch.title}</div><div class="ch-text">${ch.text}</div>${pillsHtml}${mediaHtml}${quoteHtml}</div>`;
-    body.appendChild(el);
+
+    // body
+    const body = document.createElement('div'); body.className='tl-card-body';
+    body.innerHTML = `
+      <div class="tl-card-year">${ch.year||''}</div>
+      <div class="tl-card-label">CHAPTER ${i+1} · ${ch.label.toUpperCase()}</div>
+      <div class="tl-card-title">${ch.title}</div>
+      <div class="tl-card-text">${ch.text}</div>
+      ${ch.quote?`<div class="tl-card-quote">"${ch.quote.replace(/^[""\u201C\u201D]|[""\u201C\u201D]$/g,'')}"</div>`:''}
+    `;
+    card.appendChild(body);
+
+    // YouTube in last chapter
+    if (i === chapters.length-1 && tl.youtubeId) {
+      const yt = document.createElement('iframe');
+      yt.className='tl-yt';
+      yt.src=`https://www.youtube.com/embed/${tl.youtubeId}?rel=0&modestbranding=1`;
+      yt.allowFullscreen=true; yt.loading='lazy';
+      card.appendChild(yt);
+    }
+
+    div.appendChild(card);
+    inner.appendChild(div);
   });
 
-  setTimeout(()=>{
-    const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.07});
-    document.querySelectorAll('.chapter').forEach(c=>obs.observe(c));
-  },120);
+  // Death cap
+  if (tl.died) inner.appendChild(makeCap(tl.died, 'DEATH'));
+
+  // drag-scroll on timeline
+  const scroll = document.getElementById('tlScroll');
+  let tlDrag=false, tlStartX, tlScrollLeft;
+  scroll.addEventListener('mousedown', e=>{ tlDrag=true; tlStartX=e.pageX-scroll.offsetLeft; tlScrollLeft=scroll.scrollLeft; scroll.style.cursor='grabbing'; });
+  scroll.addEventListener('mouseleave', ()=>{ tlDrag=false; scroll.style.cursor='grab'; });
+  scroll.addEventListener('mouseup', ()=>{ tlDrag=false; scroll.style.cursor='grab'; });
+  scroll.addEventListener('mousemove', e=>{ if(!tlDrag)return; e.preventDefault(); const x=e.pageX-scroll.offsetLeft; scroll.scrollLeft=tlScrollLeft-(x-tlStartX)*1.2; });
+
+  // scroll to start
+  scroll.scrollLeft = 0;
+}
+
+function makeCap(year, label) {
+  const cap = document.createElement('div'); cap.className='tl-cap';
+  cap.innerHTML=`<div class="tl-cap-year">${year}</div><div class="tl-cap-dot"></div><div class="tl-cap-label">${label}</div>`;
+  return cap;
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-// ── INIT ──────────────────────────────────────────────────────────
-buildMosaic();
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+initMosaic();
 </script>
 </body>
 </html>
