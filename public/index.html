@@ -524,13 +524,13 @@ function mInit(){
     // Edge autopan
     const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
-    // Edge zone 154px. Speed ramps quadratically closer to edge. Max 8px/frame.
-    const z2=154,spd2=8;
+    // Edge zone 220px (100% bigger). Quadratic speed ramp. Max 9px/frame.
+    const z2=220,spd2=9;
     edgePX=x<z2? spd2*Math.pow((z2-x)/z2,2):x>vw-z2?-spd2*Math.pow((x-(vw-z2))/z2,2):0;
     edgePY=y<z2? spd2*Math.pow((z2-y)/z2,2):y>vh-z2?-spd2*Math.pow((y-(vh-z2))/z2,2):0;
   });
 
-  window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
+  window.addEventListener('mouseup',()=>{ mDrag=false; mc.style.cursor=''; /* velX/velY already set from last mousemove delta */ });
   ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
 
   // Touch pan
@@ -576,8 +576,8 @@ function setHover(tile){
 function mLoop(){
   if(!mActive)return;
   if(!mDrag){
-    velX*=0.94;velY*=0.94;
-    if(Math.abs(velX)>0.02||Math.abs(velY)>0.02){camX+=velX;camY+=velY;}
+    velX*=0.96;velY*=0.96;
+    if(Math.abs(velX)>0.01||Math.abs(velY)>0.01){camX+=velX;camY+=velY;}
     else{velX=0;velY=0;}
     if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;resetIdle();}
   }
@@ -928,6 +928,8 @@ function buildCard(ev,i,allImgs,isAbove,tl,star){
   // Image
   const imgSrc=allImgs[i%Math.max(allImgs.length,1)];
   const isVideo=ev.type==='death'||i===((tl.events||[]).length-1);
+  card._hasImg=!!(imgSrc&&!isVideo);
+  card._isVideo=isVideo;
 
   if(imgSrc&&!isVideo){
     const ci=document.createElement('img');
@@ -1086,7 +1088,7 @@ function positionCards(){
   if(!cv)return;
   const vw=cv.width,vh=cv.height;
   const spineY=vh*SPINE_Y_RATIO;
-  const GAP=18; // gap between spine and card edge
+  const GAP=20;
 
   domCards.forEach((card,i)=>{
     const ev=card._ev;
@@ -1094,26 +1096,33 @@ function positionCards(){
     const wx=PAD+(evY-bornY)*PX_PER_YEAR;
     const sx=panX+wx*zoom;
 
-    // Scale card width with zoom
-    const cardW=Math.min(CARD_W,Math.max(160,CARD_W*Math.pow(zoom,0.5)));
+    // Scale card width with zoom — clamp between 160 and CARD_W
+    const cardW=Math.min(CARD_W,Math.max(160,CARD_W*Math.pow(zoom,0.55)));
 
-    // Card position
+    // Connector height — shorter when zoomed out, longer when zoomed in
+    const connH=Math.min(180,Math.max(24,55*Math.pow(zoom,0.55)));
+
+    // Fixed card height estimate (avoids offsetHeight=0 on first render)
+    // Cards: 150px img + ~140px body = ~290px; no-img cards ~180px
+    const hasImg=!!card._hasImg;
+    const isVideo=!!card._isVideo;
+    const cardH=isVideo?380:hasImg?300:200;
+
     const cardX=sx-cardW/2;
     const isAbove=card._isAbove;
 
-    // Connector height: scales with zoom, min 30 max 200
-    const connH=Math.min(200,Math.max(30,60*Math.pow(zoom,0.6)));
-
     let cardY;
     if(isAbove){
-      cardY=spineY-GAP-connH-card.offsetHeight;
+      cardY=spineY-GAP-connH-cardH;
     }else{
       cardY=spineY+GAP+connH;
     }
 
-    card.style.cssText=`left:${cardX}px;top:${cardY}px;width:${cardW}px;`;
+    card.style.left=cardX+'px';
+    card.style.top=cardY+'px';
+    card.style.width=cardW+'px';
 
-    // Connector
+    // Connector sizing
     const conn=card._conn;
     if(conn){
       conn.style.height=connH+'px';
@@ -1121,8 +1130,8 @@ function positionCards(){
       else{conn.style.top='0';conn.style.bottom='';}
     }
 
-    // Fade based on off-screen distance
-    const offscreen=sx<-cardW||sx>vw+cardW;
+    // Visibility
+    const offscreen=sx<-cardW-20||sx>vw+cardW+20;
     card.style.opacity=offscreen?'0':'1';
     card.style.pointerEvents=offscreen?'none':'auto';
   });
