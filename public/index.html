@@ -694,7 +694,7 @@ async function startJourney() {
 
 // ─── API: Claude (via serverless function) ───────────────────────
 async function fetchTimeline(name) {
-  const resp = await fetch('/.netlify/functions/claude', {
+  const resp = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
