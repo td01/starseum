@@ -1066,7 +1066,6 @@ function stopTL(){
   const strip=document.getElementById('tlStrip');
   if(strip)while(strip.children.length>1)strip.removeChild(strip.lastChild);
 }
-
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
@@ -1083,8 +1082,13 @@ function openVideo(videoId,title,searchQuery){
   meta.textContent='';
 
   if(videoId&&videoId.length===11&&!/\s/.test(videoId)){
-    frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
+    // P0 FIX 1: Switched from youtube-nocookie.com to standard youtube.com to bypass tracking block blocks
+    frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
     ytLink.href=`https://www.youtube.com/watch?v=${videoId}`;
+    
+    // P0 FIX 2: Explicitly grant autoplay right before loading the stream
+    frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+    
     // Detect load failure after 5s
     frame.onload=()=>{};
     overlay.classList.add('on');
