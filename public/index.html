@@ -39,11 +39,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   transition:filter 0.8s ease, transform 0.7s cubic-bezier(.25,.46,.45,.94);
   will-change:filter,transform;
 }
+/* When any tile is hovered, dim all to 25% by default via JS data-b="0" */
 .star-tile[data-b="4"] img{ filter:grayscale(0%)  brightness(1.0)  contrast(1.06); transform:scale(1.05); }
-.star-tile[data-b="3"] img{ filter:grayscale(15%) brightness(0.75) contrast(1.08); }
-.star-tile[data-b="2"] img{ filter:grayscale(35%) brightness(0.50) contrast(1.05); }
-.star-tile[data-b="1"] img{ filter:grayscale(55%) brightness(0.25) contrast(1.02); }
-.star-tile[data-b="0"] img{ filter:grayscale(60%) brightness(0.72) contrast(1.12); }
+.star-tile[data-b="3"] img{ filter:grayscale(10%) brightness(0.75) contrast(1.08); }
+.star-tile[data-b="2"] img{ filter:grayscale(30%) brightness(0.50) contrast(1.05); }
+.star-tile[data-b="1"] img{ filter:grayscale(50%) brightness(0.35) contrast(1.02); }
+.star-tile[data-b="0"] img{ filter:grayscale(60%) brightness(0.25) contrast(1.00); }
 .star-tile-shade{
   position:absolute;inset:0;
   background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.0) 50%);
@@ -167,8 +168,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlCanvas{
   position:absolute;inset:0;z-index:10;
   cursor:grab;touch-action:none;
+  pointer-events:none;
 }
-#tlCanvas.grabbing{cursor:grabbing;}
+#tlCanvas.grabbing{cursor:grabbing;pointer-events:none;}
+
+/* Drag layer over everything for pan interaction */
+#tlDragLayer{
+  position:absolute;inset:0;z-index:8;
+  cursor:grab;touch-action:none;
+}
+#tlDragLayer.grabbing{cursor:grabbing;}
 
 /* Card DOM elements overlaid on canvas positions */
 #tlCards{
@@ -397,6 +406,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     </div>
     <div class="tl-tagline" id="tlTagline"></div>
   </div>
+  <div id="tlDragLayer"></div>
   <canvas id="tlCanvas"></canvas>
   <div id="tlCards"></div>
   <div class="tl-zoom">
@@ -618,10 +628,8 @@ function setHover(tile){
 }
 
 function applyRipple(centreEl){
-  // Get all rendered tiles
   const tiles=Array.from(mc.querySelectorAll('.star-tile'));
   if(!centreEl){
-    // No hover — reset all to default
     tiles.forEach(t=>t.removeAttribute('data-b'));
     return;
   }
@@ -630,12 +638,12 @@ function applyRipple(centreEl){
   tiles.forEach(t=>{
     const tx=parseInt(t.style.left)+TW/2;
     const ty=parseInt(t.style.top)+TH/2;
-    // Manhattan distance in tile units
     const dx=Math.abs(tx-cx)/SX;
     const dy=Math.abs(ty-cy)/SY;
-    const dist=Math.max(dx,dy); // Chebyshev distance (ring-based)
+    const dist=Math.max(dx,dy); // Chebyshev ring distance
+    // All tiles get a level — far ones get 0 (25% brightness)
     const level=dist<0.5?4:dist<1.5?3:dist<2.5?2:dist<3.5?1:0;
-    t.setAttribute('data-b',level);
+    t.setAttribute('data-b',String(level));
   });
 }
 
@@ -906,7 +914,7 @@ async function resolveImg(f){
 // ══════════════════════════════════════════════════
 const PX_PER_YEAR=240;
 const CARD_W=260;
-const SPINE_Y_RATIO=0.48; // spine sits at 48% height
+const SPINE_Y_RATIO=0.5; // spine sits at 50% height
 const MIN_Z=0.25,MAX_Z=3.0;
 
 let tlData=null,tlImgs=null,tlStar=null;
@@ -1189,18 +1197,18 @@ function positionCards(){
     const cardX=sx-cardW/2;
     const isAbove=card._isAbove;
 
+    const barH=55; // top bar height
     let cardY;
     if(isAbove){
+      // Cards above spine — bottom of card touches connector top
       cardY=spineY-GAP-connH-cardH;
+      // Clamp so card never goes above the top bar
+      if(cardY<barH) cardY=barH;
     }else{
       cardY=spineY+GAP+connH;
     }
 
-    card.style.left=Math.round(cardX)+'px';
-    card.style.top=Math.round(cardY)+'px';
-    card.style.width=Math.round(cardW)+'px';
-    card.style.position='absolute';
-    card.style.display='block';
+    card.style.cssText=`position:absolute;left:${Math.round(cardX)}px;top:${Math.round(cardY)}px;width:${Math.round(cardW)}px;display:block;`;
 
     // Connector sizing
     const conn=card._conn;
@@ -1243,13 +1251,13 @@ function setupScrubber(){
 }
 
 function setupTLInteraction(){
-  const scene=document.getElementById('tlScene')||document.getElementById('tlCanvas');
+  const dl=document.getElementById('tlDragLayer');
   const cvEl=document.getElementById('tlCanvas');
 
-  // Mouse drag
-  cvEl.addEventListener('mousedown',e=>{
+  // Mouse drag on drag layer
+  dl.addEventListener('mousedown',e=>{
     tDrag=true;tDX0=e.clientX;tPX0=panX;tVel=0;
-    cvEl.classList.add('grabbing');e.preventDefault();
+    dl.classList.add('grabbing');e.preventDefault();
   },{passive:false});
   window.addEventListener('mousemove',e=>{
     if(!tDrag)return;
@@ -1258,13 +1266,13 @@ function setupTLInteraction(){
   });
   window.addEventListener('mouseup',()=>{
     if(!tDrag)return;
-    tDrag=false;cvEl.classList.remove('grabbing');
-    targetPanX+=tVel*12; // momentum throw
+    tDrag=false;dl.classList.remove('grabbing');
+    targetPanX+=tVel*12;
   });
 
-  // Touch drag + pinch zoom
+  // Touch drag + pinch zoom on drag layer
   let t0X,t0PX,tLX2,tVel2=0,pinchD0=0,pinchZ0=1;
-  cvEl.addEventListener('touchstart',e=>{
+  dl.addEventListener('touchstart',e=>{
     if(e.touches.length===1){
       tDrag=true;t0X=e.touches[0].clientX;t0PX=panX;tLX2=t0X;tVel2=0;
     }else if(e.touches.length===2){
@@ -1273,7 +1281,7 @@ function setupTLInteraction(){
       pinchZ0=zoom;
     }
   },{passive:true});
-  cvEl.addEventListener('touchmove',e=>{
+  dl.addEventListener('touchmove',e=>{
     if(e.touches.length===1&&tDrag){
       const dx=e.touches[0].clientX-t0X;
       tVel2=e.touches[0].clientX-tLX2;tLX2=e.touches[0].clientX;
@@ -1288,10 +1296,10 @@ function setupTLInteraction(){
     }
     e.preventDefault();
   },{passive:false});
-  cvEl.addEventListener('touchend',()=>{tDrag=false;targetPanX+=tVel2*10;});
+  dl.addEventListener('touchend',()=>{tDrag=false;targetPanX+=tVel2*10;});
 
-  // Scroll wheel zoom (anchored to mouse)
-  cvEl.addEventListener('wheel',e=>{
+  // Scroll wheel zoom — on the whole tlScreen
+  document.getElementById('tlScreen').addEventListener('wheel',e=>{
     e.preventDefault();
     const delta=e.deltaY>0?0.9:1.11;
     const newZ=Math.min(MAX_Z,Math.max(MIN_Z,targetZoom*delta));
@@ -1303,7 +1311,7 @@ function setupTLInteraction(){
 
   // Scrubber click
   const track=document.getElementById('scrubTrack');
-  track.addEventListener('click',e=>{
+  if(track)track.addEventListener('click',e=>{
     const rect=track.getBoundingClientRect();
     const p=(e.clientX-rect.left)/rect.width;
     const worldX=PAD+p*(diedY-bornY)*PX_PER_YEAR;
