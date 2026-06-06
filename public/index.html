@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-ak="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">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -694,15 +694,9 @@ async function startJourney() {
 
 // ─── API: Claude (via serverless function) ───────────────────────
 async function fetchTimeline(name) {
-  const ANTHROPIC_KEY = document.documentElement.dataset.ak;
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('/.netlify/functions/claude', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       max_tokens: 1400,
       messages: [{
