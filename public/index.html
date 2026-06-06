@@ -33,27 +33,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   transition:filter .5s ease,transform .6s cubic-bezier(.25,.46,.45,.94);
   display:block;pointer-events:none;
 }
-/* Default tile brightness */
+/* Tile brightness — controlled by JS data-brightness attribute */
 .star-tile img{
-  filter:grayscale(30%) brightness(0.72) contrast(1.12);
-  transition:filter .5s ease,transform .6s cubic-bezier(.25,.46,.45,.94);
+  filter:grayscale(25%) brightness(0.72) contrast(1.12);
+  transition:filter 0.8s ease, transform 0.7s cubic-bezier(.25,.46,.45,.94);
+  will-change:filter,transform;
 }
-/* After idle timeout: dim others when one is hovered */
-#mosaicCanvas.idle.has-hover .star-tile img{
-  filter:grayscale(60%) brightness(0.28) contrast(1.1);
-  transition:filter 2.5s ease;
-}
-/* Hovered tile always lights up in idle mode */
-#mosaicCanvas.idle.has-hover .star-tile.lit img{
-  filter:grayscale(0%) brightness(1.0) contrast(1.06);
-  transform:scale(1.05);
-  transition:filter 0.6s ease,transform 0.6s cubic-bezier(.25,.46,.45,.94);
-}
-/* During pan: all full brightness — slow cinematic restore */
-#mosaicCanvas.panning .star-tile img{
-  filter:grayscale(15%) brightness(0.85) contrast(1.08) !important;
-  transition:filter 1.8s ease;
-}
+.star-tile[data-b="4"] img{ filter:grayscale(0%)  brightness(1.0)  contrast(1.06); transform:scale(1.05); }
+.star-tile[data-b="3"] img{ filter:grayscale(15%) brightness(0.75) contrast(1.08); }
+.star-tile[data-b="2"] img{ filter:grayscale(35%) brightness(0.50) contrast(1.05); }
+.star-tile[data-b="1"] img{ filter:grayscale(55%) brightness(0.25) contrast(1.02); }
+.star-tile[data-b="0"] img{ filter:grayscale(60%) brightness(0.72) contrast(1.12); }
 .star-tile-shade{
   position:absolute;inset:0;
   background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.0) 50%);
@@ -182,18 +172,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 /* Card DOM elements overlaid on canvas positions */
 #tlCards{
-  position:absolute;inset:0;z-index:15;
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  z-index:15;
   pointer-events:none;
   overflow:visible;
+}
+#tlCards .tl-card{
+  pointer-events:auto;
 }
 
 /* Individual timeline card */
 .tl-card{
-  position:absolute;
-  pointer-events:auto;
+  position:absolute !important;
+  pointer-events:auto !important;
   cursor:pointer;
   will-change:transform;
   transform-origin:center bottom;
+  display:block !important;
 }
 .tl-card.below{transform-origin:center top;}
 
@@ -545,22 +542,14 @@ function starAt(c,r){
   return STARS[perm[col]];
 }
 
-let idleTimer=null;
 function resetIdle(){
-  mc.classList.remove('idle');
-  mc.classList.add('panning');
-  clearTimeout(idleTimer);
-  idleTimer=setTimeout(()=>{
-    mc.classList.remove('panning');
-    mc.classList.add('idle');
-  },1000);
+  // No-op: ripple system handles brightness independently of panning
 }
 
 function mInit(){
   renderTiles();
   mLoop();
-  // Start idle timer on page load
-  idleTimer=setTimeout(()=>{ mc.classList.add('idle'); },1000);
+  // Ripple brightness system — no idle timer needed
   const ms=document.getElementById('mosaicScreen');
 
   ms.addEventListener('mousedown',e=>{
@@ -621,16 +610,33 @@ function mInit(){
   });
 }
 
+let rippleRaf=null;
 function setHover(tile){
   if(hoveredTile===tile)return;
-  if(hoveredTile){hoveredTile.classList.remove('lit');}
   hoveredTile=tile;
-  if(tile){
-    tile.classList.add('lit');
-    mc.classList.add('has-hover');
-  }else{
-    mc.classList.remove('has-hover');
+  applyRipple(tile);
+}
+
+function applyRipple(centreEl){
+  // Get all rendered tiles
+  const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+  if(!centreEl){
+    // No hover — reset all to default
+    tiles.forEach(t=>t.removeAttribute('data-b'));
+    return;
   }
+  const cx=parseInt(centreEl.style.left)+TW/2;
+  const cy=parseInt(centreEl.style.top)+TH/2;
+  tiles.forEach(t=>{
+    const tx=parseInt(t.style.left)+TW/2;
+    const ty=parseInt(t.style.top)+TH/2;
+    // Manhattan distance in tile units
+    const dx=Math.abs(tx-cx)/SX;
+    const dy=Math.abs(ty-cy)/SY;
+    const dist=Math.max(dx,dy); // Chebyshev distance (ring-based)
+    const level=dist<0.5?4:dist<1.5?3:dist<2.5?2:dist<3.5?1:0;
+    t.setAttribute('data-b',level);
+  });
 }
 
 function mLoop(){
@@ -640,7 +646,7 @@ function mLoop(){
     velX*=0.97;velY*=0.97;
     camX+=velX;camY+=velY;
     if(Math.abs(velX)<0.01&&Math.abs(velY)<0.01){velX=0;velY=0;}
-    if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;resetIdle();}
+    if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;}
   }
   mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
   renderTiles();
@@ -672,7 +678,12 @@ function makeTile(star,tx,ty){
   lb.innerHTML=`<div class="stn">${star.name}</div><div class="sty">${star.years}</div>`;
   t.appendChild(lb);
   t.addEventListener('mouseenter',()=>{if(!mDrag&&!mDidDrag)setHover(t);});
-  t.addEventListener('mouseleave',()=>{if(hoveredTile===t)setHover(null);});
+  t.addEventListener('mouseleave',()=>{
+    if(hoveredTile===t){
+      hoveredTile=null;
+      mc.querySelectorAll('.star-tile').forEach(el=>el.removeAttribute('data-b'));
+    }
+  });
   t.addEventListener('click',()=>{if(!mDidDrag){setHover(null);enterStar(star,t);}});
   mc.appendChild(t);
   if(thumbs[star.slug]){injectThumb(t,ph,thumbs[star.slug]);return;}
@@ -1185,7 +1196,11 @@ function positionCards(){
       cardY=spineY+GAP+connH;
     }
 
-    card.style.cssText=`position:absolute;left:${cardX}px;top:${cardY}px;width:${cardW}px;pointer-events:auto;`;
+    card.style.left=Math.round(cardX)+'px';
+    card.style.top=Math.round(cardY)+'px';
+    card.style.width=Math.round(cardW)+'px';
+    card.style.position='absolute';
+    card.style.display='block';
 
     // Connector sizing
     const conn=card._conn;
