@@ -44,7 +44,7 @@ Return ONLY valid JSON, no markdown, no explanation:
 Include at least 10 events spanning their entire life from birth to death. The last event must be their death. Include real specific dates where known.`;
 
   const payload = JSON.stringify({
-    model: "claude-haiku-4-5",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1800,
     messages: [{ role: "user", content: prompt }]
   });
