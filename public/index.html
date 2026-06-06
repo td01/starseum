@@ -101,8 +101,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
 .tl-bar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:1rem;padding:.7rem 1.5rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:none;}
 .tl-bar>*{pointer-events:auto;}
-.tl-back{background:none;border:none;cursor:pointer;font-family:var(--display);font-size:8px;letter-spacing:2.5px;color:var(--muted);padding:0;transition:color .2s;}
-.tl-back:hover{color:var(--gold);}
+.tl-back{background:none;border:1px solid rgba(201,168,76,.25);cursor:pointer;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.35rem .8rem;border-radius:2px;transition:all .2s;}
+.tl-back:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.06);}
 .tl-info{flex:1;min-width:0;}
 .tl-sname{font-family:var(--display);font-size:clamp(.85rem,2vw,1.2rem);font-weight:600;color:var(--cream);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tl-smeta{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;letter-spacing:.07em;}
@@ -553,7 +553,7 @@ function renderTiles(){
 function makeTile(star,tx,ty){
   const t=document.createElement('div');
   t.className='star-tile';t._star=star;
-  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;opacity:0;`;
+  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;`;
   const ph=document.createElement('div');ph.className='star-ph';
   ph.innerHTML=`<div class="star-ph-i">${star.name[0]}</div>`;
   t.appendChild(ph);
@@ -564,8 +564,6 @@ function makeTile(star,tx,ty){
   t.addEventListener('mouseenter',()=>{if(!mDrag&&!mDidDrag)setHover(t);});
   t.addEventListener('mouseleave',()=>{if(hoveredTile===t)setHover(null);});
   t.addEventListener('click',()=>{if(!mDidDrag){setHover(null);enterStar(star,t);}});
-  // New tiles during pan appear immediately (only first batch fades in)
-  if(window._introsDone)t.style.opacity='1';
   mc.appendChild(t);
   if(thumbs[star.slug]){injectThumb(t,ph,thumbs[star.slug]);return;}
   fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`)
@@ -606,11 +604,12 @@ function enterStar(star,tile){
   overlay.style.cssText='position:fixed;inset:0;z-index:70;background:var(--dark);opacity:0;transition:opacity .55s ease;pointer-events:none;';
   document.body.appendChild(overlay);
 
-  const tW=Math.min(180,vw*0.25),tH=tW*(rect.height/rect.width);
+  const tW=Math.min(200,vw*0.25),tH=tW*(rect.height/rect.width);
+  const tX=(vw-tW)/2, tY=vh*0.3;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     overlay.style.opacity='1';
-    clone.style.left=((vw-tW)/2)+'px';
-    clone.style.top=((vh-tH)/2-vh*0.08)+'px';
+    clone.style.left=tX+'px';
+    clone.style.top=tY+'px';
     clone.style.width=tW+'px';
     clone.style.height=tH+'px';
   }));
@@ -618,44 +617,42 @@ function enterStar(star,tile){
   setTimeout(()=>{
     document.getElementById('mosaicScreen').style.display='none';
     document.body.removeChild(overlay);
-    startJourney(star,thumb,clone);
-  },680);
+    // Pass clone position so load screen places lpImg exactly there
+    startJourney(star,thumb,clone,tX,tY,tW,tH);
+  },700);
 }
 
 // ═══════════════════════════════════════════
 //  LOADING
 // ═══════════════════════════════════════════
-function showLoad(star,thumb,clone){
-  document.getElementById('loadScreen').classList.add('on');
+function showLoad(star,thumb,clone,clX,clY,clW,clH){
+  const ls=document.getElementById('loadScreen');
+  ls.classList.add('on');
   const img=document.getElementById('lpImg');
-  // Hide static img until clone finishes animating
-  img.style.opacity='0';
-  if(thumb){img.src=thumb;img.style.display='block';}else img.style.display='none';
+  // Place lpImg exactly where clone is, then it stays — no double image
+  if(thumb&&clX!==undefined){
+    img.src=thumb;img.style.display='block';
+    img.style.cssText=`display:block;position:fixed;left:${clX}px;top:${clY}px;width:${clW}px;height:${clH}px;object-fit:cover;object-position:center top;border:1px solid rgba(201,168,76,.2);z-index:210;transition:none;`;
+    // Remove clone immediately — lpImg is already in the same position
+    if(clone&&clone.parentNode)document.body.removeChild(clone);
+    // After load screen settles, animate lpImg to final centred position
+    setTimeout(()=>{
+      const vw=window.innerWidth,vh=window.innerHeight;
+      const finalW=88,finalH=116;
+      const finalX=(vw-finalW)/2,finalY=vh*0.28;
+      img.style.transition='left .55s cubic-bezier(.4,0,.2,1),top .55s cubic-bezier(.4,0,.2,1),width .5s,height .5s,border-radius .5s';
+      img.style.left=finalX+'px';img.style.top=finalY+'px';
+      img.style.width=finalW+'px';img.style.height=finalH+'px';
+    },80);
+  }else{
+    img.style.cssText='display:block;opacity:1;';
+    if(thumb){img.src=thumb;}else img.style.display='none';
+    if(clone&&clone.parentNode)document.body.removeChild(clone);
+  }
   document.getElementById('lpName').textContent=star.name.toUpperCase();
   document.getElementById('lpDates').textContent=star.years||'';
   document.getElementById('lpErr').textContent='';
   setLoad(5,'GATHERING RECORDS');
-  if(clone){
-    // Animate clone to overlap exactly where lpImg is, then crossfade
-    setTimeout(()=>{
-      if(!clone.parentNode)return;
-      const r=img.getBoundingClientRect();
-      clone.style.transition='left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),width .45s,height .45s';
-      clone.style.left=r.left+'px';clone.style.top=r.top+'px';
-      clone.style.width=r.width+'px';clone.style.height=r.height+'px';
-      setTimeout(()=>{
-        // Crossfade: show lpImg, fade clone out simultaneously
-        img.style.transition='opacity .3s ease';
-        img.style.opacity='1';
-        clone.style.transition='opacity .3s ease';
-        clone.style.opacity='0';
-        setTimeout(()=>{if(clone.parentNode)document.body.removeChild(clone);},350);
-      },480);
-    },60);
-  }else{
-    img.style.transition='opacity .4s ease';
-    img.style.opacity='1';
-  }
 }
 function setLoad(p,s){
   document.getElementById('lpFill').style.width=p+'%';
@@ -666,8 +663,8 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // ═══════════════════════════════════════════
 //  JOURNEY
 // ═══════════════════════════════════════════
-async function startJourney(star,thumb,clone){
-  showLoad(star,thumb,clone);
+async function startJourney(star,thumb,clone,clX,clY,clW,clH){
+  showLoad(star,thumb,clone,clX,clY,clW,clH);
   try{
     setLoad(20,'CURATING TIMELINE');
     const tl=await fetchTimeline(star.name);
@@ -783,8 +780,10 @@ function buildTimeline(star,tl,wiki,heroThumb){
     card.className='ev-card';
 
     // Determine if this event has video
-    const hasVideo=!!(ev.videoSearch||(isDeath&&tl.youtubeSearchTerms));
-    const videoQuery=ev.videoSearch||(isDeath?(tl.youtubeSearchTerms||[star.name+' documentary'])[0]:null);
+    const hasVideo=!!(ev.youtubeId||(isDeath&&!ev.youtubeId));
+    const videoQuery=ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
+    // Use sequential images starting from index 1 (skip heroThumb for cards)
+    const cardImg=allImgs.length>1?allImgs[1+(i%(allImgs.length-1))]:allImgs[0];
 
     if(hasVideo){
       // Video card — show thumbnail placeholder + play button, embed on click
@@ -793,9 +792,9 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;';
 
       // Thumbnail: use Wikipedia image as poster
-      if(imgSrc){
+      if(cardImg){
         const thumb=document.createElement('img');
-        thumb.className='ev-img';thumb.src=imgSrc;thumb.alt=ev.title||'';thumb.loading='lazy';
+        thumb.className='ev-img';thumb.src=cardImg;thumb.alt=ev.title||'';thumb.loading='lazy';
         thumb.onerror=()=>{};
         vWrap.appendChild(thumb);
       }else{
@@ -818,11 +817,11 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
       vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
       card.appendChild(vWrap);
-    }else if(imgSrc){
+    }else if(cardImg){
       const wrap=document.createElement('div');
       wrap.className='ev-play-wrap';
       const img=document.createElement('img');
-      img.className='ev-img';img.src=imgSrc;img.alt=ev.title||'';img.loading='lazy';
+      img.className='ev-img';img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
       img.onerror=()=>wrap.remove();
       wrap.appendChild(img);
       card.appendChild(wrap);
@@ -942,13 +941,19 @@ function stopTL(){
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
-function openVideo(query,title){
+function openVideo(videoIdOrQuery,title){
   const overlay=document.getElementById('videoOverlay');
   const frame=document.getElementById('videoFrame');
-  // Use youtube-nocookie embed with search — shows a search results playlist
-  // This is the most reliable approach without an API key
-  const q=encodeURIComponent(query);
-  frame.src=`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&rel=0&modestbranding=1&autoplay=0`;
+  let src;
+  // If it looks like a YouTube ID (11 chars, no spaces), embed directly
+  if(videoIdOrQuery&&videoIdOrQuery.length===11&&!/\s/.test(videoIdOrQuery)){
+    src=`https://www.youtube-nocookie.com/embed/${videoIdOrQuery}?autoplay=1&rel=0&modestbranding=1`;
+  }else{
+    // Fallback: open YouTube search in new tab (search embed is blocked)
+    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoIdOrQuery||title)}`, '_blank', 'noopener');
+    return;
+  }
+  frame.src=src;
   overlay.classList.add('on');
 }
 document.getElementById('videoClose').addEventListener('click',()=>{
@@ -987,14 +992,15 @@ setTimeout(()=>{
   window._introsDone=false;
   mInit();
   setTimeout(()=>{window._introsDone=true;},3500);
-  // Stagger brightness reveal — tiles flicker in
+  // Stagger reveal: tiles scale in slightly off-beat for premium feel
   setTimeout(()=>{
     const tiles=Array.from(mc.querySelectorAll('.star-tile'));
     tiles.forEach((t,i)=>{
+      t.style.opacity='0';t.style.transform='scale(0.96)';t.style.transition='none';
       setTimeout(()=>{
-        t.style.transition='opacity .4s ease';
-        t.style.opacity='1';
-      }, Math.random()*800);
+        t.style.transition='opacity .5s ease,transform .5s cubic-bezier(.25,.46,.45,.94)';
+        t.style.opacity='1';t.style.transform='scale(1)';
+      }, Math.random()*1200);
     });
   },100);
 }, 3200);
