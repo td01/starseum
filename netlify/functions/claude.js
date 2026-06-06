@@ -1,4 +1,6 @@
 exports.handler = async function(event, context) {
+  context.callbackWaitsForEmptyEventLoop = false;
+  
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -17,10 +19,15 @@ exports.handler = async function(event, context) {
   try { parsed = JSON.parse(event.body); }
   catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad JSON" }) }; }
 
+  const name = parsed.name;
+  
+  const prompt = `Museum timeline for ${name}. Reply with ONLY this JSON, no other text:
+{"fullName":"","born":"","died":"","nationality":"","fields":[""],"tagline":"","wikipediaSlug":"","youtubeId":"","chapters":[{"id":"origins","label":"Origins","year":"","title":"","text":"","quote":null},{"id":"rise","label":"Rise","year":"","title":"","text":"","quote":""},{"id":"peak","label":"Peak","year":"","title":"","text":"","quote":null},{"id":"legacy","label":"Legacy","year":"","title":"","text":"","quote":""}]}`;
+
   const payload = JSON.stringify({
     model: "claude-haiku-4-5",
-    max_tokens: 1400,
-    messages: parsed.messages
+    max_tokens: 800,
+    messages: [{ role: "user", content: prompt }]
   });
 
   const https = require("https");
@@ -44,7 +51,10 @@ exports.handler = async function(event, context) {
     });
 
     req.on("error", e => resolve({ statusCode: 502, headers, body: JSON.stringify({ error: e.message }) }));
-    req.setTimeout(20000, () => { req.destroy(); resolve({ statusCode: 504, headers, body: JSON.stringify({ error: "Timeout" }) }); });
+    req.setTimeout(9000, () => {
+      req.destroy();
+      resolve({ statusCode: 504, headers, body: JSON.stringify({ error: "Timeout - please try again" }) });
+    });
     req.write(payload);
     req.end();
   });
