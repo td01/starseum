@@ -325,7 +325,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <!-- Search + Voice — body level, above everything, not inside any overflow container -->
 <div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,76vw);z-index:10000;display:none;">
   <input type="text" id="mSearch" placeholder="🔍  Search a name…" autocomplete="off" spellcheck="false"
-    style="width:100%;background:rgba(8,6,4,.95);border:1px solid rgba(201,168,76,.4);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.8);">
+    style="width:100%;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
   <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:rgba(8,6,4,.98);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 36px rgba(0,0,0,.9);"></div>
 </div>
 
@@ -352,8 +352,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
   <div style="max-width:min(720px,90vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1.1rem,3.5vw,2.2rem);color:var(--cream);line-height:1.5;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;">
-      This prototype curates content from publicly available<br>information, images and video.
+    <div style="font-family:var(--serif);font-size:clamp(1.05rem,2.8vw,2rem);color:var(--cream);line-height:1.6;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;">
+      This prototype curates content from publicly available information,<br>images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
     <div style="font-family:var(--mono);font-size:clamp(.55rem,.85vw,.7rem);letter-spacing:.12em;color:var(--muted);line-height:2.1;">
@@ -561,6 +561,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 
 <script>
+// ── HOISTED STATE DECLARATIONS ──
+// All `let` vars referenced by IIFEs or functions called during init must be here
+let _subtitlesOn = localStorage.getItem('st_subtitles')==='1';
+let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
+let _tourSpeakGen=0;
+let voiceRecog=null;
+let tlScale=1.4,tlRunning=false,tlRaf;
+
 // ═══════════════════════════════════════════
 //  STARS
 // ═══════════════════════════════════════════
@@ -1103,7 +1111,7 @@ async function resolveImg(f){
 // ═══════════════════════════════════════════
 //  TIMELINE — simple flexbox strip
 // ═══════════════════════════════════════════
-let tlScale=1.4,tlRunning=false,tlRaf;
+// tlScale, tlRunning, tlRaf declared at top of script
 
 function buildTimeline(star,tl,wiki,heroThumb){
   // Deduplicate by URL and filter out portrait-style duplicates
@@ -1934,8 +1942,7 @@ function initSearch(){
   document.addEventListener('click',e=>{if(!e.target.closest('#mSearchWrap'))res.style.display='none';});
 }
 
-// ── VOICE COMMANDS ──
-let voiceRecog=null;
+// ── VOICE COMMANDS ── (voiceRecog declared at top of script)
 function initVoice(){
   const btn=document.getElementById('mVoiceBtn');
   if(!btn)return;
@@ -1951,8 +1958,7 @@ function initVoice(){
   });
 }
 
-// Subtitles off by default; toggleable for accessibility
-let _subtitlesOn = localStorage.getItem('st_subtitles')==='1';
+// Subtitles off by default; toggleable for accessibility — declared at top of script
 
 function showVoiceHint(msg,ms=2500){
   // Only show subtitle bar if subtitles are enabled OR it's a non-narration hint (short, caps, command feedback)
@@ -1982,9 +1988,7 @@ function handleVoiceCmd(cmd){
   showVoiceHint('NOT RECOGNISED',2000);
 }
 
-// ── TOUR GUIDE ──
-let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
-let _tourSpeakGen=0; // incremented on every new tourSpeak call; stale async chains bail out
+// ── TOUR GUIDE ── (state declared at top of script)
 
 async function startTour(star,tl){
   if(tourPlaying){stopTour();return;}
