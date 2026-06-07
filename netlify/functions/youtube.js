@@ -1,3 +1,5 @@
+// YouTube Data API v3 — searches for real embeddable videos
+// Strategy: try specific query first, fall back to broader searches
 exports.handler = async function(event, context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -8,64 +10,58 @@ exports.handler = async function(event, context) {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) return { statusCode: 500, headers, body: JSON.stringify({ error: "No YouTube API key" }) };
+  if (!apiKey) return { statusCode: 500, headers, body: JSON.stringify({ error: "No YouTube API key configured" }) };
 
   let body;
   try { body = JSON.parse(event.body); } catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad JSON" }) }; }
-
   const { queries } = body;
-  if (!queries || !Array.isArray(queries)) return { statusCode: 400, headers, body: JSON.stringify({ error: "queries array required" }) };
+  if (!queries?.length) return { statusCode: 400, headers, body: JSON.stringify({ error: "queries required" }) };
 
   const https = require("https");
 
-  async function searchYouTube(query) {
-    // Try the original query first, then fall back to shorter version
-    const attempts = [
-      query.substring(0, 60),
-      query.split(' ').slice(0, 3).join(' '), // first 3 words only
-    ];
-    
-    for (const q of attempts) {
-      const result = await trySearch(encodeURIComponent(q));
-      if (result) return result;
-    }
-    return null;
-  }
-
-  function trySearch(encodedQuery) {
+  function ytSearch(query) {
     return new Promise((resolve) => {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodedQuery}&type=video&videoEmbeddable=true&videoDuration=medium&maxResults=5&key=${apiKey}`;
+      const url = "https://www.googleapis.com/youtube/v3/search?part=snippet"
+        + "&q=" + encodeURIComponent(query)
+        + "&type=video&videoEmbeddable=true&videoDuration=medium"
+        + "&maxResults=5&key=" + apiKey;
       https.get(url, (res) => {
         let data = "";
-        res.on("data", chunk => data += chunk);
+        res.on("data", c => data += c);
         res.on("end", () => {
           try {
             const d = JSON.parse(data);
-            if (d.error) { console.error('YouTube API error:', d.error.message); resolve(null); return; }
-            const items = d.items || [];
-            // Find first result that looks legitimate (has a real videoId)
-            const found = items.find(i => i.id?.videoId && i.id.videoId.length === 11);
-            if (found) {
-              resolve({ 
-                videoId: found.id.videoId, 
-                title: found.snippet?.title,
-                thumb: found.snippet?.thumbnails?.medium?.url 
-              });
-            } else {
-              resolve(null);
-            }
+            if (d.error) { console.error("YT error:", d.error.code, d.error.message); resolve(null); return; }
+            const item = (d.items || []).find(i => i.id?.videoId?.length === 11);
+            resolve(item ? { videoId: item.id.videoId, title: item.snippet?.title, thumb: item.snippet?.thumbnails?.medium?.url } : null);
           } catch(e) { resolve(null); }
         });
       }).on("error", () => resolve(null));
     });
   }
 
-  // Process up to 5 queries in parallel
-  const results = await Promise.all(queries.slice(0, 5).map(q => searchYouTube(q)));
+  async function findVideo(query) {
+    // Strategy: try 3 increasingly broad searches
+    const attempts = [
+      query,
+      // Remove years and special chars, keep name + 2 key words
+      query.replace(/\d{4}/g, '').replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 4).join(' '),
+      // Just first 3 words (usually "Name Action")
+      query.split(' ').slice(0, 3).join(' ')
+    ].filter((q, i, arr) => q && arr.indexOf(q) === i); // deduplicate
 
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ results })
-  };
+    for (const q of attempts) {
+      if (!q || q.length < 3) continue;
+      const result = await ytSearch(q);
+      if (result) {
+        console.log(`Found video for "${q}": ${result.videoId}`);
+        return result;
+      }
+    }
+    console.log(`No video found for: ${query}`);
+    return null;
+  }
+
+  const results = await Promise.all(queries.slice(0, 5).map(findVideo));
+  return { statusCode: 200, headers, body: JSON.stringify({ results }) };
 };
