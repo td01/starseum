@@ -435,10 +435,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     <button class="tl-tab" data-tab="media" style="pointer-events:auto;cursor:pointer;">MEDIA</button>
   </div>
   <div id="qaWrap" style="position:relative;display:flex;align-items:center;gap:.4rem;flex-shrink:0;">
-    <input type="text" id="qaInput" placeholder="Ask a question…" autocomplete="off"
-      style="background:rgba(10,8,6,.6);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .7rem;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--cream);outline:none;width:140px;transition:border-color .2s;">
-    <button id="qaBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .55rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);cursor:pointer;transition:all .2s;">ASK</button>
-    <div id="qaAnswer" style="display:none;position:absolute;top:100%;right:0;width:320px;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-radius:2px;padding:1rem 1.1rem;margin-top:.3rem;z-index:10001;font-family:var(--serif);font-size:.88rem;line-height:1.7;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
+    <button id="qaBtn" title="Ask a question by voice" style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.25);border-radius:2px;padding:.38rem .65rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;transition:all .2s;flex-shrink:0;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>ASK
+    </button>
+    <div id="qaAnswer" style="display:none;position:absolute;top:100%;right:0;width:320px;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-radius:2px;padding:1rem 1.1rem;margin-top:.3rem;z-index:10001;font-family:var(--serif);font-size:.88rem;line-height:1.7;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.7);max-height:200px;overflow-y:auto;"></div>
   </div>
   <button id="tourBtn" style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.4);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gold);padding:.4rem .8rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>TOUR
@@ -941,6 +941,9 @@ function enterStar(star,tile){
   }));
 
   setTimeout(()=>{
+    // Only hide mosaic AFTER the clone has animated to loading position
+    // Clone takes 40ms delay + 450ms animation = 490ms; add buffer = 550ms
+    // We let mosaic stay visible until clone is settled to avoid flash
     document.getElementById('mosaicScreen').style.display='none';
     document.body.removeChild(overlay);
     startJourney(star,thumb,clone,tX,tY,tW,tH);
@@ -971,12 +974,15 @@ function showLoad(star,thumb,clone,clX,clY,clW,clH){
       clone.style.transition='left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),width .45s,height .45s';
       clone.style.left=finalX+'px'; clone.style.top=finalY+'px';
       clone.style.width=finalW+'px'; clone.style.height=finalH+'px';
-      // Crossfade: show lpImg, fade clone simultaneously
+      // Crossfade: show lpImg while clone fades — no gap
       setTimeout(()=>{
-        img.style.transition='opacity .3s ease'; img.style.opacity='1';
-        clone.style.transition='opacity .3s ease'; clone.style.opacity='0';
-        setTimeout(()=>{if(clone.parentNode)document.body.removeChild(clone);},320);
-      },470);
+        img.style.transition='opacity .4s ease'; img.style.opacity='1';
+        // Wait until lpImg is visible before removing clone
+        setTimeout(()=>{
+          clone.style.transition='opacity .25s ease'; clone.style.opacity='0';
+          setTimeout(()=>{if(clone.parentNode)document.body.removeChild(clone);},260);
+        },200);
+      },400);
     },40);
   }else{
     if(clone&&clone.parentNode)document.body.removeChild(clone);
@@ -1675,69 +1681,77 @@ function buildMediaPanel(star,tl,wiki){
 }
 
 // ═══════════════════════════════════════════
-//  VIDEO — YouTube IFrame API for reliable error detection
+//  VIDEO
 // ═══════════════════════════════════════════
 
-// Load YouTube IFrame API once
-if(!window._ytAPILoaded){
-  window._ytAPILoaded=true;
-  window._ytReadyCallbacks=[];
-  window.onYouTubeIframeAPIReady=function(){
-    window._ytAPIReady=true;
-    window._ytReadyCallbacks.forEach(fn=>fn());
-    window._ytReadyCallbacks=[];
-  };
-  const _s=document.createElement('script');
-  _s.src='https://www.youtube.com/iframe_api';
-  document.head.appendChild(_s);
-}
-function whenYTReady(fn){
-  if(window._ytAPIReady)fn();
-  else window._ytReadyCallbacks.push(fn);
-}
-
 async function openVideo(videoId, title){
+  if(!videoId||videoId.length!==11)return false;
   const overlay=document.getElementById('videoOverlay');
-  const frame=document.getElementById('videoFrame');
   const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
+
   overlay.classList.add('on');
   fallback.style.display='flex';
-  frame.style.display='none';
-  frame.src='';
   meta.textContent='LOADING…';
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
+
+  // Remove old iframe, create fresh one — avoids stale player state
+  const old=document.getElementById('videoFrame');
+  if(old)old.remove();
+  const frame=document.createElement('iframe');
+  frame.id='videoFrame';
+  frame.setAttribute('allowfullscreen','');
+  frame.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
+  frame.style.cssText='display:none;width:100%;height:100%;border:none;';
+  overlay.insertBefore(frame,fallback);
+
   return new Promise((resolve)=>{
     let settled=false;
     const settle=(ok)=>{if(!settled){settled=true;resolve(ok);}};
     window._videoCloseCleanup=()=>settle(false);
-    whenYTReady(()=>{
-      if(window._ytPlayer){try{window._ytPlayer.destroy();}catch(e){}}
-      frame.style.display='block';frame.style.width='100%';frame.style.height='100%';frame.style.border='none';
-      fallback.style.display='none';
-      window._ytPlayer=new YT.Player('videoFrame',{
-        videoId:videoId,
-        playerVars:{autoplay:1,rel:0,modestbranding:1,origin:window.location.origin},
-        events:{
-          onReady:(e)=>{e.target.playVideo();},
-          onStateChange:(e)=>{
-            if(e.data===YT.PlayerState.PLAYING){
-              meta.textContent=(title||'').toUpperCase();settle(true);
-            }
-          },
-          onError:(e)=>{
-            console.warn('YT error',e.data,'for',videoId);
-            frame.style.display='none';fallback.style.display='flex';
-            meta.textContent='VIDEO UNAVAILABLE';settle(false);
-          }
+
+    // Use postMessage to detect YouTube player errors (error codes sent via message)
+    const msgHandler=(e)=>{
+      if(!e.origin.includes('youtube.com'))return;
+      try{
+        const d=JSON.parse(e.data);
+        if(d.event==='onError'){
+          console.warn('YT embed error:',d.info,'for',videoId);
+          window.removeEventListener('message',msgHandler);
+          frame.style.display='none';fallback.style.display='flex';
+          meta.textContent='VIDEO UNAVAILABLE';settle(false);
+        }else if(d.event==='onStateChange'&&d.info===1){ // 1=playing
+          window.removeEventListener('message',msgHandler);
+          frame.style.display='block';fallback.style.display='none';
+          meta.textContent=(title||'').substring(0,60).toUpperCase();
+          settle(true);
         }
-      });
-    });
+      }catch(e2){}
+    };
+    window.addEventListener('message',msgHandler);
+
+    // enablejsapi=1 sends postMessages; autoplay=1; origin for security
+    const origin=encodeURIComponent(window.location.origin);
+    frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
+
+    frame.onload=()=>{
+      // iframe loaded — show it optimistically; postMessage will correct if error
+      setTimeout(()=>{
+        if(!settled){
+          frame.style.display='block';fallback.style.display='none';
+          meta.textContent=(title||'').substring(0,60).toUpperCase();
+          settle(true); // assume playing if no error in 3s
+        }
+      },3000);
+    };
+
+    // Hard timeout fallback
     setTimeout(()=>{
+      window.removeEventListener('message',msgHandler);
       if(!settled){frame.style.display='none';fallback.style.display='flex';meta.textContent='VIDEO UNAVAILABLE';settle(false);}
-    },12000);
+    },15000);
   });
 }
 
@@ -1753,6 +1767,14 @@ async function openVideoWithFallback(candidates, title){
 function closeVideo(){
   if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
   document.getElementById('videoOverlay').classList.remove('on');
+  const frame=document.getElementById('videoFrame');
+  if(frame){frame.src='';frame.style.display='none';}
+  document.getElementById('videoFallback').style.display='none';
+}
+
+function closeVideo(){
+  if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
+  document.getElementById('videoOverlay').classList.remove('on');
   document.getElementById('videoFrame').src='';
   document.getElementById('videoFallback').style.display='none';
   document.getElementById('videoFrame').style.display='block';
@@ -1760,6 +1782,41 @@ function closeVideo(){
 document.getElementById('videoClose').addEventListener('click',closeVideo);
 document.getElementById('videoOverlay').addEventListener('click',e=>{
   if(e.target===e.currentTarget)closeVideo();
+});
+
+// ── TAB SWITCHING ──
+// Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
+document.querySelectorAll('.tl-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tl-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    const tab=btn.dataset.tab;
+    document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
+    document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
+    // Interrupt narration only past opening line
+    if(tourStep2>0||!tourPlaying){
+      if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
+      if(tourAudio){tourAudio.pause();tourAudio=null;}
+    }
+    if(tourPlaying&&tourStep2>0){
+      if(tab==='bio'&&tourTlRef){
+        const bioText='Bio section. '+tourTlRef.fullName+'. Born '+tourTlRef.born+', '+tourTlRef.nationality+'. '+(tourTlRef.fields||[]).join(', ')+'. '+tourTlRef.tagline;
+        setTimeout(()=>tourSpeak(bioText),300);
+      }else if(tab==='media'&&tourStarRef){
+        setTimeout(()=>tourSpeak('Media section. Watch videos from '+tourStarRef.name+'\'s life.'),300);
+      }else if(tab==='timeline'){
+        if(tourPlaying&&tourStep2>0){
+          stopTour();
+          setTimeout(async()=>{
+            tourPlaying=true;
+            document.getElementById('tourBtn').style.color='var(--gold)';
+            await tourSpeak('Let\'s continue.');
+            await runTourStep2();
+          },300);
+        }
+      }
+    }
+  });
 });
 
 // ═══════════════════════════════════════════
@@ -2141,39 +2198,77 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
 });
 
 
-// ── Q&A FEATURE ──
+// ── Q&A FEATURE — voice-first, ElevenLabs response ──
 (function(){
-  const inp=document.getElementById('qaInput');
   const btn=document.getElementById('qaBtn');
   const ans=document.getElementById('qaAnswer');
-  if(!inp||!btn)return;
+  if(!btn||!ans)return;
+  let _qaListening=false;
 
-  async function askQuestion(){
-    const q=inp.value.trim();
-    if(!q||!tourTlRef)return;
+  async function speakAnswer(text){
+    // Read answer via ElevenLabs (same narrator voice), fallback to browser TTS
     ans.style.display='block';
-    ans.textContent='Thinking…';
+    ans.textContent=text;
+    try{
+      const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,600)})});
+      if(r.ok){const d=await r.json();if(d.audio){const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+    }catch(e){}
+    speak(text.substring(0,400),0.9);
+  }
+
+  async function askQuestion(question){
+    if(!question||!tourTlRef){ans.style.display='block';ans.textContent='Open a museum first, then ask a question.';return;}
+    ans.style.display='block';ans.textContent='Thinking…';
+    btn.style.color='var(--gold)';btn.style.borderColor='rgba(201,168,76,.5)';
     try{
       const context=JSON.stringify({
-        name:tourTlRef.fullName,
-        born:tourTlRef.born,died:tourTlRef.died,
+        name:tourTlRef.fullName,born:tourTlRef.born,died:tourTlRef.died,
         fields:tourTlRef.fields,nationality:tourTlRef.nationality,
         events:(tourTlRef.events||[]).map(e=>({year:e.year,title:e.title,text:e.text}))
       });
       const r=await fetch('/.netlify/functions/claude',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:'__qa__',context,question:q})
+        body:JSON.stringify({name:'__qa__',context,question})
       });
       const data=await r.json();
       const raw=(data.content?.find(b=>b.type==='text')?.text)||"I don't have that information.";
-      ans.textContent=raw.replace(/^```.*|```$/gm,'').trim();
-      // Read answer aloud via shared speech channel
-      speak(ans.textContent.substring(0,300));
-    }catch(e){ans.textContent='Could not get an answer right now.';}
+      const answer=raw.replace(/^```.*|```$/gm,'').trim();
+      speakAnswer(answer);
+    }catch(e){
+      ans.style.display='block';ans.textContent='Could not get an answer right now.';
+    }
+    btn.style.color='';btn.style.borderColor='';
   }
 
-  btn.addEventListener('click',askQuestion);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')askQuestion();});
+  // Voice-activate QA on button click
+  btn.addEventListener('click',()=>{
+    if(_qaListening)return;
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){
+      // No speech recognition — show a text fallback prompt
+      const q=prompt('Ask a question about '+( tourTlRef?.fullName||'this person')+'…');
+      if(q)askQuestion(q.trim());
+      return;
+    }
+    _qaListening=true;
+    btn.style.color='var(--gold)';btn.style.borderColor='rgba(201,168,76,.6)';
+    ans.style.display='block';ans.textContent='Listening…';
+    const r=new SR();r.lang='en-US';r.continuous=false;r.interimResults=false;
+    r.onresult=e=>{
+      const q=e.results[0][0].transcript.trim();
+      ans.textContent='You asked: "'+q+'"';
+      setTimeout(()=>askQuestion(q),300);
+    };
+    r.onerror=()=>{
+      _qaListening=false;
+      btn.style.color='';btn.style.borderColor='';
+      ans.textContent='Could not hear your question. Tap again to retry.';
+    };
+    r.onend=()=>{_qaListening=false;btn.style.color='';btn.style.borderColor='';};
+    r.start();
+    setTimeout(()=>{try{r.stop();}catch(e){}},8000);
+  });
+
   document.addEventListener('click',e=>{
     if(!e.target.closest('#qaWrap'))ans.style.display='none';
   });
