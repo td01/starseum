@@ -145,7 +145,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   #qaWrap{display:none!important;}
 }
 /* Bio panel */
-#bioPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#bioPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:20;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;background:var(--dark);}
 #bioPanel.on{display:block;}
 .bio-portrait{width:180px;height:238px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);float:left;margin:0 2.5rem 1.5rem 0;filter:sepia(.1) contrast(1.06);}
 .bio-name{font-family:var(--display);font-size:clamp(2rem,4vw,3rem);font-weight:600;color:var(--cream);letter-spacing:.06em;margin-bottom:.4rem;}
@@ -154,7 +154,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .bio-fields{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;}
 .bio-field{font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted);border:1px solid var(--gold2);padding:.2rem .6rem;border-radius:1px;}
 /* Media panel */
-#mediaPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#mediaPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:20;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;background:var(--dark);}
 #mediaPanel.on{display:block;}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;}
 .media-item{background:var(--card);border:1px solid var(--gold2);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;}
@@ -984,10 +984,15 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // ═══════════════════════════════════════════
 async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   showLoad(star,thumb,clone,clX,clY,clW,clH);
-  // Speak the name while loading — feels alive
-  setTimeout(()=>{
+  // Speak the star's name via ElevenLabs (same voice as tour) — fire-and-forget
+  (async()=>{
+    try{
+      const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
+      if(r.ok){const d=await r.json();if(d.audio){const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+    }catch(e){}
+    // Fallback to browser TTS if ElevenLabs fails
     speak(star.name+'.', 0.82);
-  }, 600);
+  })();
   try{
     setLoad(20,'CURATING MUSEUM');
     const tl=await fetchTimeline(star.name);
@@ -1054,7 +1059,7 @@ async function fetchTimeline(name, attempt=0){
 
 async function fetchWikiImages(slug){
   const s=slug.replace(/ /g,'_');
-  const out={thumb:null,images:[]};
+  const out={thumb:null,images:[],earlyImages:[]};
   try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}}catch(e){}
   try{
     const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=24&format=json&origin=*`);
@@ -1062,11 +1067,17 @@ async function fetchWikiImages(slug){
       const d=await r.json();
       const pg=Object.values(d.query?.pages||{})[0];
       const allFiles=(pg?.images||[]).filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title)).filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub/i.test(i.title));
-    const earlyFiles=allFiles.filter(i=>/young|youth|child|early|born|school/i.test(i.title));
-    const laterFiles=allFiles.filter(i=>!/young|youth|child|early|born|school/i.test(i.title));
-    const files=[...earlyFiles,...laterFiles].slice(0,18).map(i=>i.title.replace('File:',''));
-      const urls=await Promise.all(files.map(resolveImg));
-      out.images=urls.filter(Boolean);
+      const earlyFiles=allFiles.filter(i=>/young|youth|child|early|born|school/i.test(i.title));
+      const laterFiles=allFiles.filter(i=>!/young|youth|child|early|born|school/i.test(i.title));
+      // Resolve early and later files separately so we retain the distinction
+      const earlyNames=earlyFiles.slice(0,6).map(i=>i.title.replace('File:',''));
+      const laterNames=laterFiles.slice(0,12).map(i=>i.title.replace('File:',''));
+      const [earlyUrls,laterUrls]=await Promise.all([
+        Promise.all(earlyNames.map(resolveImg)),
+        Promise.all(laterNames.map(resolveImg))
+      ]);
+      out.earlyImages=earlyUrls.filter(Boolean);
+      out.images=[...out.earlyImages,...laterUrls.filter(Boolean)];
     }
   }catch(e){}
   return out;
@@ -1088,6 +1099,8 @@ let tlScale=1.4,tlRunning=false,tlRaf;
 function buildTimeline(star,tl,wiki,heroThumb){
   // Deduplicate by URL and filter out portrait-style duplicates
   const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i).filter(Boolean);
+  // Dedicated early/childhood image pool — resolved filenames tagged young/child/early
+  const earlyImgs=(wiki.earlyImages||[]).filter(Boolean);
   const fullName=tl.fullName||star.name;
   const diedPart=tl.died?` – ${tl.died}`:'';
   document.getElementById('tlName').textContent=fullName;
@@ -1140,10 +1153,11 @@ function buildTimeline(star,tl,wiki,heroThumb){
       }
       if(!cardImg)cardImg=imgPool[imgPool.length-1]||null;
     }else if(isChildhood){
-      // Childhood: prefer early/young tagged images (they were sorted first in fetchWikiImages)
-      const earlyPool=allImgs.filter(u=>u&&/young|youth|child|early|born|school/i.test(u));
-      const preferred=earlyPool.length?earlyPool:imgPool;
-      cardImg=preferred.find(u=>!usedImgUrls.has(u))||imgPool.find(u=>!usedImgUrls.has(u))||imgPool[0]||null;
+      // Childhood: use dedicated early/young tagged images first, then fall back to imgPool
+      const preferred=earlyImgs.length?earlyImgs:imgPool;
+      cardImg=preferred.find(u=>!usedImgUrls.has(u))
+             ||imgPool.find(u=>!usedImgUrls.has(u))
+             ||imgPool[0]||null;
     }else{
       // All others: first unused image, cycling forward
       cardImg=imgPool.find(u=>!usedImgUrls.has(u))||imgPool[i%Math.max(imgPool.length,1)]||null;
@@ -1304,9 +1318,8 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
   buildMediaPanel(star,tl,wiki);
-  // Reset to timeline tab
+  // Reset to timeline tab — panels start hidden, tlScroll always visible
   document.querySelectorAll('.tl-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='timeline'));
-  document.getElementById('tlScroll').style.display='';
   document.getElementById('bioPanel').classList.remove('on');
   document.getElementById('mediaPanel').classList.remove('on');
   // Video IDs fetched on demand when user clicks play
@@ -1534,17 +1547,16 @@ async function openVideo(videoId,title,searchQuery){
     ytLink.textContent='SEARCH ON YOUTUBE ↗';
   }
 }
-// Tab switching
+// Tab switching — Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
 document.querySelectorAll('.tl-tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tl-tab').forEach(t=>t.classList.remove('active'));
     btn.classList.add('active');
     const tab=btn.dataset.tab;
-    document.getElementById('tlScroll').style.display=tab==='timeline'?'':'none';
+    // tlScroll stays visible always — panels overlay on top
     document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
     document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
-    // Interrupt any current narration and briefly describe the new section
-    // Guard: don't race with tour auto-start (tourStep2===0 means intro speech may still be running)
+    // Interrupt narration only if tour is past its opening line
     if(tourStep2>0||!tourPlaying){
       if(window.speechSynthesis&&speechSynthesis.speaking){speechSynthesis.cancel();}
       if(tourAudio){tourAudio.pause();tourAudio=null;}
