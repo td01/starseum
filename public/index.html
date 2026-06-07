@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer-when-downgrade">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Starseum — A Museum of Extraordinary Lives</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A0806'/><text x='50%' y='58%' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23C9A84C' font-family='serif'>S</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   .tl-smeta{display:none;}
   .tl-tab{font-size:8px;padding:.28rem .45rem;}
   #tourBtn{font-size:8px;padding:.28rem .5rem;}
-  #tlScroll{top:48px;}
+  #tlScroll{top:calc(48px + env(safe-area-inset-top));}
   .ev-col{width:75vw!important;margin:0 8px!important;flex-shrink:0;}
   .ev-img{height:180px!important;}
   .tl-zoom{bottom:3rem;right:.75rem;}
@@ -59,7 +59,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
-.m-hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none;padding:1.1rem 1.8rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(10,8,6,.9) 0%,transparent);}
+.m-hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none;padding:calc(1.1rem + env(safe-area-inset-top)) 1.8rem 1.1rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(10,8,6,.9) 0%,transparent);}
 .m-hud>*{pointer-events:auto;z-index:101;}
 .m-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
 .m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:super;}
@@ -131,7 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlScreen{position:fixed;inset:0;z-index:200;display:none;background:var(--dark);overflow:hidden;}
 #tlScreen.on{display:block;}
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
-.tl-bar{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:.75rem;padding:.65rem 1.2rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:auto;}
+.tl-bar{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:.75rem;padding:calc(.65rem + env(safe-area-inset-top)) 1.2rem .65rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:auto;}
 .tl-bar>*{pointer-events:auto;}
 .tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
 .tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
@@ -139,7 +139,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
 .tl-tab:hover:not(.active){color:var(--cream);}
 /* Bio panel */
-#bioPanel{position:absolute;top:55px;bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#bioPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
 #bioPanel.on{display:block;}
 .bio-portrait{width:180px;height:238px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);float:left;margin:0 2.5rem 1.5rem 0;filter:sepia(.1) contrast(1.06);}
 .bio-name{font-family:var(--display);font-size:clamp(2rem,4vw,3rem);font-weight:600;color:var(--cream);letter-spacing:.06em;margin-bottom:.4rem;}
@@ -148,7 +148,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .bio-fields{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;}
 .bio-field{font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted);border:1px solid var(--gold2);padding:.2rem .6rem;border-radius:1px;}
 /* Media panel */
-#mediaPanel{position:absolute;top:55px;bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#mediaPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
 #mediaPanel.on{display:block;}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;}
 .media-item{background:var(--card);border:1px solid var(--gold2);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;}
@@ -165,7 +165,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .tl-tagline{font-family:var(--serif);font-style:italic;font-size:.8rem;color:rgba(201,168,76,.6);max-width:260px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
 
 /* Horizontal scrollable strip */
-#tlScroll{position:absolute;top:55px;bottom:36px;left:0;right:0;overflow-x:auto;overflow-y:hidden;z-index:10;scrollbar-width:none;cursor:grab;}
+#tlScroll{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;overflow-x:auto;overflow-y:hidden;z-index:10;scrollbar-width:none;cursor:grab;}
 #tlScroll::-webkit-scrollbar{display:none;}
 #tlScroll.grabbing{cursor:grabbing;}
 #tlStrip{display:inline-flex;align-items:center;height:100%;padding:0 10vw 0 3vw;position:relative;min-width:100%;}
@@ -320,7 +320,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </div>
 </div>
 <!-- Search + Voice — body level, above everything, not inside any overflow container -->
-<div id="mSearchWrap" style="position:fixed;top:.85rem;left:50%;transform:translateX(-50%);width:min(400px,76vw);z-index:10000;display:none;">
+<div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,76vw);z-index:10000;display:none;">
   <input type="text" id="mSearch" placeholder="🔍  Search a name…" autocomplete="off" spellcheck="false"
     style="width:100%;background:rgba(8,6,4,.95);border:1px solid rgba(201,168,76,.4);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.8);">
   <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:rgba(8,6,4,.98);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 36px rgba(0,0,0,.9);"></div>
@@ -341,7 +341,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 <!-- Voice button — fixed, always on top -->
 <button id="mVoiceBtn" title="Voice command (say a name to find them)"
-  style="position:fixed;top:.9rem;right:1rem;z-index:9999;background:rgba(8,6,4,.88);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:all .2s;">
+  style="position:fixed;top:calc(.9rem + env(safe-area-inset-top));right:1rem;z-index:9999;background:rgba(8,6,4,.88);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:all .2s;">
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
 </button>
 
@@ -1185,6 +1185,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       // Video card — show thumbnail placeholder + play button, embed on click
       const vWrap=document.createElement('div');
       vWrap.className='ev-video-wrap';
+      vWrap.dataset.evIdx=String(i); // anchor to event index, not DOM position
       vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;border-top:2px solid rgba(201,168,76,0.4);';
 
       // Thumbnail: use Wikipedia image as poster
@@ -1476,7 +1477,8 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
     document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
     document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
     // Stop current narration and read new section
-    if(tourPlaying||window.speechSynthesis?.speaking){
+    // Only narrate tab switches if tour has been running for a moment (avoid race with auto-start)
+    if(tourPlaying&&tourStep2>0){
       if(window.speechSynthesis)speechSynthesis.cancel();
       if(tourAudio){tourAudio.pause();tourAudio=null;}
       if(tab==='bio'&&tourTlRef){
@@ -1596,13 +1598,14 @@ async function enrichVideos(star, tl){
       if(!ev) return;
       // Store the real ID
       ev.youtubeId = res.videoId;
-      // Update the card's play button and thumbnail
-      const vWraps = document.querySelectorAll('.ev-video-wrap');
-      if(vWraps[i]){
-        const thumb = vWraps[i].querySelector('.ev-img');
+      // Select wrap by its anchored event index — immune to DOM position drift
+      const vWrap = document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
+      if(vWrap){
+        const thumb = vWrap.querySelector('.ev-img');
         if(thumb && res.thumb) thumb.src = res.thumb;
-        // Update click handler with real ID
-        vWraps[i].onclick = () => openVideo(res.videoId, ev.title||'', star.name+' '+ev.title);
+        // Replace click handler with real ID (remove old inline onclick first)
+        vWrap.onclick = null;
+        vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;openVideo(res.videoId, ev.title||'', star.name+' '+ev.title);},{once:true});
       }
     });
     // Rebuild media panel with real IDs
@@ -1804,6 +1807,7 @@ function handleVoiceCmd(cmd){
 
 // ── TOUR GUIDE ──
 let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
+let _tourSpeakGen=0; // incremented on every new tourSpeak call; stale async chains bail out
 
 async function startTour(star,tl){
   if(tourPlaying){stopTour();return;}
@@ -1858,15 +1862,19 @@ async function runTourStep2(){
 
 async function tourSpeak(text){
   if(!tourPlaying||!text)return;
-  // Cancel any existing speech before starting new
+  // Claim this generation — any previous pending speak will see a mismatch and bail
+  const myGen=++_tourSpeakGen;
+  // Cancel whatever is currently playing
   if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
-  if(tourAudio&&!tourAudio.paused){tourAudio.pause();}
+  if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
   showVoiceHint(text.substring(0,55)+'…',99999);
-  if(!tourPlaying)return;
+  if(!tourPlaying||myGen!==_tourSpeakGen)return;
   try{
     const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,800)})});
+    if(myGen!==_tourSpeakGen)return; // superseded while fetching
     if(r.ok){const d=await r.json();if(d.audio){await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+d.audio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});return;}}
   }catch(e){}
+  if(!tourPlaying||myGen!==_tourSpeakGen)return; // bail before fallback TTS
   await new Promise(res=>{
     if(!tourPlaying){res();return;}
     if(!window.speechSynthesis){res();return;}
@@ -1894,6 +1902,7 @@ function tourListen(ms){
 function stopTour(){
   tourPlaying=false;
   tourStep2=0;
+  _tourSpeakGen++; // invalidate any in-flight tourSpeak chain
   if(tourAudio){tourAudio.pause();tourAudio.src='';tourAudio=null;}
   // Cancel speech synthesis multiple times — it can be queued
   if(window.speechSynthesis){
