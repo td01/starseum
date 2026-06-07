@@ -133,11 +133,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
 .tl-bar{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:.75rem;padding:calc(.65rem + env(safe-area-inset-top)) 1.2rem .65rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:auto;}
 .tl-bar>*{pointer-events:auto;}
-.tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.tl-tabs{display:flex;gap:0;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;margin-left:.5rem;}
 .tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
 .tl-tab:last-child{border-right:none;}
 .tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
 .tl-tab:hover:not(.active){color:var(--cream);}
+/* Ensure QA and tour btn never squeeze tabs off */
+#qaWrap{flex-shrink:1;min-width:0;}
+#qaInput{min-width:0;width:140px;}
+@media(max-width:800px){
+  #qaWrap{display:none!important;}
+}
 /* Bio panel */
 #bioPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
 #bioPanel.on{display:block;}
@@ -187,7 +193,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-card.tour-active{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(201,168,76,.3),0 20px 60px rgba(0,0,0,.8)!important;transform:scale(1.04)!important;}
 .ev-card:hover,.ev-card.tapped{border-color:rgba(201,168,76,.5);box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.1);transform:scale(1.06) translateY(-4px);}
 .ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
-.ev-img{width:100%;height:180px;object-fit:cover;object-position:center center;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
+.ev-img{width:100%;height:180px;object-fit:cover;object-position:center 15%;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
 .ev-yr{font-family:var(--mono);font-size:16px;color:var(--gold);letter-spacing:.12em;margin-bottom:.35rem;opacity:.85;font-weight:300;}
 
@@ -199,10 +205,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 /* Childhood card style */
 .ev-childhood-badge{display:inline-block;font-family:var(--mono);font-size:6.5px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold2);padding:.15rem .45rem;margin-bottom:.4rem;border-radius:1px;opacity:.7;}
-.ev-title{font-family:var(--display);font-size:1.45rem;font-weight:600;color:var(--cream);line-height:1.18;margin-bottom:.45rem;letter-spacing:.02em;}
-.ev-text{font-family:var(--serif);font-size:1rem;line-height:1.75;color:rgba(221,213,190,0.92);}
+.ev-title{font-family:var(--display);font-size:1.45rem;font-weight:600;color:var(--cream);line-height:1.18;margin-bottom:.45rem;letter-spacing:.02em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.ev-text{font-family:var(--serif);font-size:1rem;line-height:1.75;color:rgba(221,213,190,0.92);overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;}
 .ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
-.ev-quote{margin-top:.4rem;padding:.65rem .8rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:1.05rem;color:var(--cream);line-height:1.6;}
+.ev-quote{margin-top:.4rem;padding:.65rem .8rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:1.05rem;color:var(--cream);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;}
 .ev-body{padding:1rem 1.1rem 1.2rem;}
 .ev-play-wrap{position:relative;}
 .ev-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);opacity:0;transition:opacity .3s;}
@@ -341,16 +347,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
-  <div style="max-width:520px;">
-    <div style="font-family:var(--display);font-size:.7rem;letter-spacing:.35em;color:var(--gold);opacity:.65;margin-bottom:1.8rem;">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1.15rem,2.8vw,1.6rem);color:var(--cream);line-height:1.85;margin-bottom:1.5rem;">
-      This prototype curates content from publicly available<br>information, images and video.
+  <div style="max-width:640px;width:100%;">
+    <div style="font-family:var(--display);font-size:.65rem;letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:2.4rem;">STARSEUM — PROTOTYPE</div>
+    <div style="font-family:var(--serif);font-size:clamp(1.5rem,3.8vw,2.4rem);color:var(--cream);line-height:1.6;margin-bottom:2.2rem;font-weight:300;letter-spacing:.01em;">
+      This prototype curates content from publicly<br>available information, images and video.
     </div>
-    <div style="height:1px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);margin-bottom:1.5rem;"></div>
-    <div style="font-family:var(--mono);font-size:.72rem;letter-spacing:.13em;color:var(--muted);line-height:2;">
-      Biographical content is AI-generated and may contain inaccuracies.<br>
-      For educational &amp; memorial purposes only · Not for commercial use<br>
-      <span id="reportLink" style="color:var(--gold);opacity:.7;cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);pointer-events:auto;">Report content</span> to be amended or removed
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:2rem;"></div>
+    <div style="font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;color:var(--muted);line-height:2.3;">
+      Biographical content is AI-generated and may contain inaccuracies<br>
+      For educational &amp; memorial purposes only &nbsp;&middot;&nbsp; Not for commercial use<br>
+      <span id="reportLink" style="color:var(--gold);opacity:.75;cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);pointer-events:auto;">REPORT CONTENT</span> to be amended or removed
     </div>
   </div>
 </div>
@@ -978,6 +984,10 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // ═══════════════════════════════════════════
 async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   showLoad(star,thumb,clone,clX,clY,clW,clH);
+  // Speak the name while loading — feels alive
+  setTimeout(()=>{
+    speak(star.name+'.', 0.82);
+  }, 600);
   try{
     setLoad(20,'CURATING MUSEUM');
     const tl=await fetchTimeline(star.name);
@@ -996,7 +1006,8 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     zd.style.opacity='0';setTimeout(()=>{zd.style.pointerEvents='none';},600);
   }catch(err){
     console.error(err);
-    document.getElementById('lpErr').textContent=(err.message||'Could not load.')+'  Tap to return.';
+    const msg=typeof err==='string'?err:(err?.message||'Could not load. Please try again.');
+    document.getElementById('lpErr').textContent=msg+'  Tap to return.';
     setLoad(0,'ERROR');
     document.getElementById('loadScreen').addEventListener('click',goHome,{once:true});
   }
@@ -1022,15 +1033,23 @@ document.getElementById('tlBack').addEventListener('click',()=>{ stopTour(); goH
 // ═══════════════════════════════════════════
 //  APIs
 // ═══════════════════════════════════════════
-async function fetchTimeline(name){
-  const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Error ${r.status}`);}
-  const data=await r.json();
-  if(data.error)throw new Error(data.error.message||data.error);
-  const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
-  const clean=raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim();
-  if(!clean||clean==='{}')throw new Error('No data returned');
-  return JSON.parse(clean);
+async function fetchTimeline(name, attempt=0){
+  try{
+    const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Error ${r.status}`);}
+    const data=await r.json();
+    if(data.error)throw new Error(data.error.message||data.error);
+    const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
+    const clean=raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim();
+    if(!clean||clean==='{}')throw new Error('No data returned');
+    return JSON.parse(clean);
+  }catch(err){
+    if(attempt===0){
+      await sleep(1800);
+      return fetchTimeline(name,1);
+    }
+    throw err;
+  }
 }
 
 async function fetchWikiImages(slug){
@@ -1169,6 +1188,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       const wrap=document.createElement('div');wrap.className='ev-play-wrap';
       const img=document.createElement('img');img.className='ev-img';
       img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+      img.style.objectPosition='center top';
       const sepiaAmt=Math.max(0.2,0.6-(i*0.15));
       img.style.filter=`sepia(${sepiaAmt}) contrast(1.08) brightness(0.82)`;
       img.onerror=()=>wrap.remove();
@@ -1215,6 +1235,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       if(cardImg){
         const wrap=document.createElement('div');wrap.className='ev-play-wrap';
         const img=document.createElement('img');img.className='ev-img';
+        img.style.objectPosition='center top'; // faces not torsos
         img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
         img.style.filter='sepia(0.45) contrast(1.1) brightness(0.82)';
         img.onerror=()=>wrap.remove();
@@ -1314,27 +1335,74 @@ function updateScrubber(){
 }
 
 function setupScrollDrag(sc){
-  let drag=false,sx0,sl0,lx,vel=0;
-  sc.addEventListener('mousedown',e=>{drag=true;sx0=e.clientX;sl0=sc.scrollLeft;lx=e.clientX;vel=0;sc.classList.add('grabbing');e.preventDefault();},{passive:false});
-  window.addEventListener('mousemove',e=>{if(!drag)return;vel=e.clientX-lx;lx=e.clientX;sc.scrollLeft=sl0-(e.clientX-sx0);});
+  let drag=false,sx0,sl0,lx,vel=0,lastT=0,rafId=null;
+
+  function cancelCoast(){if(rafId){cancelAnimationFrame(rafId);rafId=null;}}
+
+  sc.addEventListener('mousedown',e=>{
+    cancelCoast();
+    drag=true;sx0=e.clientX;sl0=sc.scrollLeft;lx=e.clientX;vel=0;lastT=performance.now();
+    sc.classList.add('grabbing');e.preventDefault();
+  },{passive:false});
+
+  window.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const now=performance.now(),dt=Math.max(1,now-lastT);
+    vel=(lx-e.clientX)/dt*16; // px/frame at 60fps
+    lx=e.clientX;lastT=now;
+    sc.scrollLeft=sl0-(e.clientX-sx0);
+  });
+
   window.addEventListener('mouseup',()=>{
     if(!drag)return;drag=false;sc.classList.remove('grabbing');
-    let v=-vel;
+    // Coast with friction then elastic snap
+    let v=vel;
+    const max=sc.scrollWidth-sc.clientWidth;
     function coast(){
-      if(Math.abs(v)<0.3){
-        // Elastic end: bounce if at edges
-        const max=sc.scrollWidth-sc.clientWidth;
-        if(sc.scrollLeft<0){elasticSnap(sc,0);}
-        else if(sc.scrollLeft>max){elasticSnap(sc,max);}
+      if(Math.abs(v)<0.4){
+        if(sc.scrollLeft<0)elasticSnap(sc,0);
+        else if(sc.scrollLeft>max)elasticSnap(sc,max);
         return;
       }
-      sc.scrollLeft+=v;v*=0.93;requestAnimationFrame(coast);
+      sc.scrollLeft+=v;v*=0.94;updateScrubber();
+      rafId=requestAnimationFrame(coast);
     }
-    coast();
+    rafId=requestAnimationFrame(coast);
   });
+
+  // Touch — separate high-friction momentum for mobile
+  let tx0,tsl0,tlx,tvel=0,tLastT=0;
+  sc.addEventListener('touchstart',e=>{
+    cancelCoast();
+    const t=e.touches[0];tx0=t.clientX;tsl0=sc.scrollLeft;tlx=t.clientX;tvel=0;tLastT=performance.now();
+  },{passive:true});
+  sc.addEventListener('touchmove',e=>{
+    const t=e.touches[0];
+    const now=performance.now(),dt=Math.max(1,now-tLastT);
+    tvel=(tlx-t.clientX)/dt*16;
+    tlx=t.clientX;tLastT=now;
+    sc.scrollLeft=tsl0-(t.clientX-tx0);
+    updateScrubber();
+  },{passive:true});
+  sc.addEventListener('touchend',()=>{
+    let v=tvel;
+    const max=sc.scrollWidth-sc.clientWidth;
+    function coast(){
+      if(Math.abs(v)<0.5){
+        if(sc.scrollLeft<0)elasticSnap(sc,0);
+        else if(sc.scrollLeft>max)elasticSnap(sc,max);
+        return;
+      }
+      sc.scrollLeft+=v;v*=0.92;updateScrubber();
+      rafId=requestAnimationFrame(coast);
+    }
+    rafId=requestAnimationFrame(coast);
+  },{passive:true});
+
   document.getElementById('scrubTrack').addEventListener('click',e=>{
     const rect=e.currentTarget.getBoundingClientRect();
-    sc.scrollLeft=(e.clientX-rect.left)/rect.width*(sc.scrollWidth-sc.clientWidth);
+    const target=(e.clientX-rect.left)/rect.width*(sc.scrollWidth-sc.clientWidth);
+    elasticSnap(sc,target);
   });
 }
 
@@ -1379,19 +1447,27 @@ function setupZoom(){
   const strip=document.getElementById('tlStrip');
   const sc=document.getElementById('tlScroll');
   function apply(s){
-    tlScale=Math.min(2.5,Math.max(0.4,s));
+    tlScale=Math.min(2.5,Math.max(0.7,s)); // min 0.7 keeps cards readable
     strip.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
     strip.querySelectorAll('.ev-conn').forEach(c=>c.style.height=Math.round(48*tlScale)+'px');
     strip.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(120*tlScale)+'px');
-    // Scale text with zoom
-    const fs=Math.max(0.65,Math.min(1.2,tlScale));
-    strip.querySelectorAll('.ev-title').forEach(el=>el.style.fontSize=Math.round(fs*15.2)/16+'rem');
-    strip.querySelectorAll('.ev-text').forEach(el=>el.style.fontSize=Math.round(fs*12.5)/16+'rem');
-    strip.querySelectorAll('.ev-yr').forEach(el=>el.style.fontSize=Math.round(fs*8)+'px');
+    // Scale text proportionally; floor at legible sizes
+    const fs=Math.max(0.72,Math.min(1.2,tlScale));
+    strip.querySelectorAll('.ev-title').forEach(el=>el.style.fontSize=Math.max(0.78,Math.round(fs*15.2)/16)+'rem');
+    strip.querySelectorAll('.ev-text').forEach(el=>el.style.fontSize=Math.max(0.72,Math.round(fs*12.5)/16)+'rem');
+    // Year label: hide below 0.85 so it doesn't crowd
+    strip.querySelectorAll('.ev-yr').forEach(el=>{
+      el.style.fontSize=Math.round(fs*8)+'px';
+      el.style.display=tlScale<0.85?'none':'';
+    });
+    // Body padding: compress at small zoom
+    strip.querySelectorAll('.ev-body').forEach(el=>{
+      el.style.padding=tlScale<0.9?'.5rem .65rem .6rem':'1rem 1.1rem 1.2rem';
+    });
   }
   document.getElementById('zIn').onclick=()=>apply(tlScale*1.3);
   document.getElementById('zOut').onclick=()=>apply(tlScale/1.3);
-  document.getElementById('zFit').onclick=()=>{apply(1);sc.scrollLeft=0;};
+  document.getElementById('zFit').onclick=()=>{apply(1.4);sc.scrollLeft=0;};
   sc.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();apply(e.deltaY>0?tlScale*0.9:tlScale*1.1);}},{passive:false});
 }
 
