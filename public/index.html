@@ -172,6 +172,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-img{width:100%;height:160px;object-fit:cover;object-position:center top;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
 .ev-yr{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
+
+/* Birth map card */
+.ev-map{width:100%;height:160px;position:relative;overflow:hidden;background:#0e1520;cursor:pointer;border-bottom:1px solid var(--gold2);}
+.ev-map-canvas{width:100%;height:100%;}
+.ev-map-pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.8));}
+.ev-map-label{position:absolute;bottom:0;left:0;right:0;padding:.4rem .6rem;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--gold);pointer-events:none;}
+
+/* Childhood card style */
+.ev-childhood-badge{display:inline-block;font-family:var(--mono);font-size:6.5px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold2);padding:.15rem .45rem;margin-bottom:.4rem;border-radius:1px;opacity:.7;}
 .ev-title{font-family:var(--display);font-size:1.25rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;letter-spacing:.03em;}
 .ev-text{font-family:var(--serif);font-size:.85rem;line-height:1.65;color:var(--txt);opacity:.85;}
 .ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
@@ -269,7 +278,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 
 /* Video overlay */
-#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;cursor:default;}
 #videoOverlay.on{display:flex;}
 #videoFrame{width:min(90vw,1280px);height:min(75vh,calc(min(90vw,1280px)*9/16));border:none;flex-shrink:0;}
 #videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
@@ -937,15 +946,43 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const card=document.createElement('div');
     card.className='ev-card';
 
-    // Determine if this event has video
-    const hasVideo=!!(ev.youtubeId||(isDeath&&!ev.youtubeId));
-    const videoQuery=ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
-    // Use sequential images starting from index 1 (skip heroThumb for cards)
-    // Distribute images evenly, skip heroThumb (index 0) for cards
+    const isBirth=ev.type==='birth'||i===0;
+    const isChildhood=ev.type==='childhood'||i===1;
+    const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
+    const videoQuery=ev.videoSearch||ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
-    const cardImg=imgPool[i%imgPool.length];
+    const cardImg=imgPool[i%Math.max(imgPool.length,1)];
 
-    if(hasVideo){
+    if(isBirth&&tl.birthLat&&tl.birthLng){
+      // Birth card — interactive map via OpenStreetMap static tile
+      const mapWrap=document.createElement('div');
+      mapWrap.className='ev-map';
+      const lat=parseFloat(tl.birthLat),lng=parseFloat(tl.birthLng);
+      const zoom=9;
+      const osmImg=document.createElement('img');
+      osmImg.style.cssText='width:100%;height:100%;object-fit:cover;filter:grayscale(40%) brightness(0.55) sepia(0.25);display:block;';
+      osmImg.src=`https://tile.openstreetmap.org/${zoom}/${lngToTileX(lng,zoom)}/${latToTileY(lat,zoom)}.png`;
+      osmImg.onerror=()=>osmImg.remove();
+      mapWrap.appendChild(osmImg);
+      const pin=document.createElement('div');
+      pin.className='ev-map-pin';
+      pin.innerHTML=`<svg width="22" height="30" viewBox="0 0 24 32"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20S24 21 24 12C24 5.4 18.6 0 12 0z" fill="#C9A84C"/><circle cx="12" cy="12" r="5" fill="#0A0806"/></svg>`;
+      mapWrap.appendChild(pin);
+      const lbl=document.createElement('div');
+      lbl.className='ev-map-label';
+      lbl.textContent=`📍 ${tl.birthCity||'Birthplace'}`;
+      mapWrap.appendChild(lbl);
+      mapWrap.addEventListener('click',()=>window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=12`,'_blank','noopener'));
+      card.appendChild(mapWrap);
+    }else if(isChildhood&&cardImg){
+      // Childhood — sepia-tinted image with EARLY LIFE badge
+      const wrap=document.createElement('div');wrap.className='ev-play-wrap';
+      const img=document.createElement('img');img.className='ev-img';
+      img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+      img.style.filter='sepia(0.5) contrast(1.08) brightness(0.8)';
+      img.onerror=()=>wrap.remove();
+      wrap.appendChild(img);card.appendChild(wrap);
+    }else if(hasVideo){
       // Video card — show thumbnail placeholder + play button, embed on click
       const vWrap=document.createElement('div');
       vWrap.className='ev-video-wrap';
@@ -977,6 +1014,16 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
       vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
       card.appendChild(vWrap);
+    }else if(isChildhood){
+      // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
+      if(cardImg){
+        const wrap=document.createElement('div');wrap.className='ev-play-wrap';
+        const img=document.createElement('img');img.className='ev-img';
+        img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+        img.style.filter='sepia(0.45) contrast(1.1) brightness(0.82)';
+        img.onerror=()=>wrap.remove();
+        wrap.appendChild(img);card.appendChild(wrap);
+      }
     }else if(cardImg){
       const wrap=document.createElement('div');
       wrap.className='ev-play-wrap';
@@ -989,7 +1036,9 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
     const body=document.createElement('div');body.className='ev-body';
     const firstSent=(ev.text||'').replace(/([.!?])\s.*/,'$1');
+    const earlyBadge=isChildhood?'<div class="ev-childhood-badge">EARLY LIFE</div>':'';
     body.innerHTML=`
+      ${earlyBadge}
       <div class="ev-yr">${ev.year||''}</div>
       <div class="ev-title">${ev.title||''}</div>
       ${ev.quote
@@ -1149,30 +1198,55 @@ function stopTL(){
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
-function openVideo(videoId,title,searchQuery){
+async function openVideo(videoId,title,searchQuery){
   const overlay=document.getElementById('videoOverlay');
   const frame=document.getElementById('videoFrame');
   const fallback=document.getElementById('videoFallback');
-  const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
   const q=searchQuery||title||'';
 
-  frame.style.display='block';
+  // Show overlay immediately with loading state
+  frame.style.display='none';
   fallback.style.display='none';
-  meta.textContent='';
+  overlay.classList.add('on');
 
-  if(videoId&&videoId.length===11&&!/\s/.test(videoId)){
-    frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
-    ytLink.href=`https://www.youtube.com/watch?v=${videoId}`;
-    // Detect load failure after 5s
-    frame.onload=()=>{};
-    overlay.classList.add('on');
+  // Show a loading indicator
+  const loadMsg=document.createElement('div');
+  loadMsg.id='videoLoading';
+  loadMsg.style.cssText='color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.2em;';
+  loadMsg.textContent='FINDING VIDEO…';
+  overlay.appendChild(loadMsg);
+
+  let realId=videoId;
+
+  // If ID looks hallucinated (or missing), fetch a real one from YouTube API
+  const looksReal=videoId&&videoId.length===11&&!/\s/.test(videoId);
+  if(!looksReal){
+    try{
+      const r=await fetch('/.netlify/functions/youtube',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({queries:[q||title]})
+      });
+      if(r.ok){
+        const data=await r.json();
+        realId=data.results?.[0]?.videoId||null;
+      }
+    }catch(e){ realId=null; }
+  }
+
+  // Remove loading indicator
+  const lm=document.getElementById('videoLoading');
+  if(lm)lm.remove();
+
+  if(realId&&realId.length===11&&!/\s/.test(realId)){
+    frame.style.display='block';
+    fallback.style.display='none';
+    frame.src=`https://www.youtube-nocookie.com/embed/${realId}?autoplay=1&rel=0&modestbranding=1`;
+    ytLink.href=`https://www.youtube.com/watch?v=${realId}`;
   }else{
-    // No valid ID — show fallback with search link
     frame.style.display='none';
     fallback.style.display='flex';
     ytLink.href=`https://www.youtube.com/results?search_query=${encodeURIComponent(q+' documentary')}`;
-    overlay.classList.add('on');
   }
 }
 // Tab switching
@@ -1249,6 +1323,13 @@ function buildMediaPanel(star,tl,wiki){
     grid.appendChild(item);
   });
 }
+
+// OpenStreetMap tile coordinate helpers
+function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
+function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
+
+function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
+function latToTileY(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z));}
 
 // Enrich timeline cards with real YouTube video IDs via API
 async function enrichVideos(star, tl){
