@@ -76,12 +76,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #intro.done{display:none;}
 .intro-logo{
   font-family:var(--display);
-  font-size:clamp(3.75rem,12vw,7.5rem);
+  font-size:clamp(2.8rem,11vw,7.5rem);
   font-weight:600;letter-spacing:.25em;
   color:var(--cream);
   opacity:0;
   transform:scale(0.88);
   animation:introIn 1.1s cubic-bezier(.16,1,.3,1) .3s forwards;
+  padding:0 1rem;
+  text-align:center;
 }
 .intro-rule{
   width:0;height:1px;
@@ -91,9 +93,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 .intro-sub{
   font-family:var(--serif);font-style:italic;
-  font-size:1.875rem;letter-spacing:.06em;
+  font-size:clamp(1rem,3.5vw,1.875rem);letter-spacing:.06em;
   color:var(--muted);opacity:0;
   animation:introFade .8s ease 1.4s forwards;
+  text-align:center;padding:0 1rem;
 }
 @keyframes introIn{to{opacity:1;transform:scale(1);}}
 @keyframes introRule{to{width:80px;}}
@@ -346,14 +349,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </button>
 
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
-<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3rem 2rem;transition:opacity .7s ease;pointer-events:none;">
-  <div style="max-width:800px;width:100%;">
-    <div style="font-family:var(--display);font-size:.65rem;letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:2.4rem;">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1.5rem,3.2vw,2.2rem);color:var(--cream);line-height:1.55;margin-bottom:2.2rem;font-weight:300;white-space:nowrap;">
-      This prototype curates content from publicly available information, images and video.
+<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
+  <div style="max-width:min(720px,90vw);width:100%;margin:0 auto;">
+    <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
+    <div style="font-family:var(--serif);font-size:clamp(1.1rem,3.5vw,2.2rem);color:var(--cream);line-height:1.5;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;">
+      This prototype curates content from publicly available<br>information, images and video.
     </div>
-    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:2rem;"></div>
-    <div style="font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;color:var(--muted);line-height:2.3;">
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
+    <div style="font-family:var(--mono);font-size:clamp(.55rem,.85vw,.7rem);letter-spacing:.12em;color:var(--muted);line-height:2.1;">
       Biographical content is AI-generated and may contain inaccuracies<br>
       For educational &amp; memorial purposes only &nbsp;&middot;&nbsp; Not for commercial use<br>
       <span id="reportLink" style="color:var(--gold);opacity:.75;cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);pointer-events:auto;">REPORT CONTENT</span> to be amended or removed
@@ -444,6 +447,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <button id="tourBtn" style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.4);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gold);padding:.4rem .8rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>TOUR
   </button>
+  <button id="ccBtn" title="Toggle subtitles (accessibility)" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);padding:.4rem .55rem;flex-shrink:0;transition:all .2s;">CC</button>
 </div>
 
 <div id="tlScreen">
@@ -752,10 +756,10 @@ function mInit(){
     const zx=vw*0.45,zy=vh*0.45,spd=18;
     edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
     edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
-    const ms2=document.getElementById('mosaicScreen');
+    const ms2=document.getElementById('mosaicCanvas');
     if(ms2){
-      const goW=edgePX>1,goE=edgePX<-1,goN=edgePY>1,goS=edgePY<-1;
       ms2.className=ms2.className.replace(/\bcur-\w+\b/g,'').trim();
+      const goW=edgePX>1,goE=edgePX<-1,goN=edgePY>1,goS=edgePY<-1;
       if(goN&&goW)ms2.classList.add('cur-nw');
       else if(goN&&goE)ms2.classList.add('cur-ne');
       else if(goS&&goW)ms2.classList.add('cur-sw');
@@ -987,13 +991,14 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   showLoad(star,thumb,clone,clX,clY,clW,clH);
   // Speak the star's name via ElevenLabs (same voice as tour) — fire-and-forget
+  let _nameSpeakDone=false;
   (async()=>{
     try{
       const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
-      if(r.ok){const d=await r.json();if(d.audio){const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+      if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
     }catch(e){}
-    // Fallback to browser TTS if ElevenLabs fails
-    speak(star.name+'.', 0.82);
+    // Fallback to browser TTS only if ElevenLabs didn't fire
+    if(!_nameSpeakDone)speak(star.name+'.', 0.82);
   })();
   try{
     setLoad(20,'CURATING MUSEUM');
@@ -1318,6 +1323,10 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tourStarRef=star;tourTlRef=tl;
+  // Pre-fetch welcome narration in background so tour starts with zero latency
+  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+  fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,800)})})
+    .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
   // Auto-start tour immediately
   setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
@@ -1572,7 +1581,16 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
       }else if(tab==='media'&&tourStarRef){
         setTimeout(()=>tourSpeak('Media section. Watch videos from '+tourStarRef.name+'\'s life. Select any video to play it.'),300);
       }else if(tab==='timeline'){
-        setTimeout(()=>tourSpeak('Let\'s continue.'),300);
+        if(tourPlaying&&tourStep2>0){
+          stopTour(); // kill stale loop
+          // Brief beat then restart from current position
+          setTimeout(async()=>{
+            tourPlaying=true;
+            document.getElementById('tourBtn').style.color='var(--gold)';
+            await tourSpeak('Let\'s continue.');
+            await runTourStep2();
+          },300);
+        }
       }
     }
   });
@@ -1774,13 +1792,13 @@ window.addEventListener('resize',()=>{
 // ── INTRO SEQUENCE ──
 // Phase 1 (0–3.2s): Logo plays
 // Phase 2 (3.2s): Disclaimer fades in, tiles prerender hidden
-// Phase 3 (3.2+0.7s): Disclaimer fully visible for 6s
-// Phase 4 (3.2+0.7+6s): Disclaimer fades out
-// Phase 5 (3.2+0.7+6+0.7s): Mosaic tiles stagger in, search/voice appear
+// Phase 3 (3.2+0.7s): Disclaimer fully visible for 5s
+// Phase 4 (3.2+0.7+5s): Disclaimer fades out
+// Phase 5 (3.2+0.7+5+0.7s): Mosaic tiles stagger in, search/voice appear
 
 const INTRO_LOGO   = 3200;
 const DISC_FADEIN  = 700;
-const DISC_HOLD    = 6000;
+const DISC_HOLD    = 5000;
 const DISC_FADEOUT = 700;
 const MOSAIC_START = INTRO_LOGO + DISC_FADEIN + DISC_HOLD + DISC_FADEOUT;
 
@@ -1845,14 +1863,38 @@ if(isMobile){
 document.getElementById('reportLink')?.addEventListener('click',()=>{
   window.open('mailto:hello@starseum.app?subject=Content%20Report','_blank');
 });
-// Mobile tutorial
+// CC subtitle toggle
 (function(){
-  const mt=document.getElementById('mobileTutorial');
-  if(!mt)return;
-  if(isMobile&&!localStorage.getItem('st_tutorial'))mt.style.display='flex';
-  document.getElementById('mtClose')?.addEventListener('click',()=>{
-    mt.style.display='none';localStorage.setItem('st_tutorial','1');
+  const btn=document.getElementById('ccBtn');
+  if(!btn)return;
+  function updateCC(){
+    btn.style.color=_subtitlesOn?'var(--gold)':'var(--muted)';
+    btn.style.borderColor=_subtitlesOn?'rgba(201,168,76,.5)':'rgba(201,168,76,.2)';
+    btn.title=_subtitlesOn?'Subtitles ON — click to turn off':'Subtitles OFF — click for accessibility';
+  }
+  updateCC();
+  btn.addEventListener('click',()=>{
+    _subtitlesOn=!_subtitlesOn;
+    localStorage.setItem('st_subtitles',_subtitlesOn?'1':'0');
+    updateCC();
+    showVoiceHint(_subtitlesOn?'SUBTITLES ON':'SUBTITLES OFF',2000);
   });
+})();
+
+// Tutorial — versioned so each new deploy resets it (bump DEPLOY_VER on each release)
+const DEPLOY_VER='2026-06-07';
+(function(){
+  const tutKey='st_tutorial_v'+DEPLOY_VER;
+  const mt=document.getElementById('mobileTutorial');
+  if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
+  document.getElementById('mtClose')?.addEventListener('click',()=>{
+    if(mt)mt.style.display='none';
+    localStorage.setItem(tutKey,'1');
+  });
+  // Desktop onboarding
+  const ob=document.getElementById('onboardMosaic');
+  const obKey='st_onboard_v'+DEPLOY_VER;
+  if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
 })();
 
 // ── SEARCH ──
@@ -1909,10 +1951,16 @@ function initVoice(){
   });
 }
 
+// Subtitles off by default; toggleable for accessibility
+let _subtitlesOn = localStorage.getItem('st_subtitles')==='1';
+
 function showVoiceHint(msg,ms=2500){
+  // Only show subtitle bar if subtitles are enabled OR it's a non-narration hint (short, caps, command feedback)
+  const isNarration = ms===99999;
+  if(isNarration && !_subtitlesOn){ clearTimeout(window._vhTimer); return; }
   let el=document.getElementById('voiceHint');
   if(!el){el=document.createElement('div');el.id='voiceHint';
-    el.style.cssText='position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:.45rem 1.1rem;font-family:var(--mono);font-size:15px;letter-spacing:.1em;color:var(--gold);pointer-events:none;white-space:nowrap;';
+    el.style.cssText='position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:.45rem 1.1rem;font-family:var(--mono);font-size:15px;letter-spacing:.1em;color:var(--gold);pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;';
     document.body.appendChild(el);}
   el.textContent=msg;el.style.display='block';
   clearTimeout(el._t);if(ms>0)el._t=setTimeout(()=>el.style.display='none',ms);
@@ -1943,8 +1991,16 @@ async function startTour(star,tl){
   tourPlaying=true;tourStep2=0;tourStarRef=star;tourTlRef=tl;
   tourEvts=(tl.events||[]).sort((a,b)=>parseInt(a.year)-parseInt(b.year));
   document.getElementById('tourBtn').style.color='var(--gold)';
-  showVoiceHint('TOUR STARTING…',99999);
-  await tourSpeak('Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.');
+  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+  // Use pre-fetched audio if available, else fetch now
+  if(tl._welcomeAudio){
+    showVoiceHint(welcomeText.substring(0,55)+'…',99999);
+    const myGen=++_tourSpeakGen;
+    await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+tl._welcomeAudio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});
+    tl._welcomeAudio=null;
+  }else{
+    await tourSpeak(welcomeText);
+  }
   await runTourStep2();
 }
 
@@ -2092,10 +2148,11 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
 function dismissOnboard(which){
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
   if(el)el.style.display='none';
-  localStorage.setItem('st_ob_'+which,'1');
+  localStorage.setItem('st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07'),'1');
 }
 function showOnboard(which,delayMs){
-  if(localStorage.getItem('st_ob_'+which))return;
+  const key='st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07');
+  if(localStorage.getItem(key))return;
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
   if(el)setTimeout(()=>el.style.display='block',delayMs||0);
 }
