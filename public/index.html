@@ -95,44 +95,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 @keyframes introRule{to{width:80px;}}
 @keyframes introFade{to{opacity:.7;}}
 
-/* Search bar */
-.m-search-wrap{position:relative;flex:1;max-width:260px;margin:0 1rem;}
-#mSearch{width:100%;background:rgba(10,8,6,.6);border:1px solid rgba(201,168,76,.15);border-radius:2px;padding:.35rem .8rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--cream);outline:none;transition:border-color .2s,background .2s;}
-#mSearch:focus{border-color:rgba(201,168,76,.4);background:rgba(10,8,6,.85);}
-#mSearch::placeholder{color:var(--muted);opacity:.7;}
-#mSearchResults{position:absolute;top:100%;left:0;right:0;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-top:none;border-radius:0 0 2px 2px;max-height:220px;overflow-y:auto;z-index:100;display:none;}
-.m-search-item{padding:.55rem .8rem;cursor:pointer;font-family:var(--serif);font-size:.85rem;color:var(--cream);border-bottom:1px solid var(--gold2);display:flex;align-items:center;gap:.6rem;transition:background .15s;}
-.m-search-item:hover{background:rgba(201,168,76,.08);}
-.m-search-item img{width:28px;height:36px;object-fit:cover;object-position:center top;border-radius:1px;flex-shrink:0;}
-.m-search-item-name{font-family:var(--display);font-size:10px;letter-spacing:.08em;}
-.m-search-item-years{font-family:var(--mono);font-size:7.5px;color:var(--muted);}
-
-/* Voice button */
-.m-voice-btn{background:none;border:1px solid rgba(201,168,76,.15);border-radius:50%;width:28px;height:28px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
-.m-voice-btn:hover,.m-voice-btn.listening{border-color:var(--gold);color:var(--gold);}
-.m-voice-btn.listening{background:rgba(201,168,76,.1);animation:pulse 1s infinite;}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.3)}50%{box-shadow:0 0 0 6px rgba(201,168,76,0)}}
-
-/* Voice status */
-#voiceStatus{position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid var(--gold2);border-radius:2px;padding:.5rem 1.2rem;font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--gold);display:none;backdrop-filter:blur(8px);}
-
-/* Mobile tutorial */
-#mobileTutorial{position:fixed;inset:0;z-index:90;background:rgba(10,8,6,.75);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-@media(max-width:768px){#mobileTutorial{display:flex;}}
-.mt-inner{display:flex;flex-direction:column;align-items:center;gap:1.2rem;text-align:center;padding:2rem;}
-.mt-text{font-family:var(--serif);font-size:1rem;color:var(--cream);line-height:1.6;max-width:240px;opacity:.85;}
-.mt-close{background:none;border:1px solid var(--gold2);color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:.18em;padding:.45rem 1.2rem;cursor:pointer;border-radius:2px;transition:all .2s;}
-.mt-close:hover{background:rgba(201,168,76,.1);}
-
-/* Directional cursor during edge pan */
-body.pan-left{cursor:w-resize!important;}
-body.pan-right{cursor:e-resize!important;}
-body.pan-up{cursor:n-resize!important;}
-body.pan-down{cursor:s-resize!important;}
-
-/* Desktop fullscreen only */
-@media(max-width:768px){.fs-btn{display:none;}}
-
+.cur-w{cursor:w-resize!important;}.cur-e{cursor:e-resize!important;}.cur-n{cursor:n-resize!important;}.cur-s{cursor:s-resize!important;}
 /* ═══ TRANSITION ═══════════════════════════════ */
 #transLayer{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;}
 #zoomDark{position:fixed;inset:0;z-index:50;background:var(--dark);opacity:0;pointer-events:none;transition:opacity .5s ease;}
@@ -159,9 +122,6 @@ body.pan-down{cursor:s-resize!important;}
 .tl-tab:last-child{border-right:none;}
 .tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
 .tl-tab:hover:not(.active){color:var(--cream);}
-.tour-btn{background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);padding:.35rem .7rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;}
-.tour-btn:hover,.tour-btn.active{border-color:var(--gold);color:var(--gold);}
-.tour-btn.active{background:rgba(201,168,76,.08);}
 /* Bio panel */
 #bioPanel{position:absolute;top:55px;bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
 #bioPanel.on{display:block;}
@@ -246,8 +206,9 @@ body.pan-down{cursor:s-resize!important;}
 .tl-zbtn.sm{font-size:8px;}
 
 /* Fullscreen btn */
-.fs-btn{position:fixed;z-index:500;bottom:1.2rem;left:1.2rem;width:30px;height:30px;background:rgba(12,10,7,.7);border:1px solid var(--gold2);border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;backdrop-filter:blur(4px);}
-.fs-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.1);}
+.fs-btn{position:fixed;z-index:500;bottom:1.2rem;left:1.2rem;display:none;}
+@media(min-width:769px){.fs-btn{width:30px;height:30px;background:rgba(12,10,7,.7);border:1px solid var(--gold2);border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;backdrop-filter:blur(4px);}
+.fs-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.1);}}
 .fs-btn svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:1.5;stroke-linecap:round;}
 
 /* Legal footer — timeline only */
@@ -334,35 +295,32 @@ body.pan-down{cursor:s-resize!important;}
   <div class="intro-logo">STARSEUM</div>
   <div class="intro-rule"></div>
   <div class="intro-sub">A museum of extraordinary lives</div>
-  <div id="introDisclaimer" style="opacity:0;position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);width:min(480px,88vw);text-align:center;animation:introFade .8s ease 2.2s forwards;">
-    <p style="font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--muted);line-height:1.8;opacity:.6;">
-      This prototype curates content from publicly available information, images and video.<br>
-      Users can <span id="reportLink" style="color:var(--gold);cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);">report content</span> to be amended or removed.
+  <div style="position:absolute;bottom:2rem;left:0;right:0;text-align:center;opacity:0;animation:introFade .8s ease 2.2s forwards;pointer-events:none;">
+    <p style="font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);line-height:1.8;opacity:.55;margin:0 auto;max-width:440px;">
+      This prototype curates content from publicly available information, images &amp; video.<br>
+      <span id="reportLink" style="color:var(--gold);cursor:pointer;pointer-events:auto;border-bottom:1px solid rgba(201,168,76,.3);">Report content</span> to be amended or removed.
     </p>
   </div>
 </div>
 <div id="mosaicScreen">
   <div id="mosaicCanvas"></div>
-  <div id="mobileTutorial">
-    <div class="mt-inner">
-      <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-        <path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.7)" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="30" cy="30" r="6" fill="rgba(201,168,76,0.15)" stroke="rgba(201,168,76,0.5)" stroke-width="1"/>
-      </svg>
-      <p class="mt-text">Drag to explore · Tap a face to enter their museum</p>
-      <button class="mt-close" id="mtClose">GOT IT</button>
+  <div id="mobileTutorial" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(10,8,6,.8);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1.2rem;text-align:center;padding:2rem;">
+      <svg width="56" height="56" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.7)" stroke-width="1.5" stroke-linecap="round"/><circle cx="30" cy="30" r="6" fill="rgba(201,168,76,0.12)" stroke="rgba(201,168,76,0.5)" stroke-width="1"/></svg>
+      <p style="font-family:var(--serif);font-size:1rem;color:var(--cream);line-height:1.6;max-width:220px;opacity:.88;">Drag to explore · Tap a face to enter their museum</p>
+      <button id="mtClose" style="background:none;border:1px solid var(--gold2);color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:.18em;padding:.4rem 1.2rem;cursor:pointer;border-radius:2px;">GOT IT</button>
     </div>
   </div>
   <div class="m-hud">
     <div class="m-logo">STARSEUM<em>AI</em></div>
-    <div class="m-search-wrap" id="mSearchWrap">
-      <input type="text" id="mSearch" placeholder="Search…" autocomplete="off" spellcheck="false">
-      <div id="mSearchResults"></div>
+    <div id="mSearchWrap" style="flex:1;max-width:240px;margin:0 1rem;position:relative;">
+      <input type="text" id="mSearch" placeholder="Search…" autocomplete="off" style="width:100%;background:rgba(10,8,6,.55);border:1px solid rgba(201,168,76,.15);border-radius:2px;padding:.32rem .75rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--cream);outline:none;">
+      <div id="mSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-top:none;max-height:200px;overflow-y:auto;z-index:100;"></div>
     </div>
-    <div style="display:flex;align-items:center;gap:.75rem;">
-      <div class="m-hint" id="mosaicHint">HOVER · CLICK TO ENTER</div>
-      <button class="m-voice-btn" id="mVoiceBtn" title="Voice command">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    <div style="display:flex;align-items:center;gap:.6rem;">
+      <div class="m-hint">HOVER · CLICK TO ENTER</div>
+      <button id="mVoiceBtn" title="Voice command" style="background:none;border:1px solid rgba(201,168,76,.15);border-radius:50%;width:26px;height:26px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
       </button>
     </div>
   </div>
@@ -394,9 +352,8 @@ body.pan-down{cursor:s-resize!important;}
       <button class="tl-tab" data-tab="bio">BIO</button>
       <button class="tl-tab" data-tab="media">MEDIA</button>
     </div>
-    <button class="tour-btn" id="tourBtn" title="Audio tour guide">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-      TOUR
+    <button id="tourBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);padding:.35rem .65rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>TOUR
     </button>
   </div>
   <div id="tlScroll">
@@ -694,12 +651,10 @@ function mInit(){
     const zx=vw*0.45,zy=vh*0.45,spd=12;
     edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
     edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
-    // Directional cursor
-    document.body.classList.toggle('pan-left',edgePX>0.5);
-    document.body.classList.toggle('pan-right',edgePX<-0.5);
-    document.body.classList.toggle('pan-up',edgePY>0.5);
-    document.body.classList.toggle('pan-down',edgePY<-0.5);
-    if(!edgePX&&!edgePY)['pan-left','pan-right','pan-up','pan-down'].forEach(c=>document.body.classList.remove(c));
+    const b=document.body.classList;
+    b.toggle('cur-w',edgePX>1);b.toggle('cur-e',edgePX<-1);
+    b.toggle('cur-n',edgePY>1);b.toggle('cur-s',edgePY<-1);
+    if(!edgePX&&!edgePY)['cur-w','cur-e','cur-n','cur-s'].forEach(c=>b.remove(c));
   });
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
   ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
@@ -720,7 +675,7 @@ function mInit(){
   },{passive:true});
   ms.addEventListener('touchend',e=>{
     mDrag=false;
-    edgePX=0;edgePY=0; // stop edge pan on touch end
+    edgePX=0;edgePY=0;
     if(!tMoved&&e.changedTouches[0]){
       const t=e.changedTouches[0];
       const el=document.elementFromPoint(t.clientX,t.clientY);
@@ -760,8 +715,7 @@ function updateMobileBrightness(){
 function mLoop(){
   if(!mActive)return;
   if(!mDrag){
-    const mDecay=isMobile?0.88:0.97;
-    velX*=mDecay;velY*=mDecay;
+    velX*=0.97;velY*=0.97;
     camX+=velX;camY+=velY;
     if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;}
   }
@@ -1166,7 +1120,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupZoom();
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
-  tourStar=star;tourTl=tl; // store for tour guide
+  tourStarRef=star;tourTlRef=tl;
   buildBioPanel(star,tl,heroThumb);
   buildMediaPanel(star,tl,wiki);
   // Reset to timeline tab
@@ -1472,122 +1426,6 @@ async function enrichVideos(star, tl){
   }
 }
 
-// ── TOUR GUIDE ──
-let tourPlaying=false,tourAudio=null,tourStep=0,tourEvents=[],tourStar=null,tourTl=null;
-
-async function startTour(star,tl){
-  if(tourPlaying){stopTour();return;}
-  tourPlaying=true;tourStep=0;tourStar=star;tourTl=tl;
-  tourEvents=(tl.events||[]).sort((a,b)=>parseInt(a.year)-parseInt(b.year));
-  document.getElementById('tourBtn').classList.add('active');
-  showVoiceStatus('TOUR STARTING…',99999);
-  // Intro narration
-  const intro=`Welcome to the ${tl.fullName||star.name} exhibition. ${tl.tagline||''} Born in ${tl.born||'unknown'}, ${tl.nationality||''}, ${tl.fullName||star.name} left an indelible mark on ${(tl.fields||[]).join(' and ')}. Let's walk through their life together.`;
-  await speakTour(intro);
-  tourStep=0;
-  await runTourStep();
-}
-
-async function runTourStep(){
-  if(!tourPlaying||tourStep>=tourEvents.length){stopTour();return;}
-  const ev=tourEvents[tourStep];
-  const sc=document.getElementById('tlScroll');
-  // Scroll to this card
-  const cards=sc?sc.querySelectorAll('.ev-col'):[];
-  if(cards[tourStep])cards[tourStep].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  const text=`${ev.year}. ${ev.title}. ${ev.text||''}${ev.quote?' They once said: '+ev.quote:''}`;
-  await speakTour(text);
-  if(!tourPlaying)return;
-  // Check if this is a video event
-  const hasVid=!!(ev.youtubeId||ev.videoSearch);
-  if(hasVid){
-    await speakTour('There is video footage of this moment. Would you like to watch it?');
-    showVoiceStatus('SAY "YES" TO WATCH OR "CONTINUE"',8000);
-    // Listen for response
-    const resp=await listenForResponse(6000);
-    if(resp&&(resp.includes('yes')||resp.includes('watch')||resp.includes('play'))){
-      const ytQ=(ev.videoSearch||star.name+' '+ev.title).trim();
-      openVideo(ev.youtubeId||null,ev.title,ytQ);
-      // Pause tour while video overlay is open
-      await waitForVideoClose();
-      await speakTour('Ok, where were we... Let\'s continue.');
-    }
-  }
-  tourStep++;
-  await runTourStep();
-}
-
-async function speakTour(text){
-  if(!tourPlaying)return;
-  showVoiceStatus(text.substring(0,60)+'…',99999);
-  try{
-    const r=await fetch('/.netlify/functions/tourguide',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:text.substring(0,800)})
-    });
-    if(!r.ok){fallbackSpeak(text);return;}
-    const data=await r.json();
-    if(!data.audio){fallbackSpeak(text);return;}
-    await playBase64Audio(data.audio);
-  }catch(e){fallbackSpeak(text);}
-}
-
-function fallbackSpeak(text){
-  return new Promise(res=>{
-    if(!window.speechSynthesis){res();return;}
-    const u=new SpeechSynthesisUtterance(text);
-    u.rate=0.9;u.pitch=1;u.onend=res;u.onerror=res;
-    speechSynthesis.speak(u);
-  });
-}
-
-function playBase64Audio(b64){
-  return new Promise(res=>{
-    try{
-      const src='data:audio/mpeg;base64,'+b64;
-      tourAudio=new Audio(src);
-      tourAudio.onended=res;tourAudio.onerror=res;
-      tourAudio.play().catch(res);
-    }catch(e){res();}
-  });
-}
-
-function listenForResponse(timeout){
-  return new Promise(res=>{
-    const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SpeechRec){setTimeout(()=>res(null),timeout);return;}
-    const r=new SpeechRec();r.lang='en-US';
-    r.onresult=e=>res(e.results[0][0].transcript.toLowerCase());
-    r.onerror=()=>res(null);
-    setTimeout(()=>{try{r.stop();}catch(e){}res(null);},timeout);
-    r.start();
-  });
-}
-
-function waitForVideoClose(){
-  return new Promise(res=>{
-    const check=setInterval(()=>{
-      if(!document.getElementById('videoOverlay')?.classList.contains('on')){
-        clearInterval(check);res();
-      }
-    },500);
-    setTimeout(()=>{clearInterval(check);res();},60000);
-  });
-}
-
-function stopTour(){
-  tourPlaying=false;
-  if(tourAudio){tourAudio.pause();tourAudio=null;}
-  if(window.speechSynthesis)speechSynthesis.cancel();
-  document.getElementById('tourBtn')?.classList.remove('active');
-  const vs=document.getElementById('voiceStatus');
-  if(vs)vs.style.display='none';
-}
-
-document.getElementById('tourBtn')?.addEventListener('click',()=>{
-  if(tourTl&&tourStar)startTour(tourStar,tourTl);
-});
-
 function closeVideo(){
   document.getElementById('videoOverlay').classList.remove('on');
   document.getElementById('videoFrame').src='';
@@ -1647,136 +1485,7 @@ window.addEventListener('resize',()=>{
 mc.classList.add('intro-hidden'); // all tiles invisible while intro plays
 setTimeout(()=>{
   document.getElementById('intro').classList.add('done');
-  mInit();
-initSearch();
-initVoice();
-document.getElementById('mtClose')?.addEventListener('click',()=>{
-  document.getElementById('mobileTutorial').style.display='none';
-  localStorage.setItem('st_tutorial','1');
-});
-if(localStorage.getItem('st_tutorial')){
-  const mt=document.getElementById('mobileTutorial');
-  if(mt)mt.style.display='none';
-}
-document.getElementById('reportLink')?.addEventListener('click',()=>{
-  window.open('mailto:hello@starseum.app?subject=Content%20Report','_blank');
-});
-
-// ── SEARCH ──
-function initSearch(){
-  const inp=document.getElementById('mSearch');
-  const res=document.getElementById('mSearchResults');
-  if(!inp)return;
-  inp.addEventListener('input',()=>{
-    const q=inp.value.trim().toLowerCase();
-    if(q.length<2){res.style.display='none';return;}
-    const matches=STARS.filter(s=>s.name.toLowerCase().includes(q)).slice(0,6);
-    if(!matches.length){res.style.display='none';return;}
-    res.innerHTML='';
-    matches.forEach(star=>{
-      const item=document.createElement('div');item.className='m-search-item';
-      const img=thumbs[star.slug]?`<img src="${thumbs[star.slug]}" alt="">`:'';
-      item.innerHTML=img+`<div><div class="m-search-item-name">${star.name}</div><div class="m-search-item-years">${star.years}</div></div>`;
-      item.addEventListener('click',()=>{
-        res.style.display='none';inp.value='';
-        // Find or create tile and enter
-        const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
-        if(tile)enterStar(star,tile);
-        else enterStar(star,null);
-      });
-      res.appendChild(item);
-    });
-    res.style.display='block';
-  });
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){res.style.display='none';inp.blur();}
-  });
-  document.addEventListener('click',e=>{
-    if(!e.target.closest('#mSearchWrap'))res.style.display='none';
-  });
-}
-
-// ── VOICE COMMANDS ──
-let recognition=null,tourActive=false;
-function initVoice(){
-  const btn=document.getElementById('mVoiceBtn');
-  if(!btn)return;
-  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRec){btn.style.display='none';return;}
-  recognition=new SpeechRec();
-  recognition.continuous=false;recognition.interimResults=false;recognition.lang='en-US';
-  recognition.onresult=e=>{
-    const cmd=e.results[0][0].transcript.toLowerCase().trim();
-    console.log('Voice command:',cmd);
-    handleVoiceCommand(cmd);
-  };
-  recognition.onend=()=>btn.classList.remove('listening');
-  recognition.onerror=()=>btn.classList.remove('listening');
-  btn.addEventListener('click',()=>{
-    if(btn.classList.contains('listening')){recognition.stop();return;}
-    btn.classList.add('listening');
-    showVoiceStatus('LISTENING…');
-    recognition.start();
-  });
-}
-
-function showVoiceStatus(msg,dur=2500){
-  const el=document.getElementById('voiceStatus')||createVoiceStatus();
-  el.textContent=msg;el.style.display='block';
-  clearTimeout(el._t);
-  if(dur>0)el._t=setTimeout(()=>el.style.display='none',dur);
-}
-function createVoiceStatus(){
-  const el=document.createElement('div');el.id='voiceStatus';
-  el.style.cssText='position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:.5rem 1.2rem;font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--gold);backdrop-filter:blur(8px);';
-  document.body.appendChild(el);return el;
-}
-
-function handleVoiceCommand(cmd){
-  // Search for a star by name
-  const star=STARS.find(s=>cmd.includes(s.name.toLowerCase())||cmd.includes(s.name.split(' ')[0].toLowerCase()));
-  if(star){
-    showVoiceStatus('OPENING: '+star.name.toUpperCase());
-    const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
-    setTimeout(()=>enterStar(star,tile||null),500);
-    return;
-  }
-  // Timeline scroll commands
-  if(cmd.includes('scroll right')||cmd.includes('next')){
-    const sc=document.getElementById('tlScroll');
-    if(sc)sc.scrollBy({left:300,behavior:'smooth'});
-    showVoiceStatus('SCROLLING RIGHT');return;
-  }
-  if(cmd.includes('scroll left')||cmd.includes('previous')||cmd.includes('back')){
-    const sc=document.getElementById('tlScroll');
-    if(sc)sc.scrollBy({left:-300,behavior:'smooth'});
-    showVoiceStatus('SCROLLING LEFT');return;
-  }
-  if(cmd.includes('play video')||cmd.includes('watch')){
-    const playBtn=document.querySelector('.ev-video-wrap');
-    if(playBtn)playBtn.click();
-    showVoiceStatus('PLAYING VIDEO');return;
-  }
-  if(cmd.includes('museum')||cmd.includes('go back')){
-    goHome();showVoiceStatus('RETURNING TO MUSEUM');return;
-  }
-  if(cmd.includes('bio')){
-    document.querySelector('[data-tab="bio"]')?.click();
-    showVoiceStatus('OPENING BIO');return;
-  }
-  if(cmd.includes('media')){
-    document.querySelector('[data-tab="media"]')?.click();
-    showVoiceStatus('OPENING MEDIA');return;
-  }
-  if(cmd.includes('timeline')){
-    document.querySelector('[data-tab="timeline"]')?.click();
-    showVoiceStatus('OPENING TIMELINE');return;
-  }
-  if(cmd.includes('fullscreen')){
-    document.getElementById('fsBtn')?.click();return;
-  }
-  showVoiceStatus('COMMAND NOT RECOGNISED',2000);
-} // renders tiles while hidden
+  mInit(); // renders tiles while hidden
   // Short delay to ensure tiles are in DOM, then stagger them in
   setTimeout(()=>{
     mc.classList.remove('intro-hidden');
@@ -1813,6 +1522,171 @@ if(isMobile){
   }
   setInterval(updateMobileCentre,200);
 }
+
+// ── STATIC UI WIRING ──
+document.getElementById('reportLink')?.addEventListener('click',()=>{
+  window.open('mailto:hello@starseum.app?subject=Content%20Report','_blank');
+});
+// Mobile tutorial
+(function(){
+  const mt=document.getElementById('mobileTutorial');
+  if(!mt)return;
+  if(isMobile&&!localStorage.getItem('st_tutorial'))mt.style.display='flex';
+  document.getElementById('mtClose')?.addEventListener('click',()=>{
+    mt.style.display='none';localStorage.setItem('st_tutorial','1');
+  });
+})();
+
+// ── SEARCH ──
+function initSearch(){
+  const inp=document.getElementById('mSearch');
+  const res=document.getElementById('mSearchResults');
+  if(!inp||!res)return;
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim().toLowerCase();
+    if(q.length<2){res.style.display='none';return;}
+    const matches=STARS.filter(s=>s.name.toLowerCase().includes(q)).slice(0,6);
+    res.innerHTML='';
+    if(!matches.length){res.style.display='none';return;}
+    matches.forEach(star=>{
+      const item=document.createElement('div');
+      item.style.cssText='padding:.5rem .8rem;cursor:pointer;font-family:var(--serif);font-size:.85rem;color:var(--cream);border-bottom:1px solid var(--gold2);display:flex;align-items:center;gap:.6rem;';
+      const thumb=thumbs[star.slug];
+      item.innerHTML=(thumb?`<img src="${thumb}" style="width:26px;height:34px;object-fit:cover;border-radius:1px;flex-shrink:0;" alt="">`:'')
+        +`<div><div style="font-family:var(--display);font-size:10px;letter-spacing:.08em;">${star.name}</div><div style="font-family:var(--mono);font-size:7px;color:var(--muted);">${star.years}</div></div>`;
+      item.addEventListener('mouseover',()=>item.style.background='rgba(201,168,76,.08)');
+      item.addEventListener('mouseout',()=>item.style.background='');
+      item.addEventListener('click',()=>{
+        res.style.display='none';inp.value='';
+        const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
+        enterStar(star,tile||mc.querySelector('.star-tile'));
+      });
+      res.appendChild(item);
+    });
+    res.style.display='block';
+  });
+  inp.addEventListener('keydown',e=>{if(e.key==='Escape'){res.style.display='none';}});
+  document.addEventListener('click',e=>{if(!e.target.closest('#mSearchWrap'))res.style.display='none';});
+}
+
+// ── VOICE COMMANDS ──
+let voiceRecog=null;
+function initVoice(){
+  const btn=document.getElementById('mVoiceBtn');
+  if(!btn)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){btn.style.display='none';return;}
+  voiceRecog=new SR();voiceRecog.continuous=false;voiceRecog.lang='en-US';
+  voiceRecog.onresult=e=>handleVoiceCmd(e.results[0][0].transcript.toLowerCase());
+  voiceRecog.onend=()=>{btn.style.borderColor='rgba(201,168,76,.15)';btn.style.color='var(--muted)';};
+  btn.addEventListener('click',()=>{
+    btn.style.borderColor='var(--gold)';btn.style.color='var(--gold)';
+    showVoiceHint('LISTENING…');voiceRecog.start();
+  });
+}
+
+function showVoiceHint(msg,ms=2500){
+  let el=document.getElementById('voiceHint');
+  if(!el){el=document.createElement('div');el.id='voiceHint';
+    el.style.cssText='position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:.45rem 1.1rem;font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--gold);pointer-events:none;';
+    document.body.appendChild(el);}
+  el.textContent=msg;el.style.display='block';
+  clearTimeout(el._t);if(ms>0)el._t=setTimeout(()=>el.style.display='none',ms);
+}
+
+function handleVoiceCmd(cmd){
+  const star=STARS.find(s=>cmd.includes(s.name.toLowerCase())||s.name.toLowerCase().split(' ').some(w=>w.length>3&&cmd.includes(w)));
+  if(star){showVoiceHint('OPENING: '+star.name.toUpperCase());
+    const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
+    setTimeout(()=>enterStar(star,tile||mc.querySelector('.star-tile')),400);return;}
+  const sc=document.getElementById('tlScroll');
+  if(cmd.match(/scroll right|next/)){sc?.scrollBy({left:320,behavior:'smooth'});showVoiceHint('SCROLLING →');return;}
+  if(cmd.match(/scroll left|previous/)){sc?.scrollBy({left:-320,behavior:'smooth'});showVoiceHint('← SCROLLING');return;}
+  if(cmd.match(/play|watch/)){document.querySelector('.ev-video-wrap')?.click();return;}
+  if(cmd.match(/go back|museum/)){goHome();return;}
+  if(cmd.match(/bio/)){document.querySelector('[data-tab="bio"]')?.click();showVoiceHint('BIO');return;}
+  if(cmd.match(/media/)){document.querySelector('[data-tab="media"]')?.click();showVoiceHint('MEDIA');return;}
+  if(cmd.match(/timeline/)){document.querySelector('[data-tab="timeline"]')?.click();showVoiceHint('TIMELINE');return;}
+  showVoiceHint('NOT RECOGNISED',2000);
+}
+
+// ── TOUR GUIDE ──
+let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
+
+async function startTour(star,tl){
+  if(tourPlaying){stopTour();return;}
+  tourPlaying=true;tourStep2=0;tourStarRef=star;tourTlRef=tl;
+  tourEvts=(tl.events||[]).sort((a,b)=>parseInt(a.year)-parseInt(b.year));
+  document.getElementById('tourBtn').style.color='var(--gold)';
+  showVoiceHint('TOUR STARTING…',99999);
+  await tourSpeak('Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.');
+  await runTourStep2();
+}
+
+async function runTourStep2(){
+  if(!tourPlaying||tourStep2>=tourEvts.length){stopTour();return;}
+  const ev=tourEvts[tourStep2];
+  const sc=document.getElementById('tlScroll');
+  const cards=sc?sc.querySelectorAll('.ev-col'):[];
+  if(cards[tourStep2])cards[tourStep2].scrollIntoView({behavior:'smooth',inline:'center'});
+  const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' They once said: '+ev.quote:'');
+  await tourSpeak(txt);
+  if(!tourPlaying)return;
+  if(ev.youtubeId||ev.videoSearch){
+    await tourSpeak('There is video footage of this moment. Would you like to watch it?');
+    showVoiceHint('SAY "YES" TO WATCH',6000);
+    const resp=await tourListen(5000);
+    if(resp&&resp.match(/yes|watch|play/)){
+      document.querySelector('.ev-video-wrap:nth-child('+(tourStep2+1)+')')?.click();
+      await new Promise(r=>{
+        const chk=setInterval(()=>{if(!document.getElementById('videoOverlay')?.classList.contains('on')){clearInterval(chk);r();}},500);
+        setTimeout(()=>{clearInterval(chk);r();},60000);
+      });
+      await tourSpeak('Ok, where were we. Let us continue.');
+    }
+  }
+  tourStep2++;
+  await runTourStep2();
+}
+
+async function tourSpeak(text){
+  if(!tourPlaying)return;
+  showVoiceHint(text.substring(0,55)+'…',99999);
+  try{
+    const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,800)})});
+    if(r.ok){const d=await r.json();if(d.audio){await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+d.audio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});return;}}
+  }catch(e){}
+  await new Promise(res=>{if(!window.speechSynthesis){res();return;}const u=new SpeechSynthesisUtterance(text);u.rate=0.9;u.onend=res;u.onerror=res;speechSynthesis.speak(u);});
+}
+
+function tourListen(ms){
+  return new Promise(res=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){setTimeout(()=>res(null),ms);return;}
+    const r=new SR();r.lang='en-US';
+    r.onresult=e=>res(e.results[0][0].transcript.toLowerCase());
+    r.onerror=()=>res(null);
+    setTimeout(()=>{try{r.stop();}catch(e){}res(null);},ms);
+    r.start();
+  });
+}
+
+function stopTour(){
+  tourPlaying=false;
+  if(tourAudio){tourAudio.pause();tourAudio=null;}
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  const tb=document.getElementById('tourBtn');if(tb)tb.style.color='var(--muted)';
+  showVoiceHint('',0);const vh=document.getElementById('voiceHint');if(vh)vh.style.display='none';
+}
+
+document.getElementById('tourBtn')?.addEventListener('click',()=>{
+  if(tourTlRef&&tourStarRef)startTour(tourStarRef,tourTlRef);
+  else showVoiceHint('OPEN A MUSEUM FIRST',2000);
+});
+
+initSearch();
+initVoice();
+
 </script>
 </body>
 </html>
