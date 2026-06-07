@@ -1158,33 +1158,53 @@ async function fetchWikiImages(slug){
   const out={thumb:null,images:[],earlyImages:[]};
   try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}}catch(e){}
   try{
-    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=24&format=json&origin=*`);
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=30&format=json&origin=*`);
     if(r.ok){
       const d=await r.json();
       const pg=Object.values(d.query?.pages||{})[0];
-      const allFiles=(pg?.images||[]).filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title)).filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub/i.test(i.title));
-      const earlyFiles=allFiles.filter(i=>/young|youth|child|early|born|school/i.test(i.title));
-      const laterFiles=allFiles.filter(i=>!/young|youth|child|early|born|school/i.test(i.title));
-      // Resolve early and later files separately so we retain the distinction
-      const earlyNames=earlyFiles.slice(0,6).map(i=>i.title.replace('File:',''));
-      const laterNames=laterFiles.slice(0,12).map(i=>i.title.replace('File:',''));
-      const [earlyUrls,laterUrls]=await Promise.all([
-        Promise.all(earlyNames.map(resolveImg)),
-        Promise.all(laterNames.map(resolveImg))
-      ]);
-      out.earlyImages=earlyUrls.filter(Boolean);
-      out.images=[...out.earlyImages,...laterUrls.filter(Boolean)];
+      const allFiles=(pg?.images||[])
+        .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
+        .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|coat|crest/i.test(i.title));
+      const names=allFiles.slice(0,20).map(i=>i.title.replace('File:',''));
+      // Fetch URL + extmetadata date for each image in one batched call
+      const resolved=await Promise.all(names.map(resolveImgWithDate));
+      const valid=resolved.filter(Boolean);
+      // Sort chronologically by date — earliest first gives us childhood photos at the top
+      valid.sort((a,b)=>{
+        if(!a.date&&!b.date)return 0;
+        if(!a.date)return 1;
+        if(!b.date)return -1;
+        return a.date.localeCompare(b.date);
+      });
+      // First third (chronologically earliest) = early images
+      const earlyCount=Math.max(2,Math.ceil(valid.length/3));
+      out.earlyImages=valid.slice(0,earlyCount).map(v=>v.url);
+      out.images=valid.map(v=>v.url);
     }
   }catch(e){}
   return out;
 }
-async function resolveImg(f){
+
+async function resolveImgWithDate(f){
   try{
-    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
+    // Fetch both URL and extmetadata (includes DateTime, DateTimeOriginal)
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=DateTime|DateTimeOriginal|DateTimeCamera&format=json&origin=*`);
     const d=await r.json();
-    const url=Object.values(d.query?.pages||{})[0]?.imageinfo?.[0]?.url||null;
-    return(url&&/\.(jpg|jpeg|png)$/i.test(url))?url:null;
+    const info=Object.values(d.query?.pages||{})[0]?.imageinfo?.[0];
+    if(!info?.url||!/\.(jpg|jpeg|png)$/i.test(info.url))return null;
+    const meta=info.extmetadata||{};
+    // Pick the earliest available date field
+    const date=meta.DateTimeOriginal?.value||meta.DateTimeCamera?.value||meta.DateTime?.value||null;
+    // Clean date: keep only the year portion for comparison ("1965-03-12 00:00:00" → "1965")
+    const cleanDate=date?date.replace(/\s.*/,'').trim():null;
+    return{url:info.url,date:cleanDate};
   }catch(e){return null;}
+}
+
+// Legacy shim — kept for any remaining callers
+async function resolveImg(f){
+  const r=await resolveImgWithDate(f);
+  return r?.url||null;
 }
 
 // ═══════════════════════════════════════════
