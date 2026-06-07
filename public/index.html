@@ -312,12 +312,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <div class="intro-logo">STARSEUM</div>
   <div class="intro-rule"></div>
   <div class="intro-sub">A museum of extraordinary lives</div>
-  <div style="position:absolute;bottom:2rem;left:0;right:0;text-align:center;opacity:0;animation:introFade .8s ease 2.2s forwards;pointer-events:none;">
-    <p style="font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--muted);line-height:1.8;opacity:.55;margin:0 auto;max-width:440px;">
-      This prototype curates content from publicly available information, images &amp; video.<br>
-      <span id="reportLink" style="color:var(--gold);cursor:pointer;pointer-events:auto;border-bottom:1px solid rgba(201,168,76,.3);">Report content</span> to be amended or removed.
-    </p>
-  </div>
 </div>
 <!-- Search + Voice — body level, above everything, not inside any overflow container -->
 <div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,76vw);z-index:10000;display:none;">
@@ -345,19 +339,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
 </button>
 
-<!-- Prototype disclaimer screen -->
-<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .5s ease;pointer-events:none;">
-  <div style="max-width:560px;">
-    <div style="font-family:var(--display);font-size:.75rem;letter-spacing:.3em;color:var(--gold);opacity:.7;margin-bottom:1.5rem;">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1.1rem,2.5vw,1.5rem);color:var(--cream);line-height:1.8;margin-bottom:2rem;">
-      This prototype curates content from publicly available information, images and video.<br>
-      <span style="color:rgba(240,230,204,.6);font-size:.9em;">Biographical content is AI-generated and may contain inaccuracies.</span>
+<!-- Prototype disclaimer screen — shown after logo, before mosaic -->
+<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
+  <div style="max-width:520px;">
+    <div style="font-family:var(--display);font-size:.7rem;letter-spacing:.35em;color:var(--gold);opacity:.65;margin-bottom:1.8rem;">STARSEUM — PROTOTYPE</div>
+    <div style="font-family:var(--serif);font-size:clamp(1.15rem,2.8vw,1.6rem);color:var(--cream);line-height:1.85;margin-bottom:1.5rem;">
+      This prototype curates content from publicly available<br>information, images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);margin-bottom:1.5rem;"></div>
-    <div style="font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;color:var(--muted);line-height:1.9;">
-      Users can report content to be amended or removed<br>
+    <div style="font-family:var(--mono);font-size:.72rem;letter-spacing:.13em;color:var(--muted);line-height:2;">
+      Biographical content is AI-generated and may contain inaccuracies.<br>
       For educational &amp; memorial purposes only · Not for commercial use<br>
-      <span style="color:var(--gold);opacity:.6;">starseum.netlify.app</span>
+      <span id="reportLink" style="color:var(--gold);opacity:.7;cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);pointer-events:auto;">Report content</span> to be amended or removed
     </div>
   </div>
 </div>
@@ -1095,10 +1088,12 @@ function buildTimeline(star,tl,wiki,heroThumb){
   // Birth cap
   strip.appendChild(makeCap(tl.born||'','BIRTH'));
 
+  // Build a per-build used-URL set (not window-global, which persists across museums)
+  const usedImgUrls=new Set();
+
   events.forEach((ev,i)=>{
     const isUp=i%2===0;
     const isDeath=ev.type==='death'||i===events.length-1;
-    const imgSrc=allImgs[i%Math.max(allImgs.length,1)];
 
     const col=document.createElement('div');
     col.className='ev-col'+(isUp?' up':'');
@@ -1115,29 +1110,26 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const isBirth=ev.type==='birth'||i===0;
     const isChildhood=ev.type==='childhood'||i===1;
     const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
-    const videoQuery=ev.videoSearch||ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
-    // Image selection: each card gets a unique image, cycling through pool
-    // Death card gets last (most recent) image; others cycle without repeating
-    let cardImgIdx=0;
-    if(!window._tlUsedImgs)window._tlUsedImgs=new Set();
-    if(imgPool.length>1){
-      if(isDeath){
-        cardImgIdx=imgPool.length-1;
-      }else{
-        // Find first unused image
-        let found=false;
-        for(let attempt=0;attempt<imgPool.length;attempt++){
-          const tryIdx=(i+attempt)%imgPool.length;
-          if(!window._tlUsedImgs.has(tryIdx)&&tryIdx!==imgPool.length-1){
-            cardImgIdx=tryIdx;found=true;break;
-          }
-        }
-        if(!found)cardImgIdx=i%Math.max(imgPool.length-1,1);
+
+    // ── Image selection (no duplicates) ──
+    let cardImg=null;
+    if(isDeath){
+      // Death: last image in pool (most recent-era photo)
+      for(let j=imgPool.length-1;j>=0;j--){
+        if(!usedImgUrls.has(imgPool[j])){cardImg=imgPool[j];break;}
       }
+      if(!cardImg)cardImg=imgPool[imgPool.length-1]||null;
+    }else if(isChildhood){
+      // Childhood: prefer early/young tagged images (they were sorted first in fetchWikiImages)
+      const earlyPool=allImgs.filter(u=>u&&/young|youth|child|early|born|school/i.test(u));
+      const preferred=earlyPool.length?earlyPool:imgPool;
+      cardImg=preferred.find(u=>!usedImgUrls.has(u))||imgPool.find(u=>!usedImgUrls.has(u))||imgPool[0]||null;
+    }else{
+      // All others: first unused image, cycling forward
+      cardImg=imgPool.find(u=>!usedImgUrls.has(u))||imgPool[i%Math.max(imgPool.length,1)]||null;
     }
-    window._tlUsedImgs.add(cardImgIdx);
-    const cardImg=imgPool[cardImgIdx]||imgPool[0]||null;
+    if(cardImg)usedImgUrls.add(cardImg);
 
     if(isBirth){
       // Birth card — interactive map via OpenStreetMap
@@ -1287,7 +1279,6 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tourStarRef=star;tourTlRef=tl;
-  window._usedImgIdx={};
   // Auto-start tour immediately
   setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
@@ -1428,9 +1419,9 @@ async function openVideo(videoId,title,searchQuery){
   ytLink.href='#';
   ytLink.textContent='LOADING…';
 
-  // Simplify query — YouTube needs concise searches
+  // Use the full query — specific queries find specific videos
   const rawQ=(searchQuery||title||'').trim();
-  const query=rawQ.length>60?rawQ.split(' ').slice(0,4).join(' '):rawQ;
+  const query=rawQ||title||'';
   const searchUrl='https://www.youtube.com/results?search_query='+encodeURIComponent(query);
 
   // Always fetch a real ID from YouTube API
@@ -1476,18 +1467,20 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
     document.getElementById('tlScroll').style.display=tab==='timeline'?'':'none';
     document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
     document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
-    // Stop current narration and read new section
-    // Only narrate tab switches if tour has been running for a moment (avoid race with auto-start)
-    if(tourPlaying&&tourStep2>0){
-      if(window.speechSynthesis)speechSynthesis.cancel();
+    // Interrupt any current narration and briefly describe the new section
+    // Guard: don't race with tour auto-start (tourStep2===0 means intro speech may still be running)
+    if(tourStep2>0||!tourPlaying){
+      if(window.speechSynthesis&&speechSynthesis.speaking){speechSynthesis.cancel();}
       if(tourAudio){tourAudio.pause();tourAudio=null;}
+    }
+    if(tourPlaying&&tourStep2>0){
       if(tab==='bio'&&tourTlRef){
         const bioText='Bio section. '+tourTlRef.fullName+'. Born '+tourTlRef.born+', '+tourTlRef.nationality+'. '+(tourTlRef.fields||[]).join(', ')+'. '+tourTlRef.tagline;
         setTimeout(()=>tourSpeak(bioText),300);
       }else if(tab==='media'&&tourStarRef){
-        setTimeout(()=>tourSpeak('Media section. Watch videos from '+tourStarRef.name+'s life. Select any video to play it.'),300);
+        setTimeout(()=>tourSpeak('Media section. Watch videos from '+tourStarRef.name+'\'s life. Select any video to play it.'),300);
       }else if(tab==='timeline'){
-        setTimeout(()=>tourSpeak('Returning to the timeline. Let us continue.'),300);
+        setTimeout(()=>tourSpeak('Let\'s continue.'),300);
       }
     }
   });
@@ -1574,42 +1567,47 @@ function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/18
 // Enrich timeline cards with real YouTube video IDs via API
 async function enrichVideos(star, tl){
   const events = tl.events||[];
-  // Build search queries for events that have videoSearch hints or need video
+  // Use Claude's specific videoSearch query for each event — these are purpose-written
+  // Fall back to a constructed query only if videoSearch is absent
   const queries = events.map((ev,i) => {
-    if(ev.type==='death'||i===events.length-1) return star.name+' documentary';
-    // Very short queries work best with YouTube API
-    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>2).slice(0,2).join(' ');
-    return (star.name+' '+words).substring(0,40).trim();
+    if(ev.type==='birth'||i===0) return null; // skip birth card
+    if(ev.videoSearch) return ev.videoSearch;  // use Claude's specific query
+    // Fallback: name + event title, concise
+    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
+    return (star.name+' '+(words||ev.year||'')).substring(0,60).trim();
   });
 
   try {
+    // Filter nulls but keep index mapping
+    const indexMap=[];
+    const activeQueries=[];
+    queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
+
     const r = await fetch('/.netlify/functions/youtube', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ queries })
+      body: JSON.stringify({ queries: activeQueries.slice(0,8) }) // max 8 to avoid quota burn
     });
     if(!r.ok) return;
     const data = await r.json();
     const results = data.results||[];
 
-    // Update each event card with real video ID
-    results.forEach((res,i) => {
+    results.forEach((res,j) => {
       if(!res?.videoId) return;
+      const i = indexMap[j];
       const ev = events[i];
       if(!ev) return;
-      // Store the real ID
       ev.youtubeId = res.videoId;
-      // Select wrap by its anchored event index — immune to DOM position drift
+      // Update the card's video wrap by anchored index
       const vWrap = document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
       if(vWrap){
         const thumb = vWrap.querySelector('.ev-img');
         if(thumb && res.thumb) thumb.src = res.thumb;
-        // Replace click handler with real ID (remove old inline onclick first)
         vWrap.onclick = null;
-        vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;openVideo(res.videoId, ev.title||'', star.name+' '+ev.title);},{once:true});
+        vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;openVideo(res.videoId, ev.title||'', activeQueries[j]);},{once:true});
       }
     });
     // Rebuild media panel with real IDs
-    buildMediaPanel(star, tl, {thumb:null,images:[]});
+    if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef, tourTlRef, {thumb:null,images:[]});
   } catch(e) {
     console.log('YouTube enrichment skipped:', e.message);
   }
@@ -1666,37 +1664,71 @@ document.addEventListener('keydown',e=>{
 document.getElementById('legalModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');});
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── SINGLE SPEECH CHANNEL ──
+// All non-tour speech goes through here so only one voice plays at a time
+function speak(text,rate=0.92){
+  if(!window.speechSynthesis||!text)return;
+  speechSynthesis.cancel();
+  if(tourAudio){tourAudio.pause();tourAudio=null;}
+  const u=new SpeechSynthesisUtterance(text.substring(0,500));
+  u.rate=rate;
+  speechSynthesis.speak(u);
+}
 window.addEventListener('resize',()=>{
   const sc=document.getElementById('tlScroll');if(sc)updateScrubber();
 });
 
-// Intro sequence — hide canvas first, then reveal tiles staggered
+// ── INTRO SEQUENCE ──
+// Phase 1 (0–3.2s): Logo plays
+// Phase 2 (3.2s): Disclaimer fades in, tiles prerender hidden
+// Phase 3 (3.2+0.7s): Disclaimer fully visible for 6s
+// Phase 4 (3.2+0.7+6s): Disclaimer fades out
+// Phase 5 (3.2+0.7+6+0.7s): Mosaic tiles stagger in, search/voice appear
+
+const INTRO_LOGO   = 3200;
+const DISC_FADEIN  = 700;
+const DISC_HOLD    = 6000;
+const DISC_FADEOUT = 700;
+const MOSAIC_START = INTRO_LOGO + DISC_FADEIN + DISC_HOLD + DISC_FADEOUT;
+
 mc.classList.add('intro-hidden');
-// Show search + voice after intro
-setTimeout(()=>{
-  const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='block';
-  const vb=document.getElementById('mVoiceBtn');if(vb)vb.style.display='flex';
-},3200+6000+600); // after logo+disclaimer // all tiles invisible while intro plays
+
+// Phase 2: hide intro logo, show disclaimer
 setTimeout(()=>{
   document.getElementById('intro').classList.add('done');
-  mInit(); // renders tiles while hidden
-  // Short delay to ensure tiles are in DOM, then stagger them in
-  setTimeout(()=>{
-    mc.classList.remove('intro-hidden');
-    const tiles=Array.from(mc.querySelectorAll('.star-tile'));
-    tiles.forEach(t=>{
-      t.style.opacity='0';
-      t.style.transform='scale(0.94)';
-      t.style.transition='none';
-      const delay=Math.random()*1000;
-      setTimeout(()=>{
-        t.style.transition='opacity .6s ease, transform .6s cubic-bezier(.25,.46,.45,.94)';
-        t.style.opacity='1';
-        t.style.transform='scale(1)';
-      }, delay);
-    });
-  }, 60);
-}, 3200);
+  const ds=document.getElementById('disclaimerScreen');
+  ds.style.display='flex';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ ds.style.opacity='1'; }));
+  // Pre-render tiles while disclaimer is showing
+  mInit();
+}, INTRO_LOGO);
+
+// Phase 4: fade out disclaimer
+setTimeout(()=>{
+  const ds=document.getElementById('disclaimerScreen');
+  ds.style.opacity='0';
+  setTimeout(()=>{ ds.style.display='none'; }, DISC_FADEOUT);
+}, INTRO_LOGO + DISC_FADEIN + DISC_HOLD);
+
+// Phase 5: reveal mosaic + show search/voice
+setTimeout(()=>{
+  mc.classList.remove('intro-hidden');
+  const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+  tiles.forEach(t=>{
+    t.style.opacity='0';
+    t.style.transform='scale(0.94)';
+    t.style.transition='none';
+    const delay=Math.random()*1000;
+    setTimeout(()=>{
+      t.style.transition='opacity .6s ease, transform .6s cubic-bezier(.25,.46,.45,.94)';
+      t.style.opacity='1';
+      t.style.transform='scale(1)';
+    }, delay);
+  });
+  const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='block';
+  const vb=document.getElementById('mVoiceBtn');if(vb)vb.style.display='flex';
+}, MOSAIC_START);
 
 // Mobile: track which tile is in centre and show its label
 if(isMobile){
@@ -1736,10 +1768,13 @@ function initSearch(){
   const inp=document.getElementById('mSearch');
   const res=document.getElementById('mSearchResults');
   if(!inp||!res)return;
+  // Kill mosaic momentum when search is active
+  inp.addEventListener('focus',()=>{ velX=0;velY=0;edgePX=0;edgePY=0; });
+  inp.addEventListener('blur',()=>{ edgePX=0;edgePY=0; });
   inp.addEventListener('input',()=>{
     const q=inp.value.trim().toLowerCase();
     if(q.length<2){res.style.display='none';return;}
-    const matches=STARS.filter(s=>s.name.toLowerCase().includes(q)).slice(0,6);
+    const matches=STARS.filter(s=>s.name.toLowerCase().includes(q)).slice(0,12); // was 6, doubled
     res.innerHTML='';
     if(!matches.length){res.style.display='none';return;}
     matches.forEach(star=>{
@@ -1752,6 +1787,8 @@ function initSearch(){
       item.addEventListener('mouseout',()=>item.style.background='');
       item.addEventListener('click',()=>{
         res.style.display='none';inp.value='';
+        // Hide search bar immediately when a star is selected
+        const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='none';
         const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
         enterStar(star,tile||mc.querySelector('.star-tile'));
       });
@@ -1853,7 +1890,7 @@ async function runTourStep2(){
         const chk=setInterval(()=>{if(!document.getElementById('videoOverlay')?.classList.contains('on')){clearInterval(chk);r();}},500);
         setTimeout(()=>{clearInterval(chk);r();},60000);
       });
-      await tourSpeak('Let us continue.');
+      await tourSpeak('Let\'s continue.');
     }
   }
   tourStep2++;
@@ -1947,14 +1984,8 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
       const data=await r.json();
       const raw=(data.content?.find(b=>b.type==='text')?.text)||"I don't have that information.";
       ans.textContent=raw.replace(/^```.*|```$/gm,'').trim();
-      // Read answer aloud
-      if(tourPlaying||true){
-        if(window.speechSynthesis){
-          speechSynthesis.cancel();
-          const u=new SpeechSynthesisUtterance(ans.textContent.substring(0,300));
-          u.rate=0.92;speechSynthesis.speak(u);
-        }
-      }
+      // Read answer aloud via shared speech channel
+      speak(ans.textContent.substring(0,300));
     }catch(e){ans.textContent='Could not get an answer right now.';}
   }
 
@@ -1986,9 +2017,7 @@ setTimeout(()=>{
     localStorage.setItem('st_last_visit',now);
     setTimeout(()=>{
       const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
-      if(window.speechSynthesis){
-        const u=new SpeechSynthesisUtterance(welcome);u.rate=0.88;u.pitch=1;speechSynthesis.speak(u);
-      }
+      speak(welcome, 0.88);
     },4500);
   }
 },3500);
