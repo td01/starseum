@@ -385,7 +385,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">CLICK TO ENTER THEIR MUSEUM</div>
     </div>
   </div>
-  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:50%;transform:translate(-50%,200%);left:50%;background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;">ENTER THE MUSEUM</button>
+  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:12%;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;white-space:nowrap;">ENTER THE MUSEUM</button>
 </div>
 <div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,6,.65);backdrop-filter:blur(2px);">
   <div style="position:absolute;inset:0;pointer-events:none;">
@@ -1006,6 +1006,11 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   try{
     setLoad(20,'CURATING MUSEUM');
     const tl=await fetchTimeline(star.name);
+    // Pre-fetch welcome narration NOW — runs in parallel with images+video load
+    // By the time the timeline is built, audio should be ready to play instantly
+    const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+(tl.tagline||'')+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+    fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,800)})})
+      .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
     setLoad(45,'SOURCING IMAGES & VIDEO');
     // Fetch images and videos in parallel — both are needed before building
     const [wiki, videoData] = await Promise.all([
@@ -1259,7 +1264,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       let _vWrapDrag=false;
       vWrap.addEventListener('mousedown',()=>{_vWrapDrag=false;});
       vWrap.addEventListener('mousemove',()=>{_vWrapDrag=true;});
-      vWrap.addEventListener('click',(e)=>{if(_vWrapDrag)return;openVideo(ev.youtubeId||null,ev.title,ytSearch);});
+      vWrap.addEventListener('click',(e)=>{if(_vWrapDrag)return;openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);});
       card.appendChild(vWrap);
     }else if(isChildhood){
       // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
@@ -1362,10 +1367,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tourStarRef=star;tourTlRef=tl;
-  // Pre-fetch welcome narration in background so tour starts with zero latency
-  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
-  fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,800)})})
-    .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
+  // Welcome audio pre-fetched earlier in startJourney — already in tl._welcomeAudio by now
   // Auto-start tour immediately
   setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
@@ -1543,242 +1545,79 @@ function stopTL(){
 }
 
 // ═══════════════════════════════════════════
-//  VIDEO
+//  VIDEO — YouTube IFrame API for reliable error detection
 // ═══════════════════════════════════════════
-async function openVideo(videoId,title,searchQuery){
+
+// Load YouTube IFrame API once
+if(!window._ytAPILoaded){
+  window._ytAPILoaded=true;
+  window._ytReadyCallbacks=[];
+  window.onYouTubeIframeAPIReady=function(){
+    window._ytAPIReady=true;
+    window._ytReadyCallbacks.forEach(fn=>fn());
+    window._ytReadyCallbacks=[];
+  };
+  const _s=document.createElement('script');
+  _s.src='https://www.youtube.com/iframe_api';
+  document.head.appendChild(_s);
+}
+function whenYTReady(fn){
+  if(window._ytAPIReady)fn();
+  else window._ytReadyCallbacks.push(fn);
+}
+
+async function openVideo(videoId, title){
   const overlay=document.getElementById('videoOverlay');
   const frame=document.getElementById('videoFrame');
   const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
-
   overlay.classList.add('on');
-  frame.style.display='none';
   fallback.style.display='flex';
+  frame.style.display='none';
+  frame.src='';
   meta.textContent='LOADING…';
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
-
-  // Set iframe src — use privacy-enhanced domain and allow embedding
-  const src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
-  frame.src=src;
-
   return new Promise((resolve)=>{
-    let resolved=false;
-    const settle=(ok)=>{if(!resolved){resolved=true;resolve(ok);}};
-
-    frame.onload=()=>{
-      frame.style.display='block';
+    let settled=false;
+    const settle=(ok)=>{if(!settled){settled=true;resolve(ok);}};
+    window._videoCloseCleanup=()=>settle(false);
+    whenYTReady(()=>{
+      if(window._ytPlayer){try{window._ytPlayer.destroy();}catch(e){}}
+      frame.style.display='block';frame.style.width='100%';frame.style.height='100%';frame.style.border='none';
       fallback.style.display='none';
-      meta.textContent=(title||'').toUpperCase();
-      settle(true);
-    };
-    frame.onerror=()=>settle(false);
-
-    // If load hasn't fired in 7s assume blocked
-    const timeout=setTimeout(()=>{
-      if(!resolved){
-        frame.style.display='none';
-        fallback.style.display='flex';
-        meta.textContent='VIDEO UNAVAILABLE';
-        settle(false);
-      }
-    },7000);
-
-    // Clean up timeout when overlay closes
-    const orig=window._videoCloseCleanup||null;
-    window._videoCloseCleanup=()=>{clearTimeout(timeout);settle(false);if(orig)orig();};
-  });
-}
-
-// Tab switching — Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
-document.querySelectorAll('.tl-tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tl-tab').forEach(t=>t.classList.remove('active'));
-    btn.classList.add('active');
-    const tab=btn.dataset.tab;
-    // tlScroll stays visible always — panels overlay on top
-    document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
-    document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
-    // Interrupt narration only if tour is past its opening line
-    if(tourStep2>0||!tourPlaying){
-      if(window.speechSynthesis&&speechSynthesis.speaking){speechSynthesis.cancel();}
-      if(tourAudio){tourAudio.pause();tourAudio=null;}
-    }
-    if(tourPlaying&&tourStep2>0){
-      if(tab==='bio'&&tourTlRef){
-        const bioText='Bio section. '+tourTlRef.fullName+'. Born '+tourTlRef.born+', '+tourTlRef.nationality+'. '+(tourTlRef.fields||[]).join(', ')+'. '+tourTlRef.tagline;
-        setTimeout(()=>tourSpeak(bioText),300);
-      }else if(tab==='media'&&tourStarRef){
-        setTimeout(()=>tourSpeak('Media section. Watch videos from '+tourStarRef.name+'\'s life. Select any video to play it.'),300);
-      }else if(tab==='timeline'){
-        if(tourPlaying&&tourStep2>0){
-          stopTour(); // kill stale loop
-          // Brief beat then restart from current position
-          setTimeout(async()=>{
-            tourPlaying=true;
-            document.getElementById('tourBtn').style.color='var(--gold)';
-            await tourSpeak('Let\'s continue.');
-            await runTourStep2();
-          },300);
+      window._ytPlayer=new YT.Player('videoFrame',{
+        videoId:videoId,
+        playerVars:{autoplay:1,rel:0,modestbranding:1,origin:window.location.origin},
+        events:{
+          onReady:(e)=>{e.target.playVideo();},
+          onStateChange:(e)=>{
+            if(e.data===YT.PlayerState.PLAYING){
+              meta.textContent=(title||'').toUpperCase();settle(true);
+            }
+          },
+          onError:(e)=>{
+            console.warn('YT error',e.data,'for',videoId);
+            frame.style.display='none';fallback.style.display='flex';
+            meta.textContent='VIDEO UNAVAILABLE';settle(false);
+          }
         }
-      }
-    }
-  });
-});
-
-function buildBioPanel(star,tl,heroThumb){
-  const panel=document.getElementById('bioPanel');
-  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent(tl.wikipediaSlug||star.slug)}`;
-  panel.innerHTML=`
-    ${heroThumb?`<img class="bio-portrait" src="${heroThumb}" alt="${tl.fullName||star.name}">`:''}
-    <div>
-      <div class="bio-name">${tl.fullName||star.name}</div>
-      <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
-      <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
-    </div>
-    <div class="bio-text" id="bioText" style="clear:both;margin-top:1.5rem">
-      <em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>
-    </div>
-    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);">
-      <a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>
-    </div>
-  `;
-  // Fetch full Wikipedia article sections for richer bio
-  const wikiSlug=encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'));
-  fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+wikiSlug+'&prop=extracts&exintro=false&explaintext=true&exsectionformat=plain&format=json&origin=*')
-    .then(r=>r.ok?r.json():null).then(d=>{
-      const el=document.getElementById('bioText');
-      if(!el||!d)return;
-      const pg=Object.values(d.query?.pages||{})[0];
-      const text=pg?.extract||'';
-      if(!text)return;
-      // Split into paragraphs, filter short ones, show first 8
-      const paras=text.split('\n').map(p=>p.trim()).filter(p=>p.length>60).slice(0,8);
-      el.innerHTML=paras.map(p=>'<p style="margin-bottom:1.2em">'+p+'</p>').join('');
-    }).catch(()=>{});
-}
-
-function buildMediaPanel(star,tl,wiki){
-  const panel=document.getElementById('mediaPanel');
-  const searchTerms=(tl.youtubeSearchTerms||[star.name+' documentary',star.name+' interview',star.name+' performance']);
-  const events=(tl.events||[]).filter(e=>e.youtubeId&&e.youtubeId.length===11);
-  panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
-  const grid=document.getElementById('mediaGrid');
-
-  // Add event videos
-  events.forEach(ev=>{
-    const item=document.createElement('div');item.className='media-item';
-    item.innerHTML=`
-      <div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>
-      <div class="media-item-label">${ev.title||''}</div>
-      <div class="media-item-sub">${ev.year||''} · VIDEO</div>
-    `;
-    // Try to load YouTube thumbnail
-    if(ev.youtubeId&&ev.youtubeId.length===11){
-      const img=document.createElement('img');
-      img.className='media-item-thumb';
-      img.src='https://img.youtube.com/vi/'+ev.youtubeId+'/mqdefault.jpg';
-      img.onload=()=>{const ph=item.querySelector('.media-item-thumb-ph');if(ph)ph.replaceWith(img);};
-      img.onerror=()=>{}; // silently fail
-    }
-    item.addEventListener('click',()=>openVideo(ev.youtubeId,ev.title,star.name+' '+ev.title));
-    grid.appendChild(item);
-  });
-
-  // Add search links for more content
-  searchTerms.slice(0,3).forEach(term=>{
-    const item=document.createElement('div');item.className='media-item';
-    item.style.cursor='pointer';
-    item.innerHTML=`
-      <div class="media-item-thumb-ph" style="background:#111;"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><rect x="8" y="8" width="64" height="64" rx="4" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.4)"/></svg></div>
-      <div class="media-item-label">${term}</div>
-      <div class="media-item-sub">SEARCH ON YOUTUBE ↗</div>
-    `;
-    item.addEventListener('click',()=>window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(term)}`,'_blank','noopener'));
-    grid.appendChild(item);
-  });
-}
-
-// OpenStreetMap tile coordinate helpers
-function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
-function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
-
-
-// Fetch verified video candidates for all events during loading
-async function fetchVideoData(tl, star){
-  const events = tl.events||[];
-  const queries = events.map((ev,i) => {
-    if(ev.type==='birth'||i===0) return null;
-    if(ev.videoSearch) return ev.videoSearch;
-    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
-    return (star.name+' '+(words||ev.year||'')).substring(0,80).trim();
-  });
-  try{
-    const indexMap=[], activeQueries=[];
-    queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
-    if(!activeQueries.length) return {indexMap:[], results:[]};
-    const r=await fetch('/.netlify/functions/youtube',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({queries:activeQueries.slice(0,8)})
+      });
     });
-    if(!r.ok) return {indexMap:[], results:[]};
-    const data=await r.json();
-    return {indexMap, results:data.results||[]};
-  }catch(e){
-    console.log('fetchVideoData error:', e.message);
-    return {indexMap:[], results:[]};
-  }
-}
-
-// Inject verified candidate arrays into tl.events before buildTimeline
-function injectVideoData(tl, videoData){
-  const {indexMap=[], results=[]} = videoData;
-  const events = tl.events||[];
-  results.forEach((candidates, j) => {
-    if(!candidates?.length) return;
-    const i = indexMap[j];
-    const ev = events[i];
-    if(!ev) return;
-    // Store best candidate as primary ID, rest as fallbacks
-    ev.youtubeId = candidates[0].videoId;
-    ev.youtubeCandidates = candidates; // [{videoId, title, thumb}, ...]
-    ev._ytThumb = candidates[0].thumb;
+    setTimeout(()=>{
+      if(!settled){frame.style.display='none';fallback.style.display='flex';meta.textContent='VIDEO UNAVAILABLE';settle(false);}
+    },12000);
   });
 }
 
-// Enrich timeline cards — called after buildTimeline, applies pre-fetched data to DOM
-async function enrichVideos(star, tl){
-  const events = tl.events||[];
-  events.forEach((ev,i) => {
-    if(!ev.youtubeCandidates?.length) return;
-    const candidates = ev.youtubeCandidates;
-    const vWrap = document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
-    if(!vWrap) return;
-    const thumb = vWrap.querySelector('.ev-img');
-    if(thumb && candidates[0].thumb) thumb.src = candidates[0].thumb;
-    vWrap.onclick = null;
-    vWrap.addEventListener('click', (e) => {
-      if(vWrap._vWrapDrag) return;
-      openVideoWithFallback(candidates, ev.title||'');
-    }, {once:true});
-    // Mark as resolved
-    const playIcon = vWrap.querySelector('.ev-play-label');
-    if(playIcon) playIcon.textContent = 'WATCH VIDEO';
-  });
-  // Rebuild media panel with real data
-  if(tourStarRef && tourTlRef) buildMediaPanel(tourStarRef, tourTlRef, {thumb:null, images:[]});
-}
-
-// Open video with automatic fallback through candidates if embed fails
 async function openVideoWithFallback(candidates, title){
+  if(!candidates?.length){window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(title),'_blank');return;}
   for(const candidate of candidates){
-    const success = await openVideo(candidate.videoId, title, candidate.title);
-    if(success) return;
+    const success=await openVideo(candidate.videoId,candidate.title||title);
+    if(success)return;
   }
-  // All candidates failed — open YouTube search in new tab as last resort
-  const query = encodeURIComponent(title);
-  window.open('https://www.youtube.com/results?search_query='+query, '_blank');
+  window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(title),'_blank');
 }
 
 function closeVideo(){
