@@ -905,7 +905,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
       vWrap.appendChild(vlbl);
 
- vWrap.addEventListener('click',()=>openVideo(ev.videoId || ev.video, ev.title, videoQuery));
+vWrap.addEventListener('click', () => openVideo(ev.videoId || ev.video, ev.title, videoQuery));
       card.appendChild(vWrap);
     }else if(cardImg){
       const wrap=document.createElement('div');
@@ -1075,57 +1075,35 @@ function openVideo(videoId, title, searchQuery) {
   const fallback = document.getElementById('videoFallback');
   const meta = document.getElementById('videoMeta');
   const ytLink = document.getElementById('videoYtLink');
-  const q = searchQuery || title || '';
 
-  frame.style.display = 'block';
-  fallback.style.display = 'none';
+  // Keep the broken iframe hidden and show your golden message box
+  frame.style.display = 'none';
+  fallback.style.display = 'flex';
   meta.textContent = title || '';
 
-  // SMOKING GUN FIX: If videoId is missing because the AI called it "video", grab it!
-  let finalId = videoId;
-  
-  // Clean it up if a full browser path or tracking link was passed down
-  if (finalId && typeof finalId === 'string') {
-    if (finalId.includes('v=')) {
-      finalId = finalId.split('v=')[1]?.split('&')[0];
-    } else if (finalId.includes('youtu.be/')) {
-      finalId = finalId.split('youtu.be/')[1]?.split('?')[0];
-    }
-    finalId = finalId.trim();
+  // Look for the 11-character ID in whichever position it arrived in
+  let cleanId = '';
+  if (videoId && videoId.length === 11 && !/\s/.test(videoId)) {
+    cleanId = videoId;
+  } else if (searchQuery && searchQuery.length === 11 && !/\s/.test(searchQuery)) {
+    cleanId = searchQuery;
+  } else if (title && title.length === 11 && !/\s/.test(title)) {
+    cleanId = title;
   }
 
-  if (window.videoTimer) clearTimeout(window.videoTimer);
-
-  // If we successfully isolated a clean 11-character YouTube video string, execute embed
-  if (finalId && finalId.length === 11 && !/\s/.test(finalId)) {
-    frame.src = `https://www.youtube.com/embed/${finalId}?autoplay=1&rel=0&modestbranding=1&color=white`;
-    ytLink.href = `https://www.youtube.com/watch?v=${finalId}`;
-    frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-    
-    overlay.classList.add('on');
-
-    // SAFEGUARD: If YouTube rejects the public embed domain due to copyright restrictions,
-    // swap out the player for your golden fallback button after 2.5 seconds
-    window.videoTimer = setTimeout(() => {
-      frame.style.display = 'none';
-      fallback.style.display = 'flex';
-    }, 2500);
-
-    frame.onload = () => {
-      clearTimeout(window.videoTimer);
-    };
-
+  // FORCE BUILD THE EXACT URL STRING THAT YOU CONFIRMED WORKS:
+  if (cleanId) {
+    ytLink.href = `https://www.youtube.com/watch?v=${cleanId}`;
   } else {
-    // If the data card possesses no usable video properties at all, spawn search route
-    frame.style.display = 'none';
-    fallback.style.display = 'flex';
-  ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' documentary')}`;
-    overlay.classList.add('on');
+    // If no ID can be found anywhere, fallback to a clean text title query
+    const fallbackQuery = searchQuery || title || '';
+    ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(fallbackQuery.replace(' documentary',''))}`;
   }
+
+  overlay.classList.add('on');
 }
 
 function closeVideo() {
-  if (window.videoTimer) clearTimeout(window.videoTimer);
   document.getElementById('videoOverlay').classList.remove('on');
   document.getElementById('videoFrame').src = '';
   document.getElementById('videoFallback').style.display = 'none';
