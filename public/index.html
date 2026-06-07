@@ -1255,9 +1255,12 @@ function buildTimeline(star,tl,wiki,heroThumb){
       mapWrap.appendChild(lbl);
       function placeMap(lat2,lng2){
         const z=9;
+        // Inline tile math — no external function dependency
+        const tileX=Math.floor((lng2+180)/360*Math.pow(2,z));
+        const tileY=Math.floor((1-Math.log(Math.tan(lat2*Math.PI/180)+1/Math.cos(lat2*Math.PI/180))/Math.PI)/2*Math.pow(2,z));
         const osmImg=document.createElement('img');
         osmImg.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(40%) brightness(0.55) sepia(0.25);';
-        osmImg.src='https://tile.openstreetmap.org/'+z+'/'+lngToTileX(lng2,z)+'/'+latToTileY(lat2,z)+'.png';
+        osmImg.src='https://tile.openstreetmap.org/'+z+'/'+tileX+'/'+tileY+'.png';
         osmImg.onerror=function(){osmImg.style.background='#0e1520';};
         mapWrap.insertBefore(osmImg,mapWrap.firstChild);
         const pin=document.createElement('div');
@@ -1598,6 +1601,77 @@ function stopTL(){
   tlRunning=false;cancelAnimationFrame(tlRaf);
   const strip=document.getElementById('tlStrip');
   if(strip)while(strip.children.length>1)strip.removeChild(strip.lastChild);
+}
+
+// ── MAP HELPERS ──
+function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
+function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
+
+// ── BIO PANEL ──
+function buildBioPanel(star,tl,heroThumb){
+  const panel=document.getElementById('bioPanel');
+  if(!panel)return;
+  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent(tl.wikipediaSlug||star.slug)}`;
+  panel.innerHTML=`
+    ${heroThumb?`<img class="bio-portrait" src="${heroThumb}" alt="${tl.fullName||star.name}">`:''}
+    <div>
+      <div class="bio-name">${tl.fullName||star.name}</div>
+      <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
+      <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
+    </div>
+    <div class="bio-text" id="bioText" style="clear:both;margin-top:1.5rem">
+      <em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>
+    </div>
+    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);">
+      <a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>
+    </div>
+  `;
+  const wikiSlug=encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'));
+  fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+wikiSlug+'&prop=extracts&exintro=false&explaintext=true&exsectionformat=plain&format=json&origin=*')
+    .then(r=>r.ok?r.json():null).then(d=>{
+      const el=document.getElementById('bioText');
+      if(!el||!d)return;
+      const pg=Object.values(d.query?.pages||{})[0];
+      const text=pg?.extract||'';
+      if(!text)return;
+      const paras=text.split('\n').map(p=>p.trim()).filter(p=>p.length>60).slice(0,8);
+      el.innerHTML=paras.map(p=>'<p style="margin-bottom:1.2em">'+p+'</p>').join('');
+    }).catch(()=>{});
+}
+
+// ── MEDIA PANEL ──
+function buildMediaPanel(star,tl,wiki){
+  const panel=document.getElementById('mediaPanel');
+  if(!panel)return;
+  const events=(tl.events||[]).filter(e=>e.youtubeId&&e.youtubeId.length===11);
+  panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
+  const grid=document.getElementById('mediaGrid');
+  if(!grid)return;
+  events.forEach(ev=>{
+    const item=document.createElement('div');item.className='media-item';
+    const thumbSrc=ev._ytThumb||'';
+    item.innerHTML=`
+      ${thumbSrc
+        ?`<img class="media-item-thumb" src="${thumbSrc}" alt="${ev.title||''}" loading="lazy">`
+        :`<div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>`}
+      <div class="media-item-label">${ev.title||''}</div>
+      <div class="media-item-sub">${ev.year||''} · VIDEO</div>
+    `;
+    item.addEventListener('click',()=>openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title||star.name));
+    grid.appendChild(item);
+  });
+  // Add YouTube search links for star's name
+  const searchTerms=[star.name+' documentary',star.name+' interview',star.name+' performance'];
+  searchTerms.forEach(term=>{
+    const item=document.createElement('div');item.className='media-item';
+    item.innerHTML=`
+      <div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>
+      <div class="media-item-label">${term}</div>
+      <div class="media-item-sub">SEARCH YOUTUBE</div>
+    `;
+    item.addEventListener('click',()=>window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(term),'_blank'));
+    grid.appendChild(item);
+  });
 }
 
 // ═══════════════════════════════════════════
