@@ -184,6 +184,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-dot.death{background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.12),0 0 16px rgba(201,168,76,.3);}
 .ev-conn{width:1px;background:rgba(201,168,76,.2);flex-shrink:0;height:48px;}
 .ev-card{background:#181410;border:1px solid rgba(201,168,76,.2);border-radius:2px;overflow:hidden;width:100%;cursor:pointer;transition:border-color .35s,box-shadow .35s,transform .4s cubic-bezier(.25,.46,.45,.94);box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.ev-card.tour-active{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(201,168,76,.3),0 20px 60px rgba(0,0,0,.8)!important;transform:scale(1.04)!important;}
 .ev-card:hover,.ev-card.tapped{border-color:rgba(201,168,76,.5);box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.1);transform:scale(1.06) translateY(-4px);}
 .ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
 .ev-img{width:100%;height:180px;object-fit:cover;object-position:center center;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
@@ -320,6 +321,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 <div id="mosaicScreen">
   <div id="mosaicCanvas"></div>
+  <!-- Search bar — fixed, above everything -->
+  <div id="mSearchWrap" style="position:fixed;top:1rem;left:50%;transform:translateX(-50%);width:min(420px,80vw);z-index:9999;pointer-events:auto;">
+    <input type="text" id="mSearch" placeholder="Search a name…" autocomplete="off"
+      style="width:100%;background:rgba(10,8,6,.88);border:1px solid rgba(201,168,76,.3);border-radius:3px;padding:.6rem 1.1rem;font-family:var(--mono);font-size:14px;letter-spacing:.08em;color:var(--cream);outline:none;box-shadow:0 4px 20px rgba(0,0,0,.5);">
+    <div id="mSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-top:none;max-height:300px;overflow-y:auto;border-radius:0 0 3px 3px;box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
+  </div>
   <div id="mobileTutorial" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(10,8,6,.8);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
     <div style="display:flex;flex-direction:column;align-items:center;gap:1.2rem;text-align:center;padding:2rem;">
       <svg width="56" height="56" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.7)" stroke-width="1.5" stroke-linecap="round"/><circle cx="30" cy="30" r="6" fill="rgba(201,168,76,0.12)" stroke="rgba(201,168,76,0.5)" stroke-width="1"/></svg>
@@ -405,6 +412,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 <div id="tlScreen">
   <div id="tlAmbient"></div>
+  <!-- Dedicated always-on-top back button -->
+  <button id="tlBackFixed" onclick="stopTour();goHome();"
+    style="position:fixed;top:.8rem;left:.8rem;z-index:9999;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.5);border-radius:2px;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.45rem .9rem;cursor:pointer;pointer-events:auto;transition:all .2s;display:none;">
+    ← MUSEUM
+  </button>
   <div class="tl-bar">
     <button class="tl-back" id="tlBack">← MUSEUM</button>
     <div class="tl-info">
@@ -423,7 +435,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <button id="qaBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .55rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);cursor:pointer;transition:all .2s;">ASK</button>
       <div id="qaAnswer" style="display:none;position:absolute;top:100%;right:0;width:320px;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-radius:2px;padding:1rem 1.1rem;margin-top:.3rem;z-index:50;font-family:var(--serif);font-size:.88rem;line-height:1.7;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
     </div>
-    <button id="tourBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);padding:.35rem .65rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
+    <button id="tourBtn" style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.4);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gold);padding:.4rem .8rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>TOUR
     </button>
   </div>
@@ -963,6 +975,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     hideLoad();
     buildTimeline(star,tl,wiki,thumb);
     document.getElementById('tlScreen').classList.add('on');
+  const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='block';
     const zd=document.getElementById('zoomDark');
     zd.style.opacity='0';setTimeout(()=>{zd.style.pointerEvents='none';},600);
   }catch(err){
@@ -975,6 +988,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
 
 function goHome(){
   stopTour();
+  const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='none';
   stopTL();
   document.getElementById('tlScreen').classList.remove('on');
   document.getElementById('loadScreen').classList.remove('on');
@@ -1074,16 +1088,20 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
     const videoQuery=ev.videoSearch||ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
-    // Age-appropriate image selection: earlier events use lower-index images
-    // Later events use higher-index images (Wikipedia images roughly chronological)
-    let cardImgIdx;
-    if(imgPool.length<=1){ cardImgIdx=0; }
-    else{
-      const frac=events.length>1?i/(events.length-1):0;
-      cardImgIdx=Math.min(imgPool.length-1,Math.round(frac*(imgPool.length-1)));
-      // Avoid duplicates with adjacent cards
-      if(i>0&&cardImgIdx===Math.round(((i-1)/(events.length-1))*(imgPool.length-1))){
-        cardImgIdx=Math.min(imgPool.length-1,cardImgIdx+1);
+    // Age-appropriate image selection
+    let cardImgIdx=0;
+    if(imgPool.length>1){
+      if(isDeath){
+        // Death card: always use the last available image (most recent photo)
+        cardImgIdx=imgPool.length-1;
+      }else{
+        // Other cards: distribute evenly by chronological position
+        const frac=events.length>1?i/Math.max(events.length-2,1):0;
+        cardImgIdx=Math.min(imgPool.length-2,Math.round(frac*(imgPool.length-2)));
+        // Ensure uniqueness with previous card
+        const prevFrac=events.length>1&&i>0?(i-1)/Math.max(events.length-2,1):0;
+        const prevIdx=Math.min(imgPool.length-2,Math.round(prevFrac*(imgPool.length-2)));
+        if(cardImgIdx===prevIdx)cardImgIdx=Math.min(imgPool.length-2,cardImgIdx+1);
       }
     }
     const cardImg=imgPool[cardImgIdx]||imgPool[0]||null;
@@ -1199,15 +1217,16 @@ function buildTimeline(star,tl,wiki,heroThumb){
     `;
     card.appendChild(body);
 
-    // Card click — jump tour to this step
+    // Card click — jump tour to this step and immediately continue from there
     const cardIdx=i;
     card.addEventListener('click',e=>{
-      if(tourPlaying&&cardIdx!==tourStep2){
-        tourStep2=cardIdx;
+      if(e.target.closest('.ev-video-wrap')||e.target.closest('.ev-play-btn'))return;
+      if(tourPlaying){
         if(window.speechSynthesis)speechSynthesis.cancel();
         if(tourAudio){tourAudio.pause();tourAudio=null;}
+        tourStep2=cardIdx;
+        setTimeout(()=>{ if(tourPlaying)runTourStep2(); },300);
       }
-      if(e.target.closest('.ev-play-btn')||e.target.closest('.ev-video-wrap'))return;
       const wasZoomed=card.classList.contains('tapped');
       document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
       if(!wasZoomed)card.classList.add('tapped');
@@ -1762,8 +1781,15 @@ async function runTourStep2(){
   }
   const ev=tourEvts[tourStep2];
   const sc=document.getElementById('tlScroll');
-  const cards=sc?sc.querySelectorAll('.ev-col'):[];
-  if(cards[tourStep2])cards[tourStep2].scrollIntoView({behavior:'smooth',inline:'center'});
+  const cols=sc?sc.querySelectorAll('.ev-col'):[];
+  // Highlight current card
+  document.querySelectorAll('.ev-card.tour-active').forEach(c=>c.classList.remove('tour-active'));
+  const activeCol=cols[tourStep2];
+  if(activeCol){
+    activeCol.scrollIntoView({behavior:'smooth',inline:'center'});
+    const activeCard=activeCol.querySelector('.ev-card');
+    if(activeCard)activeCard.classList.add('tour-active');
+  }
   const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' They once said: '+ev.quote:'');
   await tourSpeak(txt);
   if(!tourPlaying)return;
@@ -1811,10 +1837,12 @@ function tourListen(ms){
 
 function stopTour(){
   tourPlaying=false;
+  tourStep2=0;
   if(tourAudio){tourAudio.pause();tourAudio=null;}
   if(window.speechSynthesis)speechSynthesis.cancel();
+  document.querySelectorAll('.ev-card.tour-active').forEach(c=>c.classList.remove('tour-active'));
   const tb=document.getElementById('tourBtn');if(tb)tb.style.color='var(--muted)';
-  showVoiceHint('',0);const vh=document.getElementById('voiceHint');if(vh)vh.style.display='none';
+  const vhEl=document.getElementById('voiceHint');if(vhEl)vhEl.style.display='none';
 }
 
 document.getElementById('tourBtn')?.addEventListener('click',()=>{
