@@ -56,12 +56,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   .tl-footer{font-size:6px;gap:.75rem;padding:.3rem .75rem;}
   .tl-scrub{padding:0 .75rem;gap:.4rem;}
   .tl-scrub-lbl{font-size:6.5px;}
-  /* Search bar: drop below the HUD row on mobile so it doesn't clash with logo or mic */
+  /* Search+mic bar: drop below the HUD row on mobile */
   #mSearchWrap{
     top:calc(3.8rem + env(safe-area-inset-top))!important;
     width:calc(100vw - 2.4rem)!important;
     left:1.2rem!important;
     transform:none!important;
+    flex-direction:row;
   }
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
@@ -79,8 +80,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   background:var(--dark);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   pointer-events:none;
+  opacity:1;
+  transition:opacity .7s ease;
 }
-#intro.done{display:none;}
+#intro.done{opacity:0;pointer-events:none;}
+#intro.gone{display:none;}
 .intro-logo{
   font-family:var(--display);
   font-size:clamp(2.8rem,11vw,7.5rem);
@@ -325,15 +329,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <body>
 
 <div id="intro">
-  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.55em;vertical-align:super;letter-spacing:.1em;opacity:.9;">.AI</span></div>
+  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.28em;vertical-align:super;letter-spacing:.1em;opacity:.9;">.AI</span></div>
   <div class="intro-rule"></div>
   <div class="intro-sub">A museum of extraordinary lives</div>
 </div>
-<!-- Search + Voice — body level, above everything, not inside any overflow container -->
-<div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(400px,76vw);z-index:10000;display:none;">
+<!-- Search + Mic unified bar -->
+<div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(440px,80vw);z-index:10000;display:none;opacity:0;transition:opacity .6s ease;align-items:center;gap:10px;">
   <input type="text" id="mSearch" placeholder="🔍  Search a name…" autocomplete="off" spellcheck="false"
-    style="width:100%;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
-  <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:rgba(8,6,4,.98);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 36px rgba(0,0,0,.9);"></div>
+    style="flex:1;min-width:0;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+  <button id="mVoiceBtn" title="Voice command"
+    style="flex-shrink:0;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .2s;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+  <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 5px);left:0;right:54px;background:rgba(8,6,4,.98);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 36px rgba(0,0,0,.9);"></div>
 </div>
 
 <div id="mosaicScreen">
@@ -349,18 +357,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <div class="m-hud"><div class="m-logo">STARSEUM<em>AI</em></div></div>
 </div>
 
-<!-- Voice button — fixed, always on top -->
-<button id="mVoiceBtn" title="Voice command (say a name to find them)"
-  style="position:fixed;top:calc(.9rem + env(safe-area-inset-top));right:1rem;z-index:9999;background:rgba(8,6,4,.88);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:all .2s;">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-</button>
-
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
   <div style="max-width:min(820px,92vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
     <div style="font-family:var(--serif);font-size:clamp(1rem,2.2vw,1.55rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
-      This prototype curates content from publicly available information, images and video.
+      This prototype curates content from publicly available<br>information, images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
     <div style="font-family:var(--mono);font-size:clamp(.55rem,.85vw,.7rem);letter-spacing:.12em;color:var(--muted);line-height:2.1;">
@@ -372,32 +374,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 
 <!-- Onboarding overlays -->
-<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.7);backdrop-filter:blur(3px);">
-  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;pointer-events:none;">
-    <!-- Center instruction -->
-    <div style="text-align:center;">
-      <div style="font-family:var(--display);font-size:1.4rem;letter-spacing:.2em;color:var(--cream);margin-bottom:.5rem;">WELCOME TO STARSEUM</div>
-      <div style="font-family:var(--serif);font-style:italic;font-size:1rem;color:var(--muted);">A museum of extraordinary lives</div>
-    </div>
-    <!-- Drag instruction with animated arrows -->
-    <div style="display:flex;align-items:center;gap:1rem;">
-      <svg width="40" height="40" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.6)" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--cream);">DRAG TO EXPLORE</div>
-    </div>
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--cream);">HOVER A FACE TO ILLUMINATE · CLICK TO ENTER</div>
-    <!-- Arrows pointing to top UI -->
-    <div style="position:absolute;top:3.5rem;left:50%;transform:translateX(-50%);display:flex;gap:3rem;align-items:flex-start;">
-      <div style="text-align:center;">
-        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);margin-bottom:.3rem;">SEARCH</div>
-        <div style="font-size:1.2rem;">↑</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);margin-bottom:.3rem;">VOICE</div>
-        <div style="font-size:1.2rem;">↑</div>
-      </div>
+<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.75);backdrop-filter:blur(4px);">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4rem;pointer-events:none;">
+    <!-- Big drag icon -->
+    <svg width="72" height="72" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.65)" stroke-width="1.2" stroke-linecap="round"/></svg>
+    <!-- Instructions -->
+    <div style="text-align:center;display:flex;flex-direction:column;gap:1rem;">
+      <div style="font-family:var(--mono);font-size:14px;letter-spacing:.18em;color:var(--cream);">DRAG TO EXPLORE</div>
+      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">HOVER A FACE TO ILLUMINATE</div>
+      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">CLICK TO ENTER THEIR MUSEUM</div>
     </div>
   </div>
-  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.6rem 2rem;cursor:pointer;border-radius:2px;pointer-events:auto;">ENTER THE MUSEUM</button>
+  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:50%;transform:translate(-50%,200%);left:50%;background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;">ENTER THE MUSEUM</button>
 </div>
 <div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,6,.65);backdrop-filter:blur(2px);">
   <div style="position:absolute;inset:0;pointer-events:none;">
@@ -912,7 +900,7 @@ function injectThumb(tile,ph,src){
 function enterStar(star,tile){
   // Hide search when entering a museum
   const sw=document.getElementById('mSearchWrap');
-  if(sw)sw.style.display='none';
+  if(sw){sw.style.opacity='0';setTimeout(()=>{if(sw.style.opacity==='0')sw.style.display='none';},600);}
   const sr=document.getElementById('mSearchResults');
   if(sr)sr.style.display='none';
   mActive=false;cancelAnimationFrame(mRaf);
@@ -1035,8 +1023,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     document.getElementById('tlBar').style.display='flex';
     const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='block';
   // Hide mosaic UI
-  const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='none';
-  const vb=document.getElementById('mVoiceBtn');if(vb)vb.style.display='none';
+  const sw=document.getElementById('mSearchWrap');if(sw){sw.style.opacity='0';setTimeout(()=>{sw.style.display='none';},600);}
     const zd=document.getElementById('zoomDark');
     zd.style.opacity='0';setTimeout(()=>{zd.style.pointerEvents='none';},600);
   }catch(err){
@@ -1053,8 +1040,7 @@ function goHome(){
   const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='none';
   document.getElementById('tlBar').style.display='none';
   // Show mosaic UI
-  const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='block';
-  const vb=document.getElementById('mVoiceBtn');if(vb)vb.style.display='flex';
+  const sw=document.getElementById('mSearchWrap');if(sw){sw.style.display='flex';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
   stopTL();
   document.getElementById('tlScreen').classList.remove('on');
   document.getElementById('loadScreen').classList.remove('on');
@@ -1331,13 +1317,44 @@ function buildTimeline(star,tl,wiki,heroThumb){
 
   if(tl.died)strip.appendChild(makeCap(tl.died,'DEATH'));
 
-  // Apply initial zoom level
+  // ── CINEMATIC ENTRY ──
+  // Cards start invisible and far left; slide in smoothly to birth position
   const sc=document.getElementById('tlScroll');
   const strip2=document.getElementById('tlStrip');
   strip2.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
   strip2.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(160*tlScale)+'px');
-  // Start at birth — scroll fully left
-  requestAnimationFrame(()=>{ if(sc)sc.scrollLeft=0; });
+
+  // Start well off-screen to the right (appearing to come from before time)
+  requestAnimationFrame(()=>{
+    if(!sc)return;
+    sc.scrollLeft=sc.scrollWidth; // start at far right (birth is at left=0)
+
+    // Fade in the timeline screen
+    const tlScreen=document.getElementById('tlScreen');
+    tlScreen.style.opacity='0';
+    tlScreen.style.transition='none';
+    requestAnimationFrame(()=>{
+      tlScreen.style.transition='opacity .5s ease';
+      tlScreen.style.opacity='1';
+    });
+
+    // After a brief pause, glide smoothly to the birth card (scrollLeft=0)
+    setTimeout(()=>{
+      const start=sc.scrollLeft;
+      const end=0;
+      const dur=2200; // 2.2s cinematic glide
+      let t0=null;
+      function ease(t){ return 1-Math.pow(1-t,4); } // ease-out-quart — fast start, luxurious deceleration
+      function step(ts){
+        if(!t0)t0=ts;
+        const prog=Math.min((ts-t0)/dur,1);
+        sc.scrollLeft=start+(end-start)*ease(prog);
+        updateScrubber();
+        if(prog<1)requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, 180);
+  });
 
   // Setup interactions
   setupScrollDrag(sc);
@@ -1832,54 +1849,50 @@ window.addEventListener('resize',()=>{
 });
 
 // ── INTRO SEQUENCE ──
-// Phase 1 (0–3.2s): Logo plays
-// Phase 2 (3.2s): Disclaimer fades in, tiles prerender hidden
-// Phase 3 (3.2+0.7s): Disclaimer fully visible for 5s
-// Phase 4 (3.2+0.7+5s): Disclaimer fades out
-// Phase 5 (3.2+0.7+5+0.7s): Mosaic tiles stagger in, search/voice appear
-
-const INTRO_LOGO   = 3200;
-const DISC_FADEIN  = 700;
-const DISC_HOLD    = 5000;
-const DISC_FADEOUT = 700;
-const MOSAIC_START = INTRO_LOGO + DISC_FADEIN + DISC_HOLD + DISC_FADEOUT;
+// Each screen fades OUT before the next fades IN — no overlap
+const LOGO_HOLD    = 2800; // how long logo is fully visible
+const FADE         = 650;  // all crossfades use this duration
+const DISC_HOLD    = 5000; // disclaimer hold time
 
 mc.classList.add('intro-hidden');
 
-// Phase 2: hide intro logo, show disclaimer
+// Phase 1 → 2: Logo fades out, then disclaimer fades in
 setTimeout(()=>{
-  document.getElementById('intro').classList.add('done');
-  const ds=document.getElementById('disclaimerScreen');
-  ds.style.display='flex';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ ds.style.opacity='1'; }));
-  // Pre-render tiles while disclaimer is showing
-  mInit();
-}, INTRO_LOGO);
+  const intro=document.getElementById('intro');
+  intro.classList.add('done'); // triggers opacity:0 via CSS transition
+  setTimeout(()=>{
+    intro.classList.add('gone'); // remove from layout after fade
+    // Pre-render mosaic tiles while disclaimer is visible
+    mInit();
+    // Disclaimer fades in
+    const ds=document.getElementById('disclaimerScreen');
+    ds.style.display='flex';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ ds.style.opacity='1'; }));
+  }, FADE);
+}, LOGO_HOLD);
 
-// Phase 4: fade out disclaimer
+// Phase 2 → 3: Disclaimer fades out, mosaic fades in
+const MOSAIC_START = LOGO_HOLD + FADE + DISC_HOLD;
 setTimeout(()=>{
   const ds=document.getElementById('disclaimerScreen');
   ds.style.opacity='0';
-  setTimeout(()=>{ ds.style.display='none'; }, DISC_FADEOUT);
-}, INTRO_LOGO + DISC_FADEIN + DISC_HOLD);
-
-// Phase 5: reveal mosaic + show search/voice
-setTimeout(()=>{
-  mc.classList.remove('intro-hidden');
-  const tiles=Array.from(mc.querySelectorAll('.star-tile'));
-  tiles.forEach(t=>{
-    t.style.opacity='0';
-    t.style.transform='scale(0.94)';
-    t.style.transition='none';
-    const delay=Math.random()*1000;
-    setTimeout(()=>{
-      t.style.transition='opacity .6s ease, transform .6s cubic-bezier(.25,.46,.45,.94)';
-      t.style.opacity='1';
-      t.style.transform='scale(1)';
-    }, delay);
-  });
-  const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='block';
-  const vb=document.getElementById('mVoiceBtn');if(vb)vb.style.display='flex';
+  setTimeout(()=>{
+    ds.style.display='none';
+    // Mosaic tiles stagger in
+    mc.classList.remove('intro-hidden');
+    const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+    tiles.forEach(t=>{
+      t.style.opacity='0';t.style.transform='scale(0.94)';t.style.transition='none';
+      const delay=Math.random()*900;
+      setTimeout(()=>{
+        t.style.transition='opacity .65s ease, transform .65s cubic-bezier(.25,.46,.45,.94)';
+        t.style.opacity='1';t.style.transform='scale(1)';
+      }, delay);
+    });
+    // Fade in search+voice together
+    const sw=document.getElementById('mSearchWrap');
+    if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
+  }, FADE);
 }, MOSAIC_START);
 
 // Mobile: track which tile is in centre and show its label
@@ -1964,7 +1977,7 @@ function initSearch(){
       item.addEventListener('click',()=>{
         res.style.display='none';inp.value='';
         // Hide search bar immediately when a star is selected
-        const sw=document.getElementById('mSearchWrap');if(sw)sw.style.display='none';
+        const sw=document.getElementById('mSearchWrap');if(sw){sw.style.opacity='0';setTimeout(()=>{sw.style.display='none';},600);}
         const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
         enterStar(star,tile||mc.querySelector('.star-tile'));
       });
@@ -2086,63 +2099,37 @@ async function runTourStep2(){
 async function tourSpeak(text){
   if(!tourPlaying||!text)return;
   const myGen=++_tourSpeakGen;
-  // Cancel whatever is playing
   if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
   if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
   if(_subtitlesOn) showVoiceHint(text.substring(0,80)+'…',99999);
-
-  // INSTANT: start browser TTS immediately on the first sentence
-  // This plays within ~100ms while ElevenLabs fetches in background
-  const firstSentence=text.match(/^[^.!?]+[.!?]/)?.[0]||text.substring(0,120);
-  let ttsUtterance=null;
-  if(window.speechSynthesis){
-    ttsUtterance=new SpeechSynthesisUtterance(firstSentence);
-    ttsUtterance.rate=0.88;ttsUtterance.pitch=1;
-    speechSynthesis.speak(ttsUtterance);
-  }
-
-  // BACKGROUND: fetch full ElevenLabs audio
+  // Primary: ElevenLabs
   try{
     const r=await fetch('/.netlify/functions/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:text.substring(0,800)})
     });
-    if(myGen!==_tourSpeakGen){if(window.speechSynthesis)speechSynthesis.cancel();return;}
+    if(myGen!==_tourSpeakGen)return;
     if(r.ok){
       const d=await r.json();
       if(d.audio&&myGen===_tourSpeakGen){
-        // Cancel TTS and switch to ElevenLabs
-        if(window.speechSynthesis)speechSynthesis.cancel();
         await new Promise(res=>{
           const a=new Audio('data:audio/mpeg;base64,'+d.audio);
-          tourAudio=a;
-          a.onended=res;a.onerror=res;
-          a.play().catch(res);
+          tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);
         });
         return;
       }
     }
   }catch(e){}
-
-  // ElevenLabs failed or superseded — wait for TTS to finish
-  if(myGen!==_tourSpeakGen)return;
-  if(window.speechSynthesis&&ttsUtterance){
-    // TTS already started — let the full text play
-    if(!speechSynthesis.speaking) {
-      const u=new SpeechSynthesisUtterance(text.substring(0,500));
-      u.rate=0.88;speechSynthesis.speak(u);
-    }
-    await new Promise(res=>{
-      const check=setInterval(()=>{
-        if(!tourPlaying||myGen!==_tourSpeakGen||!speechSynthesis.speaking){
-          clearInterval(check);res();
-        }
-      },200);
-      // Timeout safety
-      setTimeout(()=>{clearInterval(check);res();}, text.length*80);
-    });
-  }
+  // Fallback: browser TTS only if ElevenLabs failed
+  if(!tourPlaying||myGen!==_tourSpeakGen)return;
+  await new Promise(res=>{
+    if(!window.speechSynthesis){res();return;}
+    const u=new SpeechSynthesisUtterance(text.substring(0,500));
+    u.rate=0.9;u.onend=res;u.onerror=res;
+    u.onpause=()=>{if(!tourPlaying)res();};
+    speechSynthesis.speak(u);
+  });
 }
 
 function tourListen(ms){
