@@ -131,8 +131,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlScreen{position:fixed;inset:0;z-index:200;display:none;background:var(--dark);overflow:hidden;}
 #tlScreen.on{display:block;}
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
-.tl-bar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:1rem;padding:.7rem 1.5rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:none;}
-.tl-bar>*{pointer-events:auto;}
+.tl-bar{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:.75rem;padding:.65rem 1.2rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:auto;}
 .tl-bar>*{pointer-events:auto;}
 .tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
 .tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
@@ -738,6 +737,8 @@ function mInit(){
     mc.style.cursor='grabbing';e.preventDefault();
   },{passive:false});
   window.addEventListener('mousemove',e=>{
+    // Don't pan if search is focused
+    if(document.activeElement&&document.activeElement.id==='mSearch'){edgePX=0;edgePY=0;return;}
     if(mDrag){
       const dx=e.clientX-mDX0,dy=e.clientY-mDY0;
       if(Math.abs(dx)>4||Math.abs(dy)>4)mDidDrag=true;
@@ -831,7 +832,7 @@ function mLoop(){
   if(!mDrag){
     velX*=0.97;velY*=0.97;
     camX+=velX;camY+=velY;
-    if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;}
+    if((edgePX||edgePY)&&document.activeElement?.id!=='mSearch'){camX+=edgePX;camY+=edgePY;}
   }
   mZoom+=(mZoomTarget-mZoom)*0.12;
   mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px) scale(${mZoom.toFixed(3)})`;
@@ -889,6 +890,11 @@ function injectThumb(tile,ph,src){
 //  TRANSITION
 // ═══════════════════════════════════════════
 function enterStar(star,tile){
+  // Hide search when entering a museum
+  const sw=document.getElementById('mSearchWrap');
+  if(sw)sw.style.display='none';
+  const sr=document.getElementById('mSearchResults');
+  if(sr)sr.style.display='none';
   mActive=false;cancelAnimationFrame(mRaf);
   edgePX=0;edgePY=0;clickedTile=tile;
   const thumb=thumbs[star.slug]||null;
@@ -1043,7 +1049,10 @@ async function fetchWikiImages(slug){
     if(r.ok){
       const d=await r.json();
       const pg=Object.values(d.query?.pages||{})[0];
-      const files=(pg?.images||[]).filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title)).filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub/i.test(i.title)).slice(0,16).map(i=>i.title.replace('File:',''));
+      const allFiles=(pg?.images||[]).filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title)).filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub/i.test(i.title));
+    const earlyFiles=allFiles.filter(i=>/young|youth|child|early|born|school/i.test(i.title));
+    const laterFiles=allFiles.filter(i=>!/young|youth|child|early|born|school/i.test(i.title));
+    const files=[...earlyFiles,...laterFiles].slice(0,18).map(i=>i.title.replace('File:',''));
       const urls=await Promise.all(files.map(resolveImg));
       out.images=urls.filter(Boolean);
     }
@@ -1108,22 +1117,26 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
     const videoQuery=ev.videoSearch||ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
-    // Age-appropriate image selection
+    // Image selection: each card gets a unique image, cycling through pool
+    // Death card gets last (most recent) image; others cycle without repeating
     let cardImgIdx=0;
+    if(!window._tlUsedImgs)window._tlUsedImgs=new Set();
     if(imgPool.length>1){
       if(isDeath){
-        // Death card: always use the last available image (most recent photo)
         cardImgIdx=imgPool.length-1;
       }else{
-        // Other cards: distribute evenly by chronological position
-        const frac=events.length>1?i/Math.max(events.length-2,1):0;
-        cardImgIdx=Math.min(imgPool.length-2,Math.round(frac*(imgPool.length-2)));
-        // Ensure uniqueness with previous card
-        const prevFrac=events.length>1&&i>0?(i-1)/Math.max(events.length-2,1):0;
-        const prevIdx=Math.min(imgPool.length-2,Math.round(prevFrac*(imgPool.length-2)));
-        if(cardImgIdx===prevIdx)cardImgIdx=Math.min(imgPool.length-2,cardImgIdx+1);
+        // Find first unused image
+        let found=false;
+        for(let attempt=0;attempt<imgPool.length;attempt++){
+          const tryIdx=(i+attempt)%imgPool.length;
+          if(!window._tlUsedImgs.has(tryIdx)&&tryIdx!==imgPool.length-1){
+            cardImgIdx=tryIdx;found=true;break;
+          }
+        }
+        if(!found)cardImgIdx=i%Math.max(imgPool.length-1,1);
       }
     }
+    window._tlUsedImgs.add(cardImgIdx);
     const cardImg=imgPool[cardImgIdx]||imgPool[0]||null;
 
     if(isBirth){
@@ -1728,10 +1741,10 @@ function initSearch(){
     if(!matches.length){res.style.display='none';return;}
     matches.forEach(star=>{
       const item=document.createElement('div');
-      item.style.cssText='padding:.5rem .8rem;cursor:pointer;font-family:var(--serif);font-size:.85rem;color:var(--cream);border-bottom:1px solid var(--gold2);display:flex;align-items:center;gap:.6rem;';
+      item.style.cssText='padding:1rem 1.3rem;cursor:pointer;font-family:var(--serif);font-size:1.25rem;color:var(--cream);border-bottom:1px solid var(--gold2);display:flex;align-items:center;gap:1rem;';
       const thumb=thumbs[star.slug];
-      item.innerHTML=(thumb?`<img src="${thumb}" style="width:26px;height:34px;object-fit:cover;border-radius:1px;flex-shrink:0;" alt="">`:'')
-        +`<div><div style="font-family:var(--display);font-size:10px;letter-spacing:.08em;">${star.name}</div><div style="font-family:var(--mono);font-size:7px;color:var(--muted);">${star.years}</div></div>`;
+      item.innerHTML=(thumb?`<img src="${thumb}" style="width:52px;height:68px;object-fit:cover;border-radius:1px;flex-shrink:0;" alt="">`:'')
+        +`<div><div style="font-family:var(--display);font-size:16px;letter-spacing:.06em;">${star.name}</div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:.2rem;">${star.years}</div></div>`;
       item.addEventListener('mouseover',()=>item.style.background='rgba(201,168,76,.08)');
       item.addEventListener('mouseout',()=>item.style.background='');
       item.addEventListener('click',()=>{
@@ -1836,7 +1849,7 @@ async function runTourStep2(){
         const chk=setInterval(()=>{if(!document.getElementById('videoOverlay')?.classList.contains('on')){clearInterval(chk);r();}},500);
         setTimeout(()=>{clearInterval(chk);r();},60000);
       });
-      await tourSpeak('Ok, where were we. Let us continue.');
+      await tourSpeak('Let us continue.');
     }
   }
   tourStep2++;
@@ -1845,7 +1858,11 @@ async function runTourStep2(){
 
 async function tourSpeak(text){
   if(!tourPlaying||!text)return;
+  // Cancel any existing speech before starting new
+  if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
+  if(tourAudio&&!tourAudio.paused){tourAudio.pause();}
   showVoiceHint(text.substring(0,55)+'…',99999);
+  if(!tourPlaying)return;
   try{
     const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,800)})});
     if(r.ok){const d=await r.json();if(d.audio){await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+d.audio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});return;}}
