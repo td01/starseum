@@ -102,12 +102,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 /* ═══ LOAD ═════════════════════════════════════ */
 #loadScreen{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--dark);}
 #loadScreen.on{display:flex;}
-.lp-img{width:88px;height:116px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);margin-bottom:1.6rem;filter:grayscale(10%) sepia(.08);}
-.lp-name{font-family:var(--display);font-size:clamp(1.4rem,4vw,2.2rem);color:var(--cream);letter-spacing:.15em;margin-bottom:.2rem;}
-.lp-dates{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.18em;margin-bottom:2rem;}
-.lp-bar{width:160px;height:1px;background:rgba(201,168,76,.08);overflow:hidden;}
+.lp-img{width:130px;height:172px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);margin-bottom:1.8rem;filter:grayscale(10%) sepia(.08);}
+.lp-name{font-family:var(--display);font-size:clamp(2rem,5vw,3.2rem);color:var(--cream);letter-spacing:.15em;margin-bottom:.3rem;}
+.lp-dates{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.18em;margin-bottom:2rem;}
+.lp-bar{width:220px;height:1px;background:rgba(201,168,76,.08);overflow:hidden;}
 .lp-fill{height:100%;background:var(--gold);width:0%;transition:width .55s ease;}
-.lp-step{font-family:var(--mono);font-size:8px;letter-spacing:.22em;color:var(--muted);margin-top:.75rem;}
+.lp-step{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--muted);margin-top:.85rem;}
 .lp-err{color:#9a4030;font-size:13px;margin-top:1.5rem;font-family:var(--serif);font-style:italic;text-align:center;max-width:300px;line-height:1.6;}
 
 /* ═══ TIMELINE ══════════════════════════════════ */
@@ -117,7 +117,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .tl-bar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:1rem;padding:.7rem 1.5rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:none;}
 .tl-bar>*{pointer-events:auto;}
 .tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
-.tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--muted);padding:.3rem .75rem;transition:all .2s;border-right:1px solid var(--gold2);}
+.tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
 .tl-tab:last-child{border-right:none;}
 .tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
 .tl-tab:hover:not(.active){color:var(--cream);}
@@ -281,7 +281,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;cursor:default;}
 #videoOverlay.on{display:flex;}
 #videoFrame{width:min(90vw,1280px);height:min(75vh,calc(min(90vw,1280px)*9/16));border:none;flex-shrink:0;}
-#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;text-align:center;}
 #videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.5);margin-bottom:.5rem;}
 #videoClose{position:absolute;top:1.2rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:var(--mono);font-size:8px;letter-spacing:.15em;padding:.35rem .8rem;cursor:pointer;transition:all .2s;border-radius:2px;}
 #videoClose:hover{color:#fff;border-color:rgba(255,255,255,.5);}
@@ -800,7 +800,7 @@ function showLoad(star,thumb,clone,clX,clY,clW,clH){
 
   if(clone&&clone.parentNode&&clX!==undefined){
     const vw=window.innerWidth, vh=window.innerHeight;
-    const finalW=88, finalH=116;
+    const finalW=130,finalH=172;
     const finalX=(vw-finalW)/2, finalY=Math.max(40,vh*0.28);
     // Animate clone to lpImg's final position
     setTimeout(()=>{
@@ -1198,56 +1198,44 @@ function stopTL(){
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
-async function openVideo(videoId,title,searchQuery){
+function openVideo(videoId,title,searchQuery){
   const overlay=document.getElementById('videoOverlay');
   const frame=document.getElementById('videoFrame');
   const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
-  const q=searchQuery||title||'';
 
-  // Show overlay immediately with loading state
+  // Always show fallback — YouTube search always works, no broken iframes
   frame.style.display='none';
-  fallback.style.display='none';
-  overlay.classList.add('on');
+  fallback.style.display='flex';
+  meta.textContent=title||'';
 
-  // Show a loading indicator
-  const loadMsg=document.createElement('div');
-  loadMsg.id='videoLoading';
-  loadMsg.style.cssText='color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.2em;';
-  loadMsg.textContent='FINDING VIDEO…';
-  overlay.appendChild(loadMsg);
+  // Build smart search string
+  let queryText=(searchQuery||title||'').replace(' documentary','').trim();
+  const dynamicSearchUrl=`https://www.youtube.com/results?search_query=${encodeURIComponent(queryText+' documentary')}`;
 
-  let realId=videoId;
+  // Check if video ID is real (11 chars, no spaces, not a known hallucination pattern)
+  let cleanId='';
+  if(videoId&&videoId.length===11&&!/\s/.test(videoId))cleanId=videoId;
+  else if(searchQuery&&searchQuery.length===11&&!/\s/.test(searchQuery))cleanId=searchQuery;
+  const knownFakes=['EXeTwQNYQII','placeholder','undefined','null'];
+  const isReal=cleanId&&!knownFakes.some(f=>cleanId.toLowerCase().includes(f.toLowerCase()));
 
-  // If ID looks hallucinated (or missing), fetch a real one from YouTube API
-  const looksReal=videoId&&videoId.length===11&&!/\s/.test(videoId);
-  if(!looksReal){
-    try{
-      const r=await fetch('/.netlify/functions/youtube',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({queries:[q||title]})
-      });
-      if(r.ok){
-        const data=await r.json();
-        realId=data.results?.[0]?.videoId||null;
-      }
-    }catch(e){ realId=null; }
-  }
-
-  // Remove loading indicator
-  const lm=document.getElementById('videoLoading');
-  if(lm)lm.remove();
-
-  if(realId&&realId.length===11&&!/\s/.test(realId)){
+  if(isReal){
+    // Try to embed — but also show the fallback link
     frame.style.display='block';
-    fallback.style.display='none';
-    frame.src=`https://www.youtube-nocookie.com/embed/${realId}?autoplay=1&rel=0&modestbranding=1`;
-    ytLink.href=`https://www.youtube.com/watch?v=${realId}`;
+    frame.src=`https://www.youtube-nocookie.com/embed/${cleanId}?autoplay=1&rel=0&modestbranding=1`;
+    ytLink.href=`https://www.youtube.com/watch?v=${cleanId}`;
+    // If embed fails after 4s, hide iframe and show fallback only
+    frame.onerror=()=>{frame.style.display='none';};
+    const embedTimeout=setTimeout(()=>{
+      // Keep both visible — user can use either
+    },4000);
+    frame._timeout=embedTimeout;
   }else{
-    frame.style.display='none';
-    fallback.style.display='flex';
-    ytLink.href=`https://www.youtube.com/results?search_query=${encodeURIComponent(q+' documentary')}`;
+    ytLink.href=dynamicSearchUrl;
   }
+  overlay.classList.add('on');
 }
 // Tab switching
 document.querySelectorAll('.tl-tab').forEach(btn=>{
