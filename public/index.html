@@ -133,6 +133,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
 .tl-bar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:1rem;padding:.7rem 1.5rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:none;}
 .tl-bar>*{pointer-events:auto;}
+.tl-bar>*{pointer-events:auto;}
 .tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
 .tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
 .tl-tab:last-child{border-right:none;}
@@ -321,11 +322,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 <div id="mosaicScreen">
   <div id="mosaicCanvas"></div>
-  <!-- Search bar — fixed, above everything -->
-  <div id="mSearchWrap" style="position:fixed;top:1rem;left:50%;transform:translateX(-50%);width:min(420px,80vw);z-index:9999;pointer-events:auto;">
-    <input type="text" id="mSearch" placeholder="Search a name…" autocomplete="off"
-      style="width:100%;background:rgba(10,8,6,.88);border:1px solid rgba(201,168,76,.3);border-radius:3px;padding:.6rem 1.1rem;font-family:var(--mono);font-size:14px;letter-spacing:.08em;color:var(--cream);outline:none;box-shadow:0 4px 20px rgba(0,0,0,.5);">
-    <div id="mSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-top:none;max-height:300px;overflow-y:auto;border-radius:0 0 3px 3px;box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
+  <!-- Search bar — z-index 9999, pointer-events:auto enforced -->
+  <div id="mSearchWrap" style="position:fixed;top:.9rem;left:50%;transform:translateX(-50%);width:min(400px,78vw);z-index:9999;pointer-events:auto !important;">
+    <input type="text" id="mSearch" placeholder="🔍  Search a name…" autocomplete="off" spellcheck="false"
+      style="width:100%;background:rgba(8,6,4,.92);border:1px solid rgba(201,168,76,.35);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 24px rgba(0,0,0,.7);pointer-events:auto;cursor:text;">
+    <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:rgba(8,6,4,.97);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 32px rgba(0,0,0,.8);pointer-events:auto;"></div>
   </div>
   <div id="mobileTutorial" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(10,8,6,.8);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
     <div style="display:flex;flex-direction:column;align-items:center;gap:1.2rem;text-align:center;padding:2rem;">
@@ -345,6 +346,29 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <button id="mVoiceBtn" title="Voice command" style="background:none;border:1px solid rgba(201,168,76,.15);border-radius:50%;width:40px;height:40px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;position:relative;z-index:101;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Voice button — fixed, always on top -->
+<button id="mVoiceBtn" title="Voice command (say a name to find them)"
+  style="position:fixed;top:.9rem;right:1rem;z-index:9999;background:rgba(8,6,4,.88);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:all .2s;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+</button>
+
+<!-- Prototype disclaimer screen -->
+<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .5s ease;pointer-events:none;">
+  <div style="max-width:560px;">
+    <div style="font-family:var(--display);font-size:.75rem;letter-spacing:.3em;color:var(--gold);opacity:.7;margin-bottom:1.5rem;">STARSEUM — PROTOTYPE</div>
+    <div style="font-family:var(--serif);font-size:clamp(1.1rem,2.5vw,1.5rem);color:var(--cream);line-height:1.8;margin-bottom:2rem;">
+      This prototype curates content from publicly available information, images and video.<br>
+      <span style="color:rgba(240,230,204,.6);font-size:.9em;">Biographical content is AI-generated and may contain inaccuracies.</span>
+    </div>
+    <div style="height:1px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);margin-bottom:1.5rem;"></div>
+    <div style="font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;color:var(--muted);line-height:1.9;">
+      Users can report content to be amended or removed<br>
+      For educational &amp; memorial purposes only · Not for commercial use<br>
+      <span style="color:var(--gold);opacity:.6;">starseum.netlify.app</span>
     </div>
   </div>
 </div>
@@ -1225,7 +1249,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
         if(window.speechSynthesis)speechSynthesis.cancel();
         if(tourAudio){tourAudio.pause();tourAudio=null;}
         tourStep2=cardIdx;
-        setTimeout(()=>{ if(tourPlaying)runTourStep2(); },300);
+        setTimeout(()=>{ if(tourPlaying)runTourStep2(); },50);
       }
       const wasZoomed=card.classList.contains('tapped');
       document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
@@ -1255,7 +1279,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
   tourStarRef=star;tourTlRef=tl;
   window._usedImgIdx={};
   // Auto-start tour immediately
-  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },200);
+  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
   buildMediaPanel(star,tl,wiki);
   // Reset to timeline tab
@@ -1394,7 +1418,9 @@ async function openVideo(videoId,title,searchQuery){
   ytLink.href='#';
   ytLink.textContent='LOADING…';
 
-  const query=(searchQuery||title||'').trim();
+  // Simplify query — YouTube needs concise searches
+  const rawQ=(searchQuery||title||'').trim();
+  const query=rawQ.length>60?rawQ.split(' ').slice(0,4).join(' '):rawQ;
   const searchUrl='https://www.youtube.com/results?search_query='+encodeURIComponent(query);
 
   // Always fetch a real ID from YouTube API
@@ -1504,10 +1530,13 @@ function buildMediaPanel(star,tl,wiki){
       <div class="media-item-sub">${ev.year||''} · VIDEO</div>
     `;
     // Try to load YouTube thumbnail
-    const img=document.createElement('img');
-    img.className='media-item-thumb';
-    img.src=`https://img.youtube.com/vi/${ev.youtubeId}/mqdefault.jpg`;
-    img.onload=()=>item.querySelector('.media-item-thumb-ph').replaceWith(img);
+    if(ev.youtubeId&&ev.youtubeId.length===11){
+      const img=document.createElement('img');
+      img.className='media-item-thumb';
+      img.src='https://img.youtube.com/vi/'+ev.youtubeId+'/mqdefault.jpg';
+      img.onload=()=>{const ph=item.querySelector('.media-item-thumb-ph');if(ph)ph.replaceWith(img);};
+      img.onerror=()=>{}; // silently fail
+    }
     item.addEventListener('click',()=>openVideo(ev.youtubeId,ev.title,star.name+' '+ev.title));
     grid.appendChild(item);
   });
@@ -1536,10 +1565,12 @@ async function enrichVideos(star, tl){
   const events = tl.events||[];
   // Build search queries for events that have videoSearch hints or need video
   const queries = events.map((ev,i) => {
-    if(ev.videoSearch) return ev.videoSearch;
-    if(ev.type==='death') return `${star.name} death tribute documentary`;
-    if(i===events.length-1) return `${star.name} tribute documentary`;
-    return `${star.name} ${ev.year} ${ev.title}`;
+    // Use shorter, more reliable search queries
+    if(ev.type==='death'||i===events.length-1) return star.name+' tribute';
+    if(ev.videoSearch&&ev.videoSearch.length<60) return ev.videoSearch;
+    // Simplified: just name + title keywords (max 40 chars)
+    const shortTitle=(ev.title||'').split(' ').slice(0,3).join(' ');
+    return (star.name+' '+shortTitle).substring(0,50);
   });
 
   try {
