@@ -63,17 +63,17 @@ Return ONLY valid JSON, no markdown, no explanation:
       "type": "birth|childhood|education|career|achievement|personal|death",
       "quote": "a real verified famous quote by them, or null",
       "youtubeId": "real 11-char YouTube video ID or null",
-      "videoSearch": "specific YouTube search query for this event e.g. '${name} 1985 interview BBC' or null"
+      "videoSearch": "highly specific YouTube search query e.g. '${name} BBC interview 1987' or '${name} live performance 1975 concert' or '${name} documentary full' — must be unique per event and findable on YouTube"
     }
   ]
 }
 Rules:
 - Include exactly 10 events in chronological order, last must be type "death"
 - birthLat and birthLng must be accurate decimal coordinates for their birthplace
-- The first event (birth) should have type "birth" — do NOT include a photo youtubeId for this, leave youtubeId null
-- The second event should cover their CHILDHOOD or EARLY LIFE (ages 5-15) — focus on formative years, family, upbringing
-- For youtubeId: only include IDs you are highly confident exist. Provide at least 3-4 real video IDs for later events (performances, interviews, documentaries). Use null if uncertain.
-- videoSearch: for every event without a youtubeId, provide a specific search query that would find real footage
+- The first event (birth) should have type "birth" — leave youtubeId null
+- The second event must be type "childhood" covering ages 5–15: formative years, family, upbringing
+- youtubeId: only include an ID you are CERTAIN exists on YouTube right now. Leave null if any doubt. Do not guess.
+- videoSearch: REQUIRED for every event. Make each query highly specific and distinct — include the person's name, a specific year or era, and the nature of footage (interview, performance, documentary, speech, match, fight, film clip). Bad: "${name} video". Good: "${name} live at Wembley 1986" or "${name} CBS interview 1994" or "${name} championship final 1988"
 - Quotes must be verified real quotes — use null if uncertain`;
 
   const payload = JSON.stringify({
