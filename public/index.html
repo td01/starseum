@@ -350,10 +350,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
-  <div style="max-width:min(720px,90vw);width:100%;margin:0 auto;">
+  <div style="max-width:min(820px,92vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1.05rem,2.8vw,2rem);color:var(--cream);line-height:1.6;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;">
-      This prototype curates content from publicly available information,<br>images and video.
+    <div style="font-family:var(--serif);font-size:clamp(1rem,2.2vw,1.55rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
+      This prototype curates content from publicly available information, images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
     <div style="font-family:var(--mono);font-size:clamp(.55rem,.85vw,.7rem);letter-spacing:.12em;color:var(--muted);line-height:2.1;">
@@ -1011,12 +1011,19 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   try{
     setLoad(20,'CURATING MUSEUM');
     const tl=await fetchTimeline(star.name);
-    setLoad(55,'SOURCING IMAGES');
-    const wiki=await fetchWikiImages(tl.wikipediaSlug||star.slug);
+    setLoad(45,'SOURCING IMAGES & VIDEO');
+    // Fetch images and videos in parallel — both are needed before building
+    const [wiki, videoData] = await Promise.all([
+      fetchWikiImages(tl.wikipediaSlug||star.slug),
+      fetchVideoData(tl, star)
+    ]);
+    // Inject verified video candidates into events
+    injectVideoData(tl, videoData);
     setLoad(88,'BUILDING EXHIBITION');
     await sleep(200);setLoad(100,'');await sleep(150);
     hideLoad();
     buildTimeline(star,tl,wiki,thumb);
+    enrichVideos(star,tl); // data already in tl.events — just wires DOM
     document.getElementById('tlScreen').classList.add('on');
     document.getElementById('tlBar').style.display='flex';
     const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='block';
@@ -1521,13 +1528,44 @@ async function openVideo(videoId,title,searchQuery){
   const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
 
-  // Show overlay immediately with loading state
   overlay.classList.add('on');
   frame.style.display='none';
   fallback.style.display='flex';
-  meta.textContent='FINDING VIDEO…';
-  ytLink.href='#';
-  ytLink.textContent='LOADING…';
+  meta.textContent='LOADING…';
+  ytLink.href='https://www.youtube.com/watch?v='+videoId;
+  ytLink.textContent='OPEN ON YOUTUBE ↗';
+
+  // Set iframe src — use privacy-enhanced domain and allow embedding
+  const src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  frame.src=src;
+
+  return new Promise((resolve)=>{
+    let resolved=false;
+    const settle=(ok)=>{if(!resolved){resolved=true;resolve(ok);}};
+
+    frame.onload=()=>{
+      frame.style.display='block';
+      fallback.style.display='none';
+      meta.textContent=(title||'').toUpperCase();
+      settle(true);
+    };
+    frame.onerror=()=>settle(false);
+
+    // If load hasn't fired in 7s assume blocked
+    const timeout=setTimeout(()=>{
+      if(!resolved){
+        frame.style.display='none';
+        fallback.style.display='flex';
+        meta.textContent='VIDEO UNAVAILABLE';
+        settle(false);
+      }
+    },7000);
+
+    // Clean up timeout when overlay closes
+    const orig=window._videoCloseCleanup||null;
+    window._videoCloseCleanup=()=>{clearTimeout(timeout);settle(false);if(orig)orig();};
+  });
+}
 
   // Use the full query — specific queries find specific videos
   const rawQ=(searchQuery||title||'').trim();
@@ -1537,37 +1575,7 @@ async function openVideo(videoId,title,searchQuery){
   // Always fetch a real ID from YouTube API
   let realId=null;
   try{
-    const r=await fetch('/.netlify/functions/youtube',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({queries:[query]})
-    });
-    if(r.ok){
-      const data=await r.json();
-      realId=data.results&&data.results[0]&&data.results[0].videoId||null;
-      console.log('YouTube API result for "'+query+'":', realId);
-    }else{
-      console.warn('YouTube function returned',r.status);
-    }
-  }catch(e){
-    console.warn('YouTube API call failed:',e.message);
-  }
 
-  meta.textContent=title||'';
-
-  if(realId&&realId.length===11){
-    // Embed real video
-    frame.style.display='block';
-    frame.src='https://www.youtube-nocookie.com/embed/'+realId+'?autoplay=1&rel=0&modestbranding=1';
-    ytLink.href='https://www.youtube.com/watch?v='+realId;
-    ytLink.textContent='WATCH ON YOUTUBE ↗';
-  }else{
-    // No API key or no result — show search link
-    frame.style.display='none';
-    ytLink.href=searchUrl;
-    ytLink.textContent='SEARCH ON YOUTUBE ↗';
-  }
-}
 // Tab switching — Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
 document.querySelectorAll('.tl-tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -1682,56 +1690,84 @@ function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
 function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
 
 
-// Enrich timeline cards with real YouTube video IDs via API
-async function enrichVideos(star, tl){
+// Fetch verified video candidates for all events during loading
+async function fetchVideoData(tl, star){
   const events = tl.events||[];
-  // Use Claude's specific videoSearch query for each event — these are purpose-written
-  // Fall back to a constructed query only if videoSearch is absent
   const queries = events.map((ev,i) => {
-    if(ev.type==='birth'||i===0) return null; // skip birth card
-    if(ev.videoSearch) return ev.videoSearch;  // use Claude's specific query
-    // Fallback: name + event title, concise
+    if(ev.type==='birth'||i===0) return null;
+    if(ev.videoSearch) return ev.videoSearch;
     const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
-    return (star.name+' '+(words||ev.year||'')).substring(0,60).trim();
+    return (star.name+' '+(words||ev.year||'')).substring(0,80).trim();
   });
-
-  try {
-    // Filter nulls but keep index mapping
-    const indexMap=[];
-    const activeQueries=[];
+  try{
+    const indexMap=[], activeQueries=[];
     queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
-
-    const r = await fetch('/.netlify/functions/youtube', {
+    if(!activeQueries.length) return {indexMap:[], results:[]};
+    const r=await fetch('/.netlify/functions/youtube',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ queries: activeQueries.slice(0,8) }) // max 8 to avoid quota burn
+      body:JSON.stringify({queries:activeQueries.slice(0,8)})
     });
-    if(!r.ok) return;
-    const data = await r.json();
-    const results = data.results||[];
-
-    results.forEach((res,j) => {
-      if(!res?.videoId) return;
-      const i = indexMap[j];
-      const ev = events[i];
-      if(!ev) return;
-      ev.youtubeId = res.videoId;
-      // Update the card's video wrap by anchored index
-      const vWrap = document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
-      if(vWrap){
-        const thumb = vWrap.querySelector('.ev-img');
-        if(thumb && res.thumb) thumb.src = res.thumb;
-        vWrap.onclick = null;
-        vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;openVideo(res.videoId, ev.title||'', activeQueries[j]);},{once:true});
-      }
-    });
-    // Rebuild media panel with real IDs
-    if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef, tourTlRef, {thumb:null,images:[]});
-  } catch(e) {
-    console.log('YouTube enrichment skipped:', e.message);
+    if(!r.ok) return {indexMap:[], results:[]};
+    const data=await r.json();
+    return {indexMap, results:data.results||[]};
+  }catch(e){
+    console.log('fetchVideoData error:', e.message);
+    return {indexMap:[], results:[]};
   }
 }
 
+// Inject verified candidate arrays into tl.events before buildTimeline
+function injectVideoData(tl, videoData){
+  const {indexMap=[], results=[]} = videoData;
+  const events = tl.events||[];
+  results.forEach((candidates, j) => {
+    if(!candidates?.length) return;
+    const i = indexMap[j];
+    const ev = events[i];
+    if(!ev) return;
+    // Store best candidate as primary ID, rest as fallbacks
+    ev.youtubeId = candidates[0].videoId;
+    ev.youtubeCandidates = candidates; // [{videoId, title, thumb}, ...]
+    ev._ytThumb = candidates[0].thumb;
+  });
+}
+
+// Enrich timeline cards — called after buildTimeline, applies pre-fetched data to DOM
+async function enrichVideos(star, tl){
+  const events = tl.events||[];
+  events.forEach((ev,i) => {
+    if(!ev.youtubeCandidates?.length) return;
+    const candidates = ev.youtubeCandidates;
+    const vWrap = document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
+    if(!vWrap) return;
+    const thumb = vWrap.querySelector('.ev-img');
+    if(thumb && candidates[0].thumb) thumb.src = candidates[0].thumb;
+    vWrap.onclick = null;
+    vWrap.addEventListener('click', (e) => {
+      if(vWrap._vWrapDrag) return;
+      openVideoWithFallback(candidates, ev.title||'');
+    }, {once:true});
+    // Mark as resolved
+    const playIcon = vWrap.querySelector('.ev-play-label');
+    if(playIcon) playIcon.textContent = 'WATCH VIDEO';
+  });
+  // Rebuild media panel with real data
+  if(tourStarRef && tourTlRef) buildMediaPanel(tourStarRef, tourTlRef, {thumb:null, images:[]});
+}
+
+// Open video with automatic fallback through candidates if embed fails
+async function openVideoWithFallback(candidates, title){
+  for(const candidate of candidates){
+    const success = await openVideo(candidate.videoId, title, candidate.title);
+    if(success) return;
+  }
+  // All candidates failed — open YouTube search in new tab as last resort
+  const query = encodeURIComponent(title);
+  window.open('https://www.youtube.com/results?search_query='+query, '_blank');
+}
+
 function closeVideo(){
+  if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
   document.getElementById('videoOverlay').classList.remove('on');
   document.getElementById('videoFrame').src='';
   document.getElementById('videoFallback').style.display='none';
@@ -2051,29 +2087,64 @@ async function runTourStep2(){
 
 async function tourSpeak(text){
   if(!tourPlaying||!text)return;
-  // Claim this generation — any previous pending speak will see a mismatch and bail
   const myGen=++_tourSpeakGen;
-  // Cancel whatever is currently playing
+  // Cancel whatever is playing
   if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
   if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
-  showVoiceHint(text.substring(0,55)+'…',99999);
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
+  if(_subtitlesOn) showVoiceHint(text.substring(0,80)+'…',99999);
+
+  // INSTANT: start browser TTS immediately on the first sentence
+  // This plays within ~100ms while ElevenLabs fetches in background
+  const firstSentence=text.match(/^[^.!?]+[.!?]/)?.[0]||text.substring(0,120);
+  let ttsUtterance=null;
+  if(window.speechSynthesis){
+    ttsUtterance=new SpeechSynthesisUtterance(firstSentence);
+    ttsUtterance.rate=0.88;ttsUtterance.pitch=1;
+    speechSynthesis.speak(ttsUtterance);
+  }
+
+  // BACKGROUND: fetch full ElevenLabs audio
   try{
-    const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,800)})});
-    if(myGen!==_tourSpeakGen)return; // superseded while fetching
-    if(r.ok){const d=await r.json();if(d.audio){await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+d.audio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});return;}}
+    const r=await fetch('/.netlify/functions/tourguide',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text.substring(0,800)})
+    });
+    if(myGen!==_tourSpeakGen){if(window.speechSynthesis)speechSynthesis.cancel();return;}
+    if(r.ok){
+      const d=await r.json();
+      if(d.audio&&myGen===_tourSpeakGen){
+        // Cancel TTS and switch to ElevenLabs
+        if(window.speechSynthesis)speechSynthesis.cancel();
+        await new Promise(res=>{
+          const a=new Audio('data:audio/mpeg;base64,'+d.audio);
+          tourAudio=a;
+          a.onended=res;a.onerror=res;
+          a.play().catch(res);
+        });
+        return;
+      }
+    }
   }catch(e){}
-  if(!tourPlaying||myGen!==_tourSpeakGen)return; // bail before fallback TTS
-  await new Promise(res=>{
-    if(!tourPlaying){res();return;}
-    if(!window.speechSynthesis){res();return;}
-    const u=new SpeechSynthesisUtterance(text.substring(0,500));
-    u.rate=0.9;
-    u.onend=()=>res();
-    u.onerror=()=>res();
-    u.onpause=()=>{if(!tourPlaying)res();};
-    speechSynthesis.speak(u);
-  });
+
+  // ElevenLabs failed or superseded — wait for TTS to finish
+  if(myGen!==_tourSpeakGen)return;
+  if(window.speechSynthesis&&ttsUtterance){
+    // TTS already started — let the full text play
+    if(!speechSynthesis.speaking) {
+      const u=new SpeechSynthesisUtterance(text.substring(0,500));
+      u.rate=0.88;speechSynthesis.speak(u);
+    }
+    await new Promise(res=>{
+      const check=setInterval(()=>{
+        if(!tourPlaying||myGen!==_tourSpeakGen||!speechSynthesis.speaking){
+          clearInterval(check);res();
+        }
+      },200);
+      // Timeout safety
+      setTimeout(()=>{clearInterval(check);res();}, text.length*80);
+    });
+  }
 }
 
 function tourListen(ms){
