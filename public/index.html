@@ -64,13 +64,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     transform:none!important;
     flex-direction:row;
   }
+  /* ENTER button: less offset on mobile */
+  #onboardMosaic button[onclick]{bottom:calc(12% + 40px)!important;}
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
 .m-hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none;padding:calc(1.1rem + env(safe-area-inset-top)) 1.8rem 1.1rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(10,8,6,.9) 0%,transparent);}
 .m-hud>*{pointer-events:auto;z-index:101;}
 .m-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
-.m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:super;}
+.m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:top;margin-top:.05em;}
 .m-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);opacity:.7;}
 
 
@@ -329,7 +331,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <body>
 
 <div id="intro">
-  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.28em;vertical-align:super;letter-spacing:.1em;opacity:.9;">.AI</span></div>
+  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.28em;vertical-align:top;margin-top:.08em;display:inline-block;letter-spacing:.1em;opacity:.9;">.AI</span></div>
   <div class="intro-rule"></div>
   <div class="intro-sub">A museum of extraordinary lives</div>
 </div>
@@ -381,11 +383,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     <!-- Instructions -->
     <div style="text-align:center;display:flex;flex-direction:column;gap:1rem;">
       <div style="font-family:var(--mono);font-size:14px;letter-spacing:.18em;color:var(--cream);">DRAG TO EXPLORE</div>
-      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">HOVER A FACE TO ILLUMINATE</div>
-      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">CLICK TO ENTER THEIR MUSEUM</div>
+      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">EXPLORE AND SELECT A STAR</div>
     </div>
   </div>
-  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:12%;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;white-space:nowrap;">ENTER THE MUSEUM</button>
+  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:calc(12% + 120px);left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;white-space:nowrap;">ENTER THE MUSEUM</button>
 </div>
 <div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,6,.65);backdrop-filter:blur(2px);">
   <div style="position:absolute;inset:0;pointer-events:none;">
@@ -988,21 +989,76 @@ function setLoad(p,s){
 }
 function hideLoad(){document.getElementById('loadScreen').classList.remove('on');}
 
+// ── VIDEO DATA PIPELINE ──
+async function fetchVideoData(tl, star){
+  const events=tl.events||[];
+  const queries=events.map((ev,i)=>{
+    if(ev.type==='birth'||i===0)return null;
+    if(ev.videoSearch)return ev.videoSearch;
+    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
+    return (star.name+' '+(words||ev.year||'')).substring(0,80).trim();
+  });
+  try{
+    const indexMap=[],activeQueries=[];
+    queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
+    if(!activeQueries.length)return{indexMap:[],results:[]};
+    const r=await fetch('/.netlify/functions/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queries:activeQueries.slice(0,8)})});
+    if(!r.ok)return{indexMap:[],results:[]};
+    const data=await r.json();
+    return{indexMap,results:data.results||[]};
+  }catch(e){
+    console.log('fetchVideoData error:',e.message);
+    return{indexMap:[],results:[]};
+  }
+}
+
+function injectVideoData(tl,videoData){
+  const{indexMap=[],results=[]}=videoData;
+  const events=tl.events||[];
+  results.forEach((candidates,j)=>{
+    if(!candidates?.length)return;
+    const i=indexMap[j],ev=events[i];
+    if(!ev)return;
+    ev.youtubeId=candidates[0].videoId;
+    ev.youtubeCandidates=candidates;
+    ev._ytThumb=candidates[0].thumb;
+  });
+}
+
+async function enrichVideos(star,tl){
+  const events=tl.events||[];
+  events.forEach((ev,i)=>{
+    if(!ev.youtubeCandidates?.length)return;
+    const candidates=ev.youtubeCandidates;
+    const vWrap=document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
+    if(!vWrap)return;
+    const thumb=vWrap.querySelector('.ev-img');
+    if(thumb&&candidates[0].thumb)thumb.src=candidates[0].thumb;
+    vWrap.onclick=null;
+    vWrap.addEventListener('click',(e)=>{
+      if(vWrap._vWrapDrag)return;
+      openVideoWithFallback(candidates,ev.title||'');
+    },{once:true});
+  });
+  if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef,tourTlRef,{thumb:null,images:[]});
+}
+
 // ═══════════════════════════════════════════
 //  JOURNEY
 // ═══════════════════════════════════════════
 async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   showLoad(star,thumb,clone,clX,clY,clW,clH);
-  // Speak the star's name via ElevenLabs (same voice as tour) — fire-and-forget
-  let _nameSpeakDone=false;
-  (async()=>{
-    try{
-      const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
-      if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
-    }catch(e){}
-    // Fallback to browser TTS only if ElevenLabs didn't fire
-    if(!_nameSpeakDone)speak(star.name+'.', 0.82);
-  })();
+  // Desktop only: speak star's name via ElevenLabs on loading screen
+  if(!isMobile){
+    let _nameSpeakDone=false;
+    (async()=>{
+      try{
+        const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
+        if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+      }catch(e){}
+      if(!_nameSpeakDone)speak(star.name+'.', 0.82);
+    })();
+  }
   try{
     setLoad(20,'CURATING MUSEUM');
     const tl=await fetchTimeline(star.name);
@@ -1731,6 +1787,8 @@ setTimeout(()=>{
     // Fade in search+voice together
     const sw=document.getElementById('mSearchWrap');
     if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
+    // Show tutorials now that mosaic is visible
+    if(window._showTutorialsWhenReady)window._showTutorialsWhenReady();
   }, FADE);
 }, MOSAIC_START);
 
@@ -1775,20 +1833,24 @@ document.getElementById('reportLink')?.addEventListener('click',()=>{
   });
 })();
 
-// Tutorial — versioned so each new deploy resets it (bump DEPLOY_VER on each release)
+// Tutorial — shown only after mosaic is fully revealed, never during intro/disclaimer
+// Versioned key so each new deploy shows it again (bump DEPLOY_VER on each release)
 const DEPLOY_VER='2026-06-07';
 (function(){
   const tutKey='st_tutorial_v'+DEPLOY_VER;
+  const obKey='st_onboard_v'+DEPLOY_VER;
   const mt=document.getElementById('mobileTutorial');
-  if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
+  // Wire mobile close button now, but don't show yet
   document.getElementById('mtClose')?.addEventListener('click',()=>{
     if(mt)mt.style.display='none';
     localStorage.setItem(tutKey,'1');
   });
-  // Desktop onboarding
-  const ob=document.getElementById('onboardMosaic');
-  const obKey='st_onboard_v'+DEPLOY_VER;
-  if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
+  // Show tutorials ONLY after mosaic is fully revealed (hooked into Phase 5 of intro)
+  window._showTutorialsWhenReady=function(){
+    if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
+    const ob=document.getElementById('onboardMosaic');
+    if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
+  };
 })();
 
 // ── SEARCH ──
@@ -2055,17 +2117,17 @@ function showOnboard(which,delayMs){
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
   if(el)setTimeout(()=>el.style.display='block',delayMs||0);
 }
-// Show mosaic onboard after intro
+// Welcome narration on first visit (or after 24h) — fires after mosaic reveals
 setTimeout(()=>{
-  showOnboard('mosaic',500);
-  // Welcome narration on first visit (or after 24h)
   const lastVisit=localStorage.getItem('st_last_visit');
   const now=Date.now();
   if(!lastVisit||now-parseInt(lastVisit)>86400000){
     localStorage.setItem('st_last_visit',now);
     setTimeout(()=>{
-      const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
-      speak(welcome, 0.88);
+      if(!isMobile){
+        const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
+        speak(welcome, 0.88);
+      }
     },4500);
   }
 },3500);
