@@ -116,6 +116,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
 .tl-bar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:1rem;padding:.7rem 1.5rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:none;}
 .tl-bar>*{pointer-events:auto;}
+.tl-tabs{display:flex;gap:0;margin-left:.5rem;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--muted);padding:.3rem .75rem;transition:all .2s;border-right:1px solid var(--gold2);}
+.tl-tab:last-child{border-right:none;}
+.tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
+.tl-tab:hover:not(.active){color:var(--cream);}
+/* Bio panel */
+#bioPanel{position:absolute;top:55px;bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#bioPanel.on{display:block;}
+.bio-portrait{width:140px;height:185px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);float:left;margin:0 2rem 1.5rem 0;filter:sepia(.1) contrast(1.06);}
+.bio-name{font-family:var(--display);font-size:clamp(1.5rem,3vw,2.4rem);font-weight:600;color:var(--cream);letter-spacing:.08em;margin-bottom:.3rem;}
+.bio-dates{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.15em;margin-bottom:1.2rem;}
+.bio-text{font-family:var(--serif);font-size:1rem;line-height:1.85;color:var(--txt);clear:both;}
+.bio-fields{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;}
+.bio-field{font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted);border:1px solid var(--gold2);padding:.2rem .6rem;border-radius:1px;}
+/* Media panel */
+#mediaPanel{position:absolute;top:55px;bottom:36px;left:0;right:0;z-index:12;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;}
+#mediaPanel.on{display:block;}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;}
+.media-item{background:var(--card);border:1px solid var(--gold2);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;}
+.media-item:hover{border-color:rgba(201,168,76,.5);transform:translateY(-2px);}
+.media-item-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#0a0806;}
+.media-item-thumb-ph{width:100%;aspect-ratio:16/9;background:#0a0806;display:flex;align-items:center;justify-content:center;}
+.media-item-label{padding:.5rem .7rem .6rem;font-family:var(--display);font-size:9px;letter-spacing:.12em;color:var(--cream);}
+.media-item-sub{font-family:var(--mono);font-size:7px;color:var(--muted);letter-spacing:.08em;padding:0 .7rem .5rem;}
 .tl-back{background:none;border:1px solid rgba(201,168,76,.25);cursor:pointer;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.35rem .8rem;border-radius:2px;transition:all .2s;}
 .tl-back:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.06);}
 .tl-info{flex:1;min-width:0;}
@@ -290,12 +314,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <div class="tl-smeta" id="tlMeta"></div>
     </div>
     <div class="tl-tagline" id="tlTagline"></div>
+    <div class="tl-tabs">
+      <button class="tl-tab active" data-tab="timeline">TIMELINE</button>
+      <button class="tl-tab" data-tab="bio">BIO</button>
+      <button class="tl-tab" data-tab="media">MEDIA</button>
+    </div>
   </div>
   <div id="tlScroll">
     <div id="tlStrip">
       <div class="tl-spine"></div>
     </div>
   </div>
+  <div id="bioPanel"></div>
+  <div id="mediaPanel"></div>
   <div class="tl-zoom">
     <div class="tl-zbtn" id="zIn">+</div>
     <div class="tl-zbtn" id="zOut">−</div>
@@ -376,7 +407,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </div>
 </div>
 
-<div id="videoOverlay">
+<div id="videoOverlay" id="videoOverlay">
   <button id="videoClose">✕ CLOSE</button>
   <div id="videoMeta"></div>
   <iframe id="videoFrame" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
@@ -528,15 +559,27 @@ function getRowPerm(r){
   let perm=seededShuffle([...Array(n).keys()],seed);
   // Get previous row's perm to avoid vertical duplicates
   const prevPerm=rowPerms[r-1]||rowPerms[r+1];
-  if(prevPerm){
-    // For each position, if same slug as prev row, find a swap partner
+  // Check 2 previous rows to avoid vertical duplicates
+  for(let prevR=r-1;prevR>=r-2;prevR--){
+    const prev=rowPerms[prevR];
+    if(!prev)continue;
     for(let i=0;i<Math.min(perm.length,20);i++){
-      if(STARS[perm[i]].slug===STARS[prevPerm[i]].slug){
-        // Find a position far enough away to swap with
-        for(let j=i+5;j<perm.length;j++){
-          if(STARS[perm[j]].slug!==STARS[prevPerm[j]].slug){
-            [perm[i],perm[j]]=[perm[j],perm[i]];
-            break;
+      if(STARS[perm[i]].slug===STARS[prev[i]].slug){
+        for(let j=i+6;j<perm.length;j++){
+          if(STARS[perm[j]].slug!==STARS[prev[j]]?.slug){
+            [perm[i],perm[j]]=[perm[j],perm[i]];break;
+          }
+        }
+      }
+    }
+  }
+  // Also ensure no same slug within 3 positions in the same row
+  for(let i=0;i<perm.length;i++){
+    for(let k=1;k<=3;k++){
+      if(i+k<perm.length&&STARS[perm[i]].slug===STARS[perm[i+k]].slug){
+        for(let j=i+k+4;j<perm.length;j++){
+          if(STARS[perm[j]].slug!==STARS[perm[i]].slug){
+            [perm[i+k],perm[j]]=[perm[j],perm[i+k]];break;
           }
         }
       }
@@ -694,21 +737,29 @@ function enterStar(star,tile){
   const thumb=thumbs[star.slug]||null;
   const rect=tile.getBoundingClientRect();
   const vw=window.innerWidth,vh=window.innerHeight;
-  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-  const maxR=Math.hypot(Math.max(cx,vw-cx),Math.max(cy,vh-cy));
 
-  // Clone tile to centre
-  const clone=document.createElement('div');
-  clone.style.cssText=`position:fixed;z-index:80;overflow:hidden;border-radius:2px;pointer-events:none;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;transition:all .65s cubic-bezier(.4,0,.2,1);`;
-  if(thumb){const ci=document.createElement('img');ci.src=thumb;ci.style.cssText='width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';clone.appendChild(ci);}
-  document.body.appendChild(clone);
-
+  // Dark overlay fades over mosaic
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;z-index:70;background:var(--dark);opacity:0;transition:opacity .55s ease;pointer-events:none;';
+  overlay.style.cssText='position:fixed;inset:0;z-index:70;background:var(--dark);opacity:0;transition:opacity .6s ease;pointer-events:none;';
   document.body.appendChild(overlay);
 
-  const tW=Math.min(200,vw*0.25),tH=tW*(rect.height/rect.width);
-  const tX=(vw-tW)/2, tY=vh*0.3;
+  // Clone the tile image — animates to loading screen position
+  const clone=document.createElement('div');
+  const tW=Math.min(180,vw*0.28), tH=tW*(rect.height/Math.max(rect.width,1));
+  const tX=(vw-tW)/2, tY=Math.max(60,vh*0.28);
+  clone.style.cssText=`position:fixed;z-index:90;overflow:hidden;border-radius:2px;pointer-events:none;
+    left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;
+    transition:left .6s cubic-bezier(.4,0,.2,1),top .6s cubic-bezier(.4,0,.2,1),width .6s cubic-bezier(.4,0,.2,1),height .6s cubic-bezier(.4,0,.2,1);`;
+  if(thumb){
+    const ci=document.createElement('img');
+    ci.src=thumb;ci.style.cssText='width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';
+    clone.appendChild(ci);
+  }else{
+    clone.style.background='var(--card)';
+  }
+  document.body.appendChild(clone);
+
+  // Trigger animation next frame
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     overlay.style.opacity='1';
     clone.style.left=tX+'px';
@@ -720,9 +771,8 @@ function enterStar(star,tile){
   setTimeout(()=>{
     document.getElementById('mosaicScreen').style.display='none';
     document.body.removeChild(overlay);
-    // Pass clone position so load screen places lpImg exactly there
     startJourney(star,thumb,clone,tX,tY,tW,tH);
-  },700);
+  },680);
 }
 
 // ═══════════════════════════════════════════
@@ -732,14 +782,34 @@ function showLoad(star,thumb,clone,clX,clY,clW,clH){
   const ls=document.getElementById('loadScreen');
   ls.classList.add('on');
   const img=document.getElementById('lpImg');
-  // Place lpImg exactly where clone is, then it stays — no double image
-  if(clone&&clone.parentNode)document.body.removeChild(clone);
   if(thumb){img.src=thumb;img.style.display='block';}else{img.style.display='none';}
-  img.style.cssText='display:block;';
+  img.style.opacity='0'; // hidden until clone arrives
   document.getElementById('lpName').textContent=star.name.toUpperCase();
   document.getElementById('lpDates').textContent=star.years||'';
   document.getElementById('lpErr').textContent='';
   setLoad(5,'GATHERING RECORDS');
+
+  if(clone&&clone.parentNode&&clX!==undefined){
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const finalW=88, finalH=116;
+    const finalX=(vw-finalW)/2, finalY=Math.max(40,vh*0.28);
+    // Animate clone to lpImg's final position
+    setTimeout(()=>{
+      if(!clone.parentNode)return;
+      clone.style.transition='left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),width .45s,height .45s';
+      clone.style.left=finalX+'px'; clone.style.top=finalY+'px';
+      clone.style.width=finalW+'px'; clone.style.height=finalH+'px';
+      // Crossfade: show lpImg, fade clone simultaneously
+      setTimeout(()=>{
+        img.style.transition='opacity .3s ease'; img.style.opacity='1';
+        clone.style.transition='opacity .3s ease'; clone.style.opacity='0';
+        setTimeout(()=>{if(clone.parentNode)document.body.removeChild(clone);},320);
+      },470);
+    },40);
+  }else{
+    if(clone&&clone.parentNode)document.body.removeChild(clone);
+    img.style.opacity='1';
+  }
 }
 function setLoad(p,s){
   document.getElementById('lpFill').style.width=p+'%';
@@ -905,7 +975,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
       vWrap.appendChild(vlbl);
 
-vWrap.addEventListener('click', () => openVideo(ev.videoId || ev.video, ev.title, videoQuery));
+      vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
       card.appendChild(vWrap);
     }else if(cardImg){
       const wrap=document.createElement('div');
@@ -955,6 +1025,15 @@ vWrap.addEventListener('click', () => openVideo(ev.videoId || ev.video, ev.title
   setupZoom();
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
+  buildBioPanel(star,tl,heroThumb);
+  buildMediaPanel(star,tl,wiki);
+  // Reset to timeline tab
+  document.querySelectorAll('.tl-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='timeline'));
+  document.getElementById('tlScroll').style.display='';
+  document.getElementById('bioPanel').classList.remove('on');
+  document.getElementById('mediaPanel').classList.remove('on');
+  // Enrich with real YouTube IDs in background
+  enrichVideos(star, tl);
   // Tap outside card collapses zoomed card
   sc.addEventListener('click',e=>{
     if(!e.target.closest('.ev-card')){
@@ -1066,51 +1145,165 @@ function stopTL(){
   const strip=document.getElementById('tlStrip');
   if(strip)while(strip.children.length>1)strip.removeChild(strip.lastChild);
 }
+
 // ═══════════════════════════════════════════
-//  VIDEO (UPDATED)
+//  VIDEO
 // ═══════════════════════════════════════════
-function openVideo(videoId, title, searchQuery) {
-  const overlay = document.getElementById('videoOverlay');
-  const frame = document.getElementById('videoFrame');
-  const fallback = document.getElementById('videoFallback');
-  const meta = document.getElementById('videoMeta');
-  const ytLink = document.getElementById('videoYtLink');
+function openVideo(videoId,title,searchQuery){
+  const overlay=document.getElementById('videoOverlay');
+  const frame=document.getElementById('videoFrame');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+  const q=searchQuery||title||'';
 
-  // 1. Hide the video player because we want them to click out to real content
-  frame.style.display = 'none';
-  fallback.style.display = 'flex';
-  meta.textContent = title || '';
+  frame.style.display='block';
+  fallback.style.display='none';
+  meta.textContent='';
 
-  // 2. Build a smart fallback search phrase based on who they are looking at
-  // This extracts a clean search string like "Marilyn Monroe" or the event title
-  let queryText = searchQuery || title || '';
-  queryText = queryText.replace(' documentary', '').trim();
-  
-  // Clean up the search string so it searches smoothly on YouTube
-  const dynamicSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(queryText + ' documentary')}`;
-
-  // 3. Check if the video ID looks suspicious or is a known hallucination
-  let cleanId = '';
-  if (videoId && videoId.length === 11 && !/\s/.test(videoId)) {
-    cleanId = videoId;
-  } else if (searchQuery && searchQuery.length === 11 && !/\s/.test(searchQuery)) {
-    cleanId = searchQuery;
+  if(videoId&&videoId.length===11&&!/\s/.test(videoId)){
+    frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
+    ytLink.href=`https://www.youtube.com/watch?v=${videoId}`;
+    // Detect load failure after 5s
+    frame.onload=()=>{};
+    overlay.classList.add('on');
+  }else{
+    // No valid ID — show fallback with search link
+    frame.style.display='none';
+    fallback.style.display='flex';
+    ytLink.href=`https://www.youtube.com/results?search_query=${encodeURIComponent(q+' documentary')}`;
+    overlay.classList.add('on');
   }
-
-  // List of common patterns or placeholders AI uses when it makes up strings
-  const isHallucinated = !cleanId || cleanId === 'EXeTwQNYQII' || cleanId.toLowerCase().includes('placeholder');
-
-  // 4. ROUTE THE STRINGS LOGICALLY:
-  if (isHallucinated) {
-    // If it's a made-up AI ID, force the link to find REAL videos on YouTube about them
-    ytLink.href = dynamicSearchUrl;
-  } else {
-    // If it's a real working ID format, give them the direct watch link
-    ytLink.href = `https://www.youtube.com/watch?v=${cleanId}`;
-  }
-
-  overlay.classList.add('on');
 }
+// Tab switching
+document.querySelectorAll('.tl-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tl-tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    const tab=btn.dataset.tab;
+    document.getElementById('tlScroll').style.display=tab==='timeline'?'':'none';
+    document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
+    document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
+  });
+});
+
+function buildBioPanel(star,tl,heroThumb){
+  const panel=document.getElementById('bioPanel');
+  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent(tl.wikipediaSlug||star.slug)}`;
+  panel.innerHTML=`
+    ${heroThumb?`<img class="bio-portrait" src="${heroThumb}" alt="${tl.fullName||star.name}">`:''}
+    <div>
+      <div class="bio-name">${tl.fullName||star.name}</div>
+      <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
+      <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
+    </div>
+    <div class="bio-text" id="bioText" style="clear:both;margin-top:1.5rem">
+      <em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>
+    </div>
+    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);">
+      <a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>
+    </div>
+  `;
+  // Fetch Wikipedia extract
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'))}`)
+    .then(r=>r.ok?r.json():null).then(d=>{
+      const el=document.getElementById('bioText');
+      if(el&&d?.extract)el.innerHTML=`<p style="white-space:pre-line">${d.extract}</p>`;
+    }).catch(()=>{});
+}
+
+function buildMediaPanel(star,tl,wiki){
+  const panel=document.getElementById('mediaPanel');
+  const searchTerms=(tl.youtubeSearchTerms||[star.name+' documentary',star.name+' interview',star.name+' performance']);
+  const events=(tl.events||[]).filter(e=>e.youtubeId&&e.youtubeId.length===11);
+  panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
+  const grid=document.getElementById('mediaGrid');
+
+  // Add event videos
+  events.forEach(ev=>{
+    const item=document.createElement('div');item.className='media-item';
+    item.innerHTML=`
+      <div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>
+      <div class="media-item-label">${ev.title||''}</div>
+      <div class="media-item-sub">${ev.year||''} · VIDEO</div>
+    `;
+    // Try to load YouTube thumbnail
+    const img=document.createElement('img');
+    img.className='media-item-thumb';
+    img.src=`https://img.youtube.com/vi/${ev.youtubeId}/mqdefault.jpg`;
+    img.onload=()=>item.querySelector('.media-item-thumb-ph').replaceWith(img);
+    item.addEventListener('click',()=>openVideo(ev.youtubeId,ev.title,star.name+' '+ev.title));
+    grid.appendChild(item);
+  });
+
+  // Add search links for more content
+  searchTerms.slice(0,3).forEach(term=>{
+    const item=document.createElement('div');item.className='media-item';
+    item.style.cursor='pointer';
+    item.innerHTML=`
+      <div class="media-item-thumb-ph" style="background:#111;"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><rect x="8" y="8" width="64" height="64" rx="4" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.4)"/></svg></div>
+      <div class="media-item-label">${term}</div>
+      <div class="media-item-sub">SEARCH ON YOUTUBE ↗</div>
+    `;
+    item.addEventListener('click',()=>window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(term)}`,'_blank','noopener'));
+    grid.appendChild(item);
+  });
+}
+
+// Enrich timeline cards with real YouTube video IDs via API
+async function enrichVideos(star, tl){
+  const events = tl.events||[];
+  // Build search queries for events that have videoSearch hints or need video
+  const queries = events.map((ev,i) => {
+    if(ev.videoSearch) return ev.videoSearch;
+    if(ev.type==='death') return `${star.name} death tribute documentary`;
+    if(i===events.length-1) return `${star.name} tribute documentary`;
+    return `${star.name} ${ev.year} ${ev.title}`;
+  });
+
+  try {
+    const r = await fetch('/.netlify/functions/youtube', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ queries })
+    });
+    if(!r.ok) return;
+    const data = await r.json();
+    const results = data.results||[];
+
+    // Update each event card with real video ID
+    results.forEach((res,i) => {
+      if(!res?.videoId) return;
+      const ev = events[i];
+      if(!ev) return;
+      // Store the real ID
+      ev.youtubeId = res.videoId;
+      // Update the card's play button and thumbnail
+      const vWraps = document.querySelectorAll('.ev-video-wrap');
+      if(vWraps[i]){
+        const thumb = vWraps[i].querySelector('.ev-img');
+        if(thumb && res.thumb) thumb.src = res.thumb;
+        // Update click handler with real ID
+        vWraps[i].onclick = () => openVideo(res.videoId, ev.title||'', star.name+' '+ev.title);
+      }
+    });
+    // Rebuild media panel with real IDs
+    buildMediaPanel(star, tl, {thumb:null,images:[]});
+  } catch(e) {
+    console.log('YouTube enrichment skipped:', e.message);
+  }
+}
+
+function closeVideo(){
+  document.getElementById('videoOverlay').classList.remove('on');
+  document.getElementById('videoFrame').src='';
+  document.getElementById('videoFallback').style.display='none';
+  document.getElementById('videoFrame').style.display='block';
+}
+document.getElementById('videoClose').addEventListener('click',closeVideo);
+document.getElementById('videoOverlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeVideo();
+});
+
 // ═══════════════════════════════════════════
 //  FULLSCREEN + UTILS
 // ═══════════════════════════════════════════
