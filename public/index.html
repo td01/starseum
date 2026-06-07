@@ -1069,46 +1069,73 @@ function stopTL(){
 // ═══════════════════════════════════════════
 //  VIDEO
 // ═══════════════════════════════════════════
-function openVideo(videoId,title,searchQuery){
-  const overlay=document.getElementById('videoOverlay');
-  const frame=document.getElementById('videoFrame');
-  const fallback=document.getElementById('videoFallback');
-  const meta=document.getElementById('videoMeta');
-  const ytLink=document.getElementById('videoYtLink');
-  const q=searchQuery||title||'';
+function openVideo(rawVideoId, title, searchQuery) {
+  const overlay = document.getElementById('videoOverlay');
+  const frame = document.getElementById('videoFrame');
+  const fallback = document.getElementById('videoFallback');
+  const meta = document.getElementById('videoMeta');
+  const ytLink = document.getElementById('videoYtLink');
+  const q = searchQuery || title || '';
 
-  frame.style.display='block';
-  fallback.style.display='none';
-  meta.textContent='';
+  // 1. Reset displays and show the title safely
+  frame.style.display = 'block';
+  fallback.style.display = 'none';
+  meta.textContent = title || '';
 
-  if(videoId&&videoId.length===11&&!/\s/.test(videoId)){
-    // P0 FIX 1: Switched from youtube-nocookie.com to standard youtube.com to bypass tracking block blocks
-    frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
-    ytLink.href=`https://www.youtube.com/watch?v=${videoId}`;
-    
-    // P0 FIX 2: Explicitly grant autoplay right before loading the stream
+  // 2. Extract the clean 11-character ID if a full URL was accidentally passed
+  let videoId = rawVideoId;
+  if (videoId && typeof videoId === 'string') {
+    if (videoId.includes('v=')) {
+      videoId = videoId.split('v=')[1]?.split('&')[0];
+    } else if (videoId.includes('youtu.be/')) {
+      videoId = videoId.split('youtu.be/')[1]?.split('?')[0];
+    }
+    videoId = videoId.trim();
+  }
+
+  // Clear any existing failure safeguard timers
+  if (window.videoTimer) clearTimeout(window.videoTimer);
+
+  // 3. Check if we have a valid YouTube video ID left over
+  if (videoId && videoId.length === 11 && !/\s/.test(videoId)) {
+    frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&color=white`;
+    ytLink.href = `https://www.youtube.com/watch?v=${videoId}`;
     frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
     
-    // Detect load failure after 5s
-    frame.onload=()=>{};
     overlay.classList.add('on');
-  }else{
-    // No valid ID — show fallback with search link
-    frame.style.display='none';
-    fallback.style.display='flex';
-    ytLink.href=`https://www.youtube.com/results?search_query=${encodeURIComponent(q+' documentary')}`;
+
+    // 4. SAFEGUARD: If a copyright restriction blocks playback on Netlify,
+    // automatically trigger your fallback option after 2.5 seconds
+    window.videoTimer = setTimeout(() => {
+      frame.style.display = 'none';
+      fallback.style.display = 'flex';
+    }, 2500);
+
+    // If it loads cleanly, cancel the fallback screen timer
+    frame.onload = () => {
+      clearTimeout(window.videoTimer);
+    };
+
+  } else {
+    // If no valid ID could be generated, show the manual search fallback immediately
+    frame.style.display = 'none';
+    fallback.style.display = 'flex';
+    ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' documentary')}`;
     overlay.classList.add('on');
   }
 }
-function closeVideo(){
+
+function closeVideo() {
+  if (window.videoTimer) clearTimeout(window.videoTimer);
   document.getElementById('videoOverlay').classList.remove('on');
-  document.getElementById('videoFrame').src='';
-  document.getElementById('videoFallback').style.display='none';
-  document.getElementById('videoFrame').style.display='block';
+  document.getElementById('videoFrame').src = '';
+  document.getElementById('videoFallback').style.display = 'none';
+  document.getElementById('videoFrame').style.display = 'block';
 }
-document.getElementById('videoClose').addEventListener('click',closeVideo);
-document.getElementById('videoOverlay').addEventListener('click',e=>{
-  if(e.target===e.currentTarget)closeVideo();
+
+document.getElementById('videoClose').addEventListener('click', closeVideo);
+document.getElementById('videoOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeVideo();
 });
 
 // ═══════════════════════════════════════════
