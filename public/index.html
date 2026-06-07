@@ -56,6 +56,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   .tl-footer{font-size:6px;gap:.75rem;padding:.3rem .75rem;}
   .tl-scrub{padding:0 .75rem;gap:.4rem;}
   .tl-scrub-lbl{font-size:6.5px;}
+  /* Search bar: drop below the HUD row on mobile so it doesn't clash with logo or mic */
+  #mSearchWrap{
+    top:calc(3.8rem + env(safe-area-inset-top))!important;
+    width:calc(100vw - 2.4rem)!important;
+    left:1.2rem!important;
+    transform:none!important;
+  }
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
@@ -318,7 +325,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <body>
 
 <div id="intro">
-  <div class="intro-logo">STARSEUM</div>
+  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.55em;vertical-align:super;letter-spacing:.1em;opacity:.9;">.AI</span></div>
   <div class="intro-rule"></div>
   <div class="intro-sub">A museum of extraordinary lives</div>
 </div>
@@ -1566,15 +1573,6 @@ async function openVideo(videoId,title,searchQuery){
     window._videoCloseCleanup=()=>{clearTimeout(timeout);settle(false);if(orig)orig();};
   });
 }
-
-  // Use the full query — specific queries find specific videos
-  const rawQ=(searchQuery||title||'').trim();
-  const query=rawQ||title||'';
-  const searchUrl='https://www.youtube.com/results?search_query='+encodeURIComponent(query);
-
-  // Always fetch a real ID from YouTube API
-  let realId=null;
-  try{
 
 // Tab switching — Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
 document.querySelectorAll('.tl-tab').forEach(btn=>{
