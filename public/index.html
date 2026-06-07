@@ -99,10 +99,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 @keyframes introRule{to{width:80px;}}
 @keyframes introFade{to{opacity:.7;}}
 
-#mosaicScreen.cur-w,#mosaicScreen.cur-w *:not(.star-tile-label){cursor:w-resize!important;}
-#mosaicScreen.cur-e,#mosaicScreen.cur-e *:not(.star-tile-label){cursor:e-resize!important;}
-#mosaicScreen.cur-n,#mosaicScreen.cur-n *:not(.star-tile-label){cursor:n-resize!important;}
-#mosaicScreen.cur-s,#mosaicScreen.cur-s *:not(.star-tile-label){cursor:s-resize!important;}
+#mosaicScreen.cur-w *{cursor:w-resize!important;}
+#mosaicScreen.cur-e *{cursor:e-resize!important;}
+#mosaicScreen.cur-n *{cursor:n-resize!important;}
+#mosaicScreen.cur-s *{cursor:s-resize!important;}
+#mosaicScreen.cur-nw *{cursor:nw-resize!important;}
+#mosaicScreen.cur-ne *{cursor:ne-resize!important;}
+#mosaicScreen.cur-sw *{cursor:sw-resize!important;}
+#mosaicScreen.cur-se *{cursor:se-resize!important;}
 /* ═══ TRANSITION ═══════════════════════════════ */
 #transLayer{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;}
 #zoomDark{position:fixed;inset:0;z-index:50;background:var(--dark);opacity:0;pointer-events:none;transition:opacity .5s ease;}
@@ -182,7 +186,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-card{background:#181410;border:1px solid rgba(201,168,76,.2);border-radius:2px;overflow:hidden;width:100%;cursor:pointer;transition:border-color .35s,box-shadow .35s,transform .4s cubic-bezier(.25,.46,.45,.94);box-shadow:0 4px 20px rgba(0,0,0,.5);}
 .ev-card:hover,.ev-card.tapped{border-color:rgba(201,168,76,.5);box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.1);transform:scale(1.06) translateY(-4px);}
 .ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
-.ev-img{width:100%;height:160px;object-fit:cover;object-position:center top;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
+.ev-img{width:100%;height:180px;object-fit:cover;object-position:center center;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
 .ev-yr{font-family:var(--mono);font-size:16px;color:var(--gold);letter-spacing:.12em;margin-bottom:.35rem;opacity:.85;font-weight:300;}
 
@@ -330,7 +334,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <div id="mSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-top:none;max-height:280px;overflow-y:auto;z-index:200;"></div>
     </div>
     <div style="display:flex;align-items:center;gap:.6rem;">
-      <div class="m-hint">HOVER · CLICK TO ENTER</div>
+      
       <button id="mVoiceBtn" title="Voice command" style="background:none;border:1px solid rgba(201,168,76,.15);border-radius:50%;width:40px;height:40px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;position:relative;z-index:101;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
@@ -339,17 +343,51 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 
 <!-- Onboarding overlays -->
-<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;pointer-events:none;">
-  <div style="position:absolute;top:1.2rem;left:50%;transform:translateX(-50%);background:rgba(10,8,6,.88);border:1px solid var(--gold2);border-radius:2px;padding:.6rem 1.4rem;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--cream);white-space:nowrap;pointer-events:auto;">
-    HOVER TO ILLUMINATE · CLICK TO ENTER · USE <span style="color:var(--gold)">🎤</span> FOR VOICE
-    <button onclick="dismissOnboard('mosaic')" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:.8rem;font-family:var(--mono);font-size:9px;">✕</button>
+<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.7);backdrop-filter:blur(3px);">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;pointer-events:none;">
+    <!-- Center instruction -->
+    <div style="text-align:center;">
+      <div style="font-family:var(--display);font-size:1.4rem;letter-spacing:.2em;color:var(--cream);margin-bottom:.5rem;">WELCOME TO STARSEUM</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:1rem;color:var(--muted);">A museum of extraordinary lives</div>
+    </div>
+    <!-- Drag instruction with animated arrows -->
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <svg width="40" height="40" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.6)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--cream);">DRAG TO EXPLORE</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--cream);">HOVER A FACE TO ILLUMINATE · CLICK TO ENTER</div>
+    <!-- Arrows pointing to top UI -->
+    <div style="position:absolute;top:3.5rem;left:50%;transform:translateX(-50%);display:flex;gap:3rem;align-items:flex-start;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);margin-bottom:.3rem;">SEARCH</div>
+        <div style="font-size:1.2rem;">↑</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);margin-bottom:.3rem;">VOICE</div>
+        <div style="font-size:1.2rem;">↑</div>
+      </div>
+    </div>
   </div>
+  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.6rem 2rem;cursor:pointer;border-radius:2px;pointer-events:auto;">ENTER THE MUSEUM</button>
 </div>
-<div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;pointer-events:none;">
-  <div style="position:absolute;bottom:5rem;left:50%;transform:translateX(-50%);background:rgba(10,8,6,.88);border:1px solid var(--gold2);border-radius:2px;padding:.6rem 1.4rem;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--cream);white-space:nowrap;pointer-events:auto;text-align:center;">
-    ← DRAG TO EXPLORE · SCROLL TO ZOOM · 🎤 TOUR GUIDE IS SPEAKING · <span style="color:var(--gold)">ASK</span> QUESTIONS
-    <button onclick="dismissOnboard('timeline')" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:.8rem;font-family:var(--mono);font-size:9px;">✕</button>
+<div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,6,.65);backdrop-filter:blur(2px);">
+  <div style="position:absolute;inset:0;pointer-events:none;">
+    <!-- Top UI labels -->
+    <div style="position:absolute;top:3.2rem;left:50%;transform:translateX(-50%);display:flex;gap:4rem;align-items:flex-start;text-align:center;">
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">BACK</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">TIMELINE · BIO · MEDIA</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">TOUR GUIDE</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">ASK QUESTIONS</div></div>
+    </div>
+    <!-- Centre instruction -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+      <div style="font-family:var(--display);font-size:1.1rem;letter-spacing:.18em;color:var(--cream);margin-bottom:.5rem;">EXPLORE THEIR LIFE</div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);">← DRAG LEFT & RIGHT · SCROLL TO ZOOM · CLICK CARDS</div>
+    </div>
+    <!-- Bottom label -->
+    <div style="position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);">🎤 TOUR GUIDE IS NARRATING THIS EXHIBITION</div>
   </div>
+  <button onclick="dismissOnboard('timeline')" style="position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.5rem 1.8rem;cursor:pointer;border-radius:2px;">BEGIN</button>
 </div>
 
 <div id="transLayer"><canvas id="holeCanvas"></canvas></div>
@@ -606,6 +644,8 @@ const isMobile=window.innerWidth<600;
 const TW=isMobile?114:192, TH=isMobile?149:250, TG=isMobile?2:3, SX=TW+TG, SY=TH+TG;
 const mc=document.getElementById('mosaicCanvas');
 let camX=0,camY=0,velX=0,velY=0;
+let mZoom=1,mZoomTarget=1;
+const M_ZOOM_MIN=0.6,M_ZOOM_MAX=1.4;
 let mDrag=false,mDidDrag=false,mDX0,mDY0,mCX0,mCY0,mLX,mLY;
 let edgePX=0,edgePY=0;
 let mActive=true,mRaf;
@@ -681,16 +721,31 @@ function mInit(){
     }
     const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
-    const zx=vw*0.45,zy=vh*0.45,spd=12;
+    const zx=vw*0.45,zy=vh*0.45,spd=18;
     edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
     edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
     const ms2=document.getElementById('mosaicScreen');
-    if(ms2){ms2.classList.toggle('cur-w',edgePX>1);ms2.classList.toggle('cur-e',edgePX<-1);
-    ms2.classList.toggle('cur-n',edgePY>1);ms2.classList.toggle('cur-s',edgePY<-1);
-    if(!edgePX&&!edgePY)['cur-w','cur-e','cur-n','cur-s'].forEach(c=>ms2.classList.remove(c));}
+    if(ms2){
+      const goW=edgePX>1,goE=edgePX<-1,goN=edgePY>1,goS=edgePY<-1;
+      ms2.className=ms2.className.replace(/\bcur-\w+\b/g,'').trim();
+      if(goN&&goW)ms2.classList.add('cur-nw');
+      else if(goN&&goE)ms2.classList.add('cur-ne');
+      else if(goS&&goW)ms2.classList.add('cur-sw');
+      else if(goS&&goE)ms2.classList.add('cur-se');
+      else if(goW)ms2.classList.add('cur-w');
+      else if(goE)ms2.classList.add('cur-e');
+      else if(goN)ms2.classList.add('cur-n');
+      else if(goS)ms2.classList.add('cur-s');
+    }
   });
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
   ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
+  ms.addEventListener('wheel',e=>{
+    if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>Math.abs(e.deltaX)){
+      e.preventDefault();
+      mZoomTarget=Math.max(M_ZOOM_MIN,Math.min(M_ZOOM_MAX,mZoomTarget*(e.deltaY>0?0.94:1.06)));
+    }
+  },{passive:false});
   let tX0,tY0,tCX0,tCY0,tLX,tLY,tMoved=false;
   ms.addEventListener('touchstart',e=>{
     const t=e.touches[0];mDrag=true;mDidDrag=false;tMoved=false;
@@ -752,7 +807,9 @@ function mLoop(){
     camX+=velX;camY+=velY;
     if(edgePX||edgePY){camX+=edgePX;camY+=edgePY;}
   }
-  mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px)`;
+  mZoom+=(mZoomTarget-mZoom)*0.12;
+  mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px) scale(${mZoom.toFixed(3)})`;
+  mc.style.transformOrigin='center center';
   renderTiles();
   if(isMobile)updateMobileBrightness();
   mRaf=requestAnimationFrame(mLoop);
@@ -927,7 +984,7 @@ function goHome(){
   setTimeout(()=>{document.getElementById('zoomDark').style.pointerEvents='none';},500);
   mActive=true;velX=0;velY=0;mLoop();
 }
-document.getElementById('tlBack').addEventListener('click',goHome);
+document.getElementById('tlBack').addEventListener('click',()=>{ stopTour(); goHome(); });
 
 // ═══════════════════════════════════════════
 //  APIs
@@ -1017,7 +1074,19 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
     const videoQuery=ev.videoSearch||ev.youtubeId||(isDeath?(star.name+' tribute documentary'):null);
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
-    const cardImg=imgPool.length>0?imgPool[i%imgPool.length]:null;
+    // Age-appropriate image selection: earlier events use lower-index images
+    // Later events use higher-index images (Wikipedia images roughly chronological)
+    let cardImgIdx;
+    if(imgPool.length<=1){ cardImgIdx=0; }
+    else{
+      const frac=events.length>1?i/(events.length-1):0;
+      cardImgIdx=Math.min(imgPool.length-1,Math.round(frac*(imgPool.length-1)));
+      // Avoid duplicates with adjacent cards
+      if(i>0&&cardImgIdx===Math.round(((i-1)/(events.length-1))*(imgPool.length-1))){
+        cardImgIdx=Math.min(imgPool.length-1,cardImgIdx+1);
+      }
+    }
+    const cardImg=imgPool[cardImgIdx]||imgPool[0]||null;
 
     if(isBirth){
       // Birth card — interactive map via OpenStreetMap
@@ -1810,7 +1879,21 @@ function showOnboard(which,delayMs){
   if(el)setTimeout(()=>el.style.display='block',delayMs||0);
 }
 // Show mosaic onboard after intro
-setTimeout(()=>showOnboard('mosaic',500),3500);
+setTimeout(()=>{
+  showOnboard('mosaic',500);
+  // Welcome narration on first visit (or after 24h)
+  const lastVisit=localStorage.getItem('st_last_visit');
+  const now=Date.now();
+  if(!lastVisit||now-parseInt(lastVisit)>86400000){
+    localStorage.setItem('st_last_visit',now);
+    setTimeout(()=>{
+      const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
+      if(window.speechSynthesis){
+        const u=new SpeechSynthesisUtterance(welcome);u.rate=0.88;u.pitch=1;speechSynthesis.speak(u);
+      }
+    },4500);
+  }
+},3500);
 
 // ── TIMELINE ONBOARD ──
 const _origBuildTL=buildTimeline;
