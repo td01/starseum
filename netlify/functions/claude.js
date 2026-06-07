@@ -16,36 +16,69 @@ exports.handler = async function(event, context) {
   let parsed;
   try { parsed = JSON.parse(event.body); } catch(e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Bad JSON" }) }; }
 
+  // Q&A mode
+  if (parsed.name === '__qa__' && parsed.question) {
+    const qaPrompt = `You are a factual guide for a museum about ${parsed.context ? JSON.parse(parsed.context).name : 'this person'}.
+Context: ${parsed.context || ''}
+Question: ${parsed.question}
+Answer in 2-3 sentences, factually and clearly. Do not make things up. If uncertain, say so.`;
+    const qaPayload = JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      messages: [{ role: "user", content: qaPrompt }]
+    });
+    return new Promise((resolve) => {
+      const https = require("https");
+      const req = https.request({
+        hostname: "api.anthropic.com", port: 443, path: "/v1/messages", method: "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(qaPayload), "x-api-key": apiKey, "anthropic-version": "2023-06-01" }
+      }, (res) => {
+        let data = ""; res.on("data", c => data += c);
+        res.on("end", () => resolve({ statusCode: res.statusCode, headers, body: data }));
+      });
+      req.on("error", e => resolve({ statusCode: 502, headers, body: JSON.stringify({ error: e.message }) }));
+      req.write(qaPayload); req.end();
+    });
+  }
+
   const name = parsed.name;
   const prompt = `You are a museum curator creating an immersive life timeline for ${name}.
 Return ONLY valid JSON, no markdown, no explanation:
 {
   "fullName": "full birth name",
   "born": "YYYY-MM-DD or YYYY",
-  "died": "YYYY-MM-DD or YYYY or null",
+  "died": "YYYY-MM-DD or YYYY",
   "nationality": "nationality",
   "fields": ["field1","field2"],
   "tagline": "one evocative sentence max 10 words",
   "wikipediaSlug": "Wikipedia_Article_Slug",
+  "birthCity": "City, Country",
+  "birthLat": 0.0,
+  "birthLng": 0.0,
   "events": [
     {
       "year": "YYYY",
       "title": "Short punchy headline 5 words max",
       "text": "Two vivid sentences about this moment.",
       "type": "birth|childhood|education|career|achievement|personal|death",
-      "quote": "a real verified famous quote by them or null",
-      "youtubeId": "a real 11-character YouTube video ID for footage directly related to this event, or null"
+      "quote": "a real verified famous quote by them, or null",
+      "youtubeId": "real 11-char YouTube video ID or null",
+      "videoSearch": "specific YouTube search query for this event e.g. '${name} 1985 interview BBC' or null"
     }
   ]
 }
-Include exactly 10 events from birth to death in chronological order. Last event must be type death.
-For youtubeId: provide REAL YouTube video IDs (11 characters) for actual videos that exist on YouTube. Examples of format: dQw4w9WgXcQ, jNQXAC9IVRw. Include documentary clips, performances, interviews, speeches, film trailers, news coverage. At least 4 events should have real youtubeId values. For the death event always try to include a tribute or documentary video ID.
-Only include youtubeId values you are highly confident exist on YouTube. Use null if uncertain.
-Quotes must be real — use null if uncertain.`;
+Rules:
+- Include exactly 10 events in chronological order, last must be type "death"
+- birthLat and birthLng must be accurate decimal coordinates for their birthplace
+- The first event (birth) should have type "birth" — do NOT include a photo youtubeId for this, leave youtubeId null
+- The second event should cover their CHILDHOOD or EARLY LIFE (ages 5-15) — focus on formative years, family, upbringing
+- For youtubeId: only include IDs you are highly confident exist. Provide at least 3-4 real video IDs for later events (performances, interviews, documentaries). Use null if uncertain.
+- videoSearch: for every event without a youtubeId, provide a specific search query that would find real footage
+- Quotes must be verified real quotes — use null if uncertain`;
 
   const payload = JSON.stringify({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2200,
+    max_tokens: 2400,
     messages: [{ role: "user", content: prompt }]
   });
 
