@@ -151,7 +151,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #tlScroll{position:absolute;top:55px;bottom:36px;left:0;right:0;overflow-x:auto;overflow-y:hidden;z-index:10;scrollbar-width:none;cursor:grab;}
 #tlScroll::-webkit-scrollbar{display:none;}
 #tlScroll.grabbing{cursor:grabbing;}
-#tlStrip{display:inline-flex;align-items:center;height:100%;padding:0 10vw;position:relative;min-width:100%;}
+#tlStrip{display:inline-flex;align-items:center;height:100%;padding:0 10vw 0 3vw;position:relative;min-width:100%;}
 .tl-spine{position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.22) 5%,rgba(201,168,76,0.22) 95%,transparent);pointer-events:none;}
 
 /* Cap */
@@ -171,7 +171,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
 .ev-img{width:100%;height:160px;object-fit:cover;object-position:center top;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
 .ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
-.ev-yr{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.15em;margin-bottom:.3rem;opacity:.8;}
+.ev-yr{font-family:var(--mono);font-size:16px;color:var(--gold);letter-spacing:.12em;margin-bottom:.35rem;opacity:.85;font-weight:300;}
 
 /* Birth map card */
 .ev-map{width:100%;height:160px;position:relative;overflow:hidden;background:#0e1520;cursor:pointer;border-bottom:1px solid var(--gold2);}
@@ -181,11 +181,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 /* Childhood card style */
 .ev-childhood-badge{display:inline-block;font-family:var(--mono);font-size:6.5px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold2);padding:.15rem .45rem;margin-bottom:.4rem;border-radius:1px;opacity:.7;}
-.ev-title{font-family:var(--display);font-size:1.25rem;font-weight:600;color:var(--cream);line-height:1.2;margin-bottom:.4rem;letter-spacing:.03em;}
-.ev-text{font-family:var(--serif);font-size:.85rem;line-height:1.65;color:var(--txt);opacity:.85;}
+.ev-title{font-family:var(--display);font-size:1.45rem;font-weight:600;color:var(--cream);line-height:1.18;margin-bottom:.45rem;letter-spacing:.02em;}
+.ev-text{font-family:var(--serif);font-size:1rem;line-height:1.75;color:rgba(221,213,190,0.92);}
 .ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
-.ev-quote{margin-top:.4rem;padding:.55rem .7rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:.88rem;color:var(--cream);line-height:1.55;letter-spacing:.01em;}
-.ev-body{padding:.8rem 1rem 1rem;}
+.ev-quote{margin-top:.4rem;padding:.65rem .8rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:1.05rem;color:var(--cream);line-height:1.6;}
+.ev-body{padding:1rem 1.1rem 1.2rem;}
 .ev-play-wrap{position:relative;}
 .ev-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);opacity:0;transition:opacity .3s;}
 .ev-card:hover .ev-play-btn{opacity:1;}
@@ -953,26 +953,40 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
     const cardImg=imgPool[i%Math.max(imgPool.length,1)];
 
-    if(isBirth&&tl.birthLat&&tl.birthLng){
-      // Birth card — interactive map via OpenStreetMap static tile
+    if(isBirth){
+      // Birth card — interactive map via OpenStreetMap
       const mapWrap=document.createElement('div');
       mapWrap.className='ev-map';
-      const lat=parseFloat(tl.birthLat),lng=parseFloat(tl.birthLng);
+      const lat=parseFloat(tl.birthLat)||0,lng=parseFloat(tl.birthLng)||0;
+      const city=tl.birthCity||star.name+' birthplace';
+      // If no coords, fetch from Nominatim geocoder
+      async function renderMap(lat2,lng2){
       const zoom=9;
-      const osmImg=document.createElement('img');
-      osmImg.style.cssText='width:100%;height:100%;object-fit:cover;filter:grayscale(40%) brightness(0.55) sepia(0.25);display:block;';
-      osmImg.src=`https://tile.openstreetmap.org/${zoom}/${lngToTileX(lng,zoom)}/${latToTileY(lat,zoom)}.png`;
-      osmImg.onerror=()=>osmImg.remove();
-      mapWrap.appendChild(osmImg);
-      const pin=document.createElement('div');
-      pin.className='ev-map-pin';
-      pin.innerHTML=`<svg width="22" height="30" viewBox="0 0 24 32"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20S24 21 24 12C24 5.4 18.6 0 12 0z" fill="#C9A84C"/><circle cx="12" cy="12" r="5" fill="#0A0806"/></svg>`;
-      mapWrap.appendChild(pin);
+        const zoom=9;
+        const osmImg=document.createElement('img');
+        osmImg.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(40%) brightness(0.55) sepia(0.25);';
+        osmImg.src=`https://tile.openstreetmap.org/${zoom}/${lngToTileX(lng2,zoom)}/${latToTileY(lat2,zoom)}.png`;
+        osmImg.onerror=()=>osmImg.style.background='#0e1520';
+        mapWrap.insertBefore(osmImg,mapWrap.firstChild);
+        const pin=document.createElement('div');
+        pin.className='ev-map-pin';
+        pin.innerHTML=`<svg width="22" height="30" viewBox="0 0 24 32"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20S24 21 24 12C24 5.4 18.6 0 12 0z" fill="#C9A84C"/><circle cx="12" cy="12" r="5" fill="#0A0806"/></svg>`;
+        mapWrap.appendChild(pin);
+        mapWrap.onclick=()=>window.open(`https://www.openstreetmap.org/?mlat=${lat2}&mlon=${lng2}&zoom=12`,'_blank','noopener');
+      }
       const lbl=document.createElement('div');
       lbl.className='ev-map-label';
-      lbl.textContent=`📍 ${tl.birthCity||'Birthplace'}`;
+      lbl.textContent=`📍 ${city}`;
       mapWrap.appendChild(lbl);
-      mapWrap.addEventListener('click',()=>window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=12`,'_blank','noopener'));
+      if(lat&&lng){
+        renderMap(lat,lng);
+      }else{
+        // Geocode the city name
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`,{headers:{'Accept-Language':'en'}})
+          .then(r=>r.json()).then(d=>{
+            if(d[0]){renderMap(parseFloat(d[0].lat),parseFloat(d[0].lon));}
+          }).catch(()=>{});
+      }
       card.appendChild(mapWrap);
     }else if(isChildhood&&cardImg){
       // Childhood — sepia-tinted image with EARLY LIFE badge
@@ -1012,7 +1026,8 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
       vWrap.appendChild(vlbl);
 
-      vWrap.addEventListener('click',()=>openVideo(videoQuery,ev.title));
+      const ytSearch=(ev.videoSearch||(star.name+' '+(ev.title||'')+' '+(ev.year||''))).trim();
+      vWrap.addEventListener('click',()=>openVideo(ev.youtubeId||null,ev.title,ytSearch));
       card.appendChild(vWrap);
     }else if(isChildhood){
       // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
@@ -1067,7 +1082,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
   const strip2=document.getElementById('tlStrip');
   strip2.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
   strip2.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(160*tlScale)+'px');
-  sc.scrollLeft=0;
+  sc.scrollLeft=0; // start at birth (left)
 
   // Setup interactions
   setupScrollDrag(sc);
