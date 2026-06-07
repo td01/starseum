@@ -99,7 +99,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 @keyframes introRule{to{width:80px;}}
 @keyframes introFade{to{opacity:.7;}}
 
-.cur-w{cursor:w-resize!important;}.cur-e{cursor:e-resize!important;}.cur-n{cursor:n-resize!important;}.cur-s{cursor:s-resize!important;}
+#mosaicScreen.cur-w,#mosaicScreen.cur-w *:not(.star-tile-label){cursor:w-resize!important;}
+#mosaicScreen.cur-e,#mosaicScreen.cur-e *:not(.star-tile-label){cursor:e-resize!important;}
+#mosaicScreen.cur-n,#mosaicScreen.cur-n *:not(.star-tile-label){cursor:n-resize!important;}
+#mosaicScreen.cur-s,#mosaicScreen.cur-s *:not(.star-tile-label){cursor:s-resize!important;}
 /* ═══ TRANSITION ═══════════════════════════════ */
 #transLayer{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;}
 #zoomDark{position:fixed;inset:0;z-index:50;background:var(--dark);opacity:0;pointer-events:none;transition:opacity .5s ease;}
@@ -150,7 +153,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 .media-item-thumb-ph{width:100%;aspect-ratio:16/9;background:#0a0806;display:flex;align-items:center;justify-content:center;}
 .media-item-label{padding:.5rem .7rem .6rem;font-family:var(--display);font-size:9px;letter-spacing:.12em;color:var(--cream);}
 .media-item-sub{font-family:var(--mono);font-size:7px;color:var(--muted);letter-spacing:.08em;padding:0 .7rem .5rem;}
-.tl-back{background:none;border:1px solid rgba(201,168,76,.25);cursor:pointer;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.35rem .8rem;border-radius:2px;transition:all .2s;}
+.tl-back{background:rgba(10,8,6,.8);border:1px solid rgba(201,168,76,.4);cursor:pointer;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.4rem .9rem;border-radius:2px;transition:all .2s;position:relative;z-index:200;flex-shrink:0;}
 .tl-back:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.06);}
 .tl-info{flex:1;min-width:0;}
 .tl-sname{font-family:var(--display);font-size:clamp(.85rem,2vw,1.2rem);font-weight:600;color:var(--cream);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -335,6 +338,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </div>
 </div>
 
+<!-- Onboarding overlays -->
+<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;pointer-events:none;">
+  <div style="position:absolute;top:1.2rem;left:50%;transform:translateX(-50%);background:rgba(10,8,6,.88);border:1px solid var(--gold2);border-radius:2px;padding:.6rem 1.4rem;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--cream);white-space:nowrap;pointer-events:auto;">
+    HOVER TO ILLUMINATE · CLICK TO ENTER · USE <span style="color:var(--gold)">🎤</span> FOR VOICE
+    <button onclick="dismissOnboard('mosaic')" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:.8rem;font-family:var(--mono);font-size:9px;">✕</button>
+  </div>
+</div>
+<div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;pointer-events:none;">
+  <div style="position:absolute;bottom:5rem;left:50%;transform:translateX(-50%);background:rgba(10,8,6,.88);border:1px solid var(--gold2);border-radius:2px;padding:.6rem 1.4rem;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--cream);white-space:nowrap;pointer-events:auto;text-align:center;">
+    ← DRAG TO EXPLORE · SCROLL TO ZOOM · 🎤 TOUR GUIDE IS SPEAKING · <span style="color:var(--gold)">ASK</span> QUESTIONS
+    <button onclick="dismissOnboard('timeline')" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:.8rem;font-family:var(--mono);font-size:9px;">✕</button>
+  </div>
+</div>
+
 <div id="transLayer"><canvas id="holeCanvas"></canvas></div>
 <div id="zoomDark"></div>
 
@@ -361,6 +378,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       <button class="tl-tab active" data-tab="timeline">TIMELINE</button>
       <button class="tl-tab" data-tab="bio">BIO</button>
       <button class="tl-tab" data-tab="media">MEDIA</button>
+    </div>
+    <div id="qaWrap" style="position:relative;display:flex;align-items:center;gap:.4rem;flex-shrink:0;">
+      <input type="text" id="qaInput" placeholder="Ask a question…" autocomplete="off"
+        style="background:rgba(10,8,6,.6);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .7rem;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--cream);outline:none;width:180px;transition:border-color .2s;">
+      <button id="qaBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .55rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);cursor:pointer;transition:all .2s;">ASK</button>
+      <div id="qaAnswer" style="display:none;position:absolute;top:100%;right:0;width:320px;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-radius:2px;padding:1rem 1.1rem;margin-top:.3rem;z-index:50;font-family:var(--serif);font-size:.88rem;line-height:1.7;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
     </div>
     <button id="tourBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);padding:.35rem .65rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>TOUR
@@ -661,10 +684,10 @@ function mInit(){
     const zx=vw*0.45,zy=vh*0.45,spd=12;
     edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
     edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
-    const b=document.body.classList;
-    b.toggle('cur-w',edgePX>1);b.toggle('cur-e',edgePX<-1);
-    b.toggle('cur-n',edgePY>1);b.toggle('cur-s',edgePY<-1);
-    if(!edgePX&&!edgePY)['cur-w','cur-e','cur-n','cur-s'].forEach(c=>b.remove(c));
+    const ms2=document.getElementById('mosaicScreen');
+    if(ms2){ms2.classList.toggle('cur-w',edgePX>1);ms2.classList.toggle('cur-e',edgePX<-1);
+    ms2.classList.toggle('cur-n',edgePY>1);ms2.classList.toggle('cur-s',edgePY<-1);
+    if(!edgePX&&!edgePY)['cur-w','cur-e','cur-n','cur-s'].forEach(c=>ms2.classList.remove(c));}
   });
   window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
   ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
@@ -1002,7 +1025,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       mapWrap.className='ev-map';
       const birthLat=parseFloat(tl.birthLat)||0;
       const birthLng=parseFloat(tl.birthLng)||0;
-      const city=tl.birthCity||star.name+' birthplace';
+      const city=tl.birthCity||(tl.born?tl.nationality+' '+tl.born:'birthplace');
       const lbl=document.createElement('div');
       lbl.className='ev-map-label';
       lbl.textContent='📍 '+city;
@@ -1029,12 +1052,13 @@ function buildTimeline(star,tl,wiki,heroThumb){
           }).catch(function(){});
       }
       card.appendChild(mapWrap);
-    }else if(isChildhood&&cardImg){
-      // Childhood — sepia-tinted image with EARLY LIFE badge
+    }else if(i<=2&&cardImg){
+      // Early events (0-2) get sepia/vintage treatment
       const wrap=document.createElement('div');wrap.className='ev-play-wrap';
       const img=document.createElement('img');img.className='ev-img';
       img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
-      img.style.filter='sepia(0.5) contrast(1.08) brightness(0.8)';
+      const sepiaAmt=Math.max(0.2,0.6-(i*0.15));
+      img.style.filter=`sepia(${sepiaAmt}) contrast(1.08) brightness(0.82)`;
       img.onerror=()=>wrap.remove();
       wrap.appendChild(img);card.appendChild(wrap);
     }else if(hasVideo){
@@ -1068,7 +1092,10 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vWrap.appendChild(vlbl);
 
       const ytSearch=(ev.videoSearch||(star.name+' '+(ev.title||'')+' '+(ev.year||''))).trim();
-      vWrap.addEventListener('click',()=>openVideo(ev.youtubeId||null,ev.title,ytSearch));
+      let _vWrapDrag=false;
+      vWrap.addEventListener('mousedown',()=>{_vWrapDrag=false;});
+      vWrap.addEventListener('mousemove',()=>{_vWrapDrag=true;});
+      vWrap.addEventListener('click',(e)=>{if(_vWrapDrag)return;openVideo(ev.youtubeId||null,ev.title,ytSearch);});
       card.appendChild(vWrap);
     }else if(isChildhood){
       // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
@@ -1103,8 +1130,14 @@ function buildTimeline(star,tl,wiki,heroThumb){
     `;
     card.appendChild(body);
 
-    // Mobile tap to zoom card
+    // Card click — jump tour to this step
+    const cardIdx=i;
     card.addEventListener('click',e=>{
+      if(tourPlaying&&cardIdx!==tourStep2){
+        tourStep2=cardIdx;
+        if(window.speechSynthesis)speechSynthesis.cancel();
+        if(tourAudio){tourAudio.pause();tourAudio=null;}
+      }
       if(e.target.closest('.ev-play-btn')||e.target.closest('.ev-video-wrap'))return;
       const wasZoomed=card.classList.contains('tapped');
       document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
@@ -1133,8 +1166,8 @@ function buildTimeline(star,tl,wiki,heroThumb){
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tourStarRef=star;tourTlRef=tl;
   window._usedImgIdx={};
-  // Auto-start tour after short delay
-  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },1200);
+  // Auto-start tour immediately
+  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },200);
   buildBioPanel(star,tl,heroThumb);
   buildMediaPanel(star,tl,wiki);
   // Reset to timeline tab
@@ -1720,6 +1753,67 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
   else showVoiceHint('OPEN A MUSEUM FIRST',2000);
 });
 
+
+// ── Q&A FEATURE ──
+(function(){
+  const inp=document.getElementById('qaInput');
+  const btn=document.getElementById('qaBtn');
+  const ans=document.getElementById('qaAnswer');
+  if(!inp||!btn)return;
+
+  async function askQuestion(){
+    const q=inp.value.trim();
+    if(!q||!tourTlRef)return;
+    ans.style.display='block';
+    ans.textContent='Thinking…';
+    try{
+      const context=JSON.stringify({
+        name:tourTlRef.fullName,
+        born:tourTlRef.born,died:tourTlRef.died,
+        fields:tourTlRef.fields,nationality:tourTlRef.nationality,
+        events:(tourTlRef.events||[]).map(e=>({year:e.year,title:e.title,text:e.text}))
+      });
+      const r=await fetch('/.netlify/functions/claude',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:'__qa__',context,question:q})
+      });
+      const data=await r.json();
+      const raw=(data.content?.find(b=>b.type==='text')?.text)||"I don't have that information.";
+      ans.textContent=raw.replace(/^```.*|```$/gm,'').trim();
+      // Read answer aloud
+      if(tourPlaying||true){
+        if(window.speechSynthesis){
+          speechSynthesis.cancel();
+          const u=new SpeechSynthesisUtterance(ans.textContent.substring(0,300));
+          u.rate=0.92;speechSynthesis.speak(u);
+        }
+      }
+    }catch(e){ans.textContent='Could not get an answer right now.';}
+  }
+
+  btn.addEventListener('click',askQuestion);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')askQuestion();});
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('#qaWrap'))ans.style.display='none';
+  });
+})();
+
+// ── ONBOARDING ──
+function dismissOnboard(which){
+  const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
+  if(el)el.style.display='none';
+  localStorage.setItem('st_ob_'+which,'1');
+}
+function showOnboard(which,delayMs){
+  if(localStorage.getItem('st_ob_'+which))return;
+  const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
+  if(el)setTimeout(()=>el.style.display='block',delayMs||0);
+}
+// Show mosaic onboard after intro
+setTimeout(()=>showOnboard('mosaic',500),3500);
+
+// ── TIMELINE ONBOARD ──
+const _origBuildTL=buildTimeline;
 initSearch();
 initVoice();
 
