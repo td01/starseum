@@ -75,11 +75,13 @@ Rules:
 - Events 3–9: MUST include at least 3 events of type "interview" — real TV or news interviews where ${name} spoke on camera. Include specific shows, years, and broadcasters (e.g. "Tonight Show 1987", "BBC Newsnight 1993", "Oprah Winfrey Show 1995", "60 Minutes 2001"). These should be milestone moments in their public life.
 - Event 10: type "death" (final event)
 - youtubeId: always null — do not guess IDs
-- videoSearch: REQUIRED for every event (except birth). Prioritise finding real interview footage on YouTube:
-  * For interview events: "${name} interview [show name] [year]" e.g. "David Bowie BBC interview 1983" or "Muhammad Ali Dick Cavett Show 1971"
-  * For performance/achievement events: "${name} [specific performance/game/speech] [year]" e.g. "Freddie Mercury Live Aid 1985"
-  * For documentary/profile events: "${name} documentary [broadcaster] [year]"
-  * Each videoSearch must be unique, specific, and name a real findable event on YouTube
+- videoSearch: REQUIRED for every event (except birth). Write queries optimised to find REAL embeddable YouTube videos:
+  * INTERVIEWS (at least 3): cite exact TV show + year — "John Lennon Dick Cavett 1971 full interview" / "Muhammad Ali Parkinson 1974 BBC" / "Freddie Mercury David Wigg interview 1977"
+  * PERFORMANCES: cite exact venue/event — "Freddie Mercury Live Aid Wembley 1985" / "Beatles Ed Sullivan Show February 1964"
+  * DOCUMENTARIES: "John Lennon Imagine 1972 full film" / "Amy Winehouse documentary BBC"
+  * ALWAYS append "full" or "full interview" or "full concert" — longer content stays on YouTube longer
+  * NEVER use generic terms like "tribute", "compilation", "fan video" — these get pulled
+  * Each query must be unique and name a specific datable real-world event
 - Quotes must be verified real quotes — use null if uncertain`;
 
 
