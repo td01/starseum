@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer-when-downgrade">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Starseum — A Museum of Extraordinary Lives</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A0806'/><text x='50%' y='58%' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23C9A84C' font-family='serif'>S</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:rgba(201,168,76,0.2);
+  --cream:#F0E6CC;--dark:#0A0806;--card:#14110C;
+  --txt:#DDD5BE;--muted:#6A6050;--muted2:#3A3428;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --display:'Cinzel',serif;--mono:'DM Mono',monospace;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-font-smoothing:antialiased;}
+
+/* ═══ MOSAIC ═══════════════════════════════════ */
+#mosaicScreen{position:fixed;inset:0;overflow:hidden;z-index:1;}
+#mosaicCanvas{position:absolute;top:0;left:0;will-change:transform;user-select:none;-webkit-user-select:none;}
+#mosaicCanvas.intro-hidden .star-tile{opacity:0!important;transform:scale(0.94)!important;transition:none!important;}
+.star-tile{position:absolute;overflow:hidden;cursor:pointer;background:#0e0b08;}
+.star-tile img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(25%) brightness(0.72) contrast(1.12);transition:filter 0.8s ease,transform 0.7s cubic-bezier(.25,.46,.45,.94);display:block;pointer-events:none;will-change:filter,transform;}
+.star-tile[data-b="4"] img{filter:grayscale(0%) brightness(1.0) contrast(1.06);transform:scale(1.05);}
+.star-tile[data-b="3"] img{filter:grayscale(10%) brightness(0.75) contrast(1.08);}
+.star-tile[data-b="2"] img{filter:grayscale(30%) brightness(0.50) contrast(1.05);}
+.star-tile[data-b="1"] img{filter:grayscale(50%) brightness(0.35) contrast(1.02);}
+.star-tile[data-b="0"] img{filter:grayscale(65%) brightness(0.09) contrast(1.00);}
+.star-tile-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,transparent 55%);opacity:0;transition:opacity .35s;}
+.star-tile[data-b="4"] .star-tile-shade{opacity:1;}
+.star-tile-label{position:absolute;bottom:0;left:0;right:0;padding:.5rem .65rem .6rem;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;}
+.star-tile[data-b="4"] .star-tile-label{opacity:1;transform:none;}
+.stn{font-family:var(--display);font-size:9.5px;letter-spacing:.12em;color:var(--cream);line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,1);transition:font-size .3s ease;}
+.star-tile[data-b="4"] .stn{font-size:14px;}
+.sty{font-family:var(--mono);font-size:8px;color:var(--gold);margin-top:2px;opacity:.85;}
+@media(max-width:600px){
+  .star-tile-label{opacity:0!important;transform:none!important;}
+  .star-tile[data-b="4"] .star-tile-label{opacity:0!important;}
+  .star-tile.mobile-centre .star-tile-label{opacity:1!important;transform:none!important;}
+  .star-tile.mobile-centre .star-tile-shade{opacity:1!important;}
+  /* Mobile timeline fixes */
+  .tl-bar{flex-wrap:nowrap;padding:.35rem .5rem;gap:.25rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tl-bar::-webkit-scrollbar{display:none;}
+  .tl-tagline{display:none;}
+  .tl-sname{font-size:.78rem;white-space:nowrap;}
+  .tl-smeta{display:none;}
+  .tl-tab{font-size:8px;padding:.28rem .45rem;}
+  #tourBtn{font-size:8px;padding:.28rem .5rem;}
+  #tlScroll{top:calc(48px + env(safe-area-inset-top));}
+  .ev-col{width:75vw!important;margin:0 8px!important;flex-shrink:0;}
+  .ev-img{height:180px!important;}
+  .tl-zoom{bottom:3rem;right:.75rem;}
+  .tl-footer{font-size:6px;gap:.75rem;padding:.3rem .75rem;}
+  .tl-scrub{padding:0 .75rem;gap:.4rem;}
+  .tl-scrub-lbl{font-size:6.5px;}
+  /* Search+mic bar: drop below the HUD row on mobile */
+  #mSearchWrap{
+    top:calc(3.8rem + env(safe-area-inset-top))!important;
+    width:calc(100vw - 2.4rem)!important;
+    left:1.2rem!important;
+    transform:none!important;
+    flex-direction:row;
+  }
+  /* ENTER button: less offset on mobile */
+  #onboardMosaic button[onclick]{bottom:calc(12% + 40px)!important;}
+}
+.star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
+.star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
+.m-hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none;padding:calc(1.1rem + env(safe-area-inset-top)) 1.8rem 1.1rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(10,8,6,.9) 0%,transparent);}
+.m-hud>*{pointer-events:auto;z-index:101;}
+.m-logo{font-family:var(--display);font-size:.95rem;letter-spacing:.3em;color:var(--cream);font-weight:600;}
+.m-logo em{color:var(--gold);font-style:normal;font-size:.5em;vertical-align:top;margin-top:.05em;}
+.m-hint{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--muted);opacity:.7;}
+
+
+/* ═══ INTRO ════════════════════════════════ */
+#intro{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--dark);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .7s ease;
+}
+#intro.done{opacity:0;pointer-events:none;}
+#intro.gone{display:none;}
+.intro-logo{
+  font-family:var(--display);
+  font-size:clamp(2.8rem,11vw,7.5rem);
+  font-weight:600;letter-spacing:.25em;
+  color:var(--cream);
+  opacity:0;
+  transform:scale(0.88);
+  animation:introIn 1.1s cubic-bezier(.16,1,.3,1) .3s forwards;
+  padding:0 1rem;
+  text-align:center;
+}
+.intro-rule{
+  width:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:1.2rem auto;
+  animation:introRule 1s ease .9s forwards;
+}
+.intro-sub{
+  font-family:var(--serif);font-style:italic;
+  font-size:clamp(1rem,3.5vw,1.875rem);letter-spacing:.06em;
+  color:var(--muted);opacity:0;
+  animation:introFade .8s ease 1.4s forwards;
+  text-align:center;padding:0 1rem;
+}
+@keyframes introIn{to{opacity:1;transform:scale(1);}}
+@keyframes introRule{to{width:80px;}}
+@keyframes introFade{to{opacity:.7;}}
+
+#mosaicCanvas.cur-w,#mosaicCanvas.cur-w .star-tile{cursor:w-resize!important;}
+#mosaicCanvas.cur-e,#mosaicCanvas.cur-e .star-tile{cursor:e-resize!important;}
+#mosaicCanvas.cur-n,#mosaicCanvas.cur-n .star-tile{cursor:n-resize!important;}
+#mosaicCanvas.cur-s,#mosaicCanvas.cur-s .star-tile{cursor:s-resize!important;}
+#mosaicCanvas.cur-nw,#mosaicCanvas.cur-nw .star-tile{cursor:nw-resize!important;}
+#mosaicCanvas.cur-ne,#mosaicCanvas.cur-ne .star-tile{cursor:ne-resize!important;}
+#mosaicCanvas.cur-sw,#mosaicCanvas.cur-sw .star-tile{cursor:sw-resize!important;}
+#mosaicCanvas.cur-se,#mosaicCanvas.cur-se .star-tile{cursor:se-resize!important;}
+/* ═══ TRANSITION ═══════════════════════════════ */
+#transLayer{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;}
+#zoomDark{position:fixed;inset:0;z-index:50;background:var(--dark);opacity:0;pointer-events:none;transition:opacity .5s ease;}
+
+/* ═══ LOAD ═════════════════════════════════════ */
+#loadScreen{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--dark);}
+#loadScreen.on{display:flex;}
+.lp-img{width:130px;height:172px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);margin-bottom:1.8rem;filter:grayscale(10%) sepia(.08);}
+.lp-name{font-family:var(--display);font-size:clamp(2rem,5vw,3.2rem);color:var(--cream);letter-spacing:.15em;margin-bottom:.3rem;}
+.lp-dates{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.18em;margin-bottom:2rem;}
+.lp-bar{width:220px;height:1px;background:rgba(201,168,76,.08);overflow:hidden;}
+.lp-fill{height:100%;background:var(--gold);width:0%;transition:width .55s ease;}
+.lp-step{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--muted);margin-top:.85rem;}
+.lp-anim{display:flex;gap:7px;margin-top:1.2rem;}
+.lp-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);opacity:.2;animation:lpDot 1.1s ease-in-out infinite;}
+.lp-dot:nth-child(2){animation-delay:.22s;}
+.lp-dot:nth-child(3){animation-delay:.44s;}
+@keyframes lpDot{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.3)}}
+.lp-err{color:#9a4030;font-size:13px;margin-top:1.5rem;font-family:var(--serif);font-style:italic;text-align:center;max-width:300px;line-height:1.6;}
+
+/* ═══ TIMELINE ══════════════════════════════════ */
+#tlScreen{position:fixed;inset:0;z-index:200;display:none;background:var(--dark);overflow:hidden;}
+#tlScreen.on{display:block;}
+#tlAmbient{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(60px) brightness(.1) saturate(1.4);transform:scale(1.1);pointer-events:none;z-index:0;}
+.tl-bar{position:fixed;top:0;left:0;right:0;z-index:10000;display:flex;align-items:center;gap:.75rem;padding:calc(.65rem + env(safe-area-inset-top)) 1.2rem .65rem;background:linear-gradient(to bottom,rgba(10,8,6,.98) 65%,transparent);pointer-events:auto;}
+.tl-bar>*{pointer-events:auto;}
+.tl-tabs{display:flex;gap:0;border:1px solid var(--gold2);border-radius:2px;overflow:hidden;flex-shrink:0;margin-left:.5rem;}
+.tl-tab{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:.4rem 1rem;transition:all .2s;border-right:1px solid var(--gold2);}
+.tl-tab:last-child{border-right:none;}
+.tl-tab.active{background:rgba(201,168,76,.12);color:var(--gold);}
+.tl-tab:hover:not(.active){color:var(--cream);}
+/* Ensure QA and tour btn never squeeze tabs off */
+#qaWrap{flex-shrink:1;min-width:0;}
+#qaInput{min-width:0;width:140px;}
+@media(max-width:800px){
+  #qaWrap{display:none!important;}
+}
+/* Bio panel */
+#bioPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:110;display:none;overflow-y:auto;padding:2.5rem 10vw;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;background:var(--dark);}
+#bioPanel.on{display:block;}
+.bio-portrait{width:180px;height:238px;object-fit:cover;object-position:center top;border:1px solid var(--gold2);float:left;margin:0 2.5rem 1.5rem 0;filter:sepia(.1) contrast(1.06);}
+.bio-name{font-family:var(--display);font-size:clamp(2rem,4vw,3rem);font-weight:600;color:var(--cream);letter-spacing:.06em;margin-bottom:.4rem;}
+.bio-dates{font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:.12em;margin-bottom:1.4rem;}
+.bio-text{font-family:var(--serif);font-size:1.15rem;line-height:1.9;color:var(--txt);clear:both;margin-top:1.5rem;}
+.bio-fields{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem;}
+.bio-field{font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted);border:1px solid var(--gold2);padding:.2rem .6rem;border-radius:1px;}
+/* Media panel */
+#mediaPanel{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;z-index:110;display:none;overflow-y:auto;padding:1.5rem 2rem;scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;background:var(--dark);}
+#mediaPanel.on{display:block;}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;}
+.media-item{background:var(--card);border:1px solid var(--gold2);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .25s,transform .25s;}
+.media-item:hover{border-color:rgba(201,168,76,.5);transform:translateY(-2px);}
+.media-item-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#0a0806;}
+.media-item-thumb-ph{width:100%;aspect-ratio:16/9;background:#0a0806;display:flex;align-items:center;justify-content:center;}
+.media-item-label{padding:.5rem .7rem .6rem;font-family:var(--display);font-size:9px;letter-spacing:.12em;color:var(--cream);}
+.media-item-sub{font-family:var(--mono);font-size:7px;color:var(--muted);letter-spacing:.08em;padding:0 .7rem .5rem;}
+.tl-back{background:rgba(10,8,6,.8);border:1px solid rgba(201,168,76,.4);cursor:pointer;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.4rem .9rem;border-radius:2px;transition:all .2s;position:relative;z-index:200;flex-shrink:0;}
+.tl-back:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.06);}
+.tl-info{flex:1;min-width:0;}
+.tl-sname{font-family:var(--display);font-size:clamp(.85rem,2vw,1.2rem);font-weight:600;color:var(--cream);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-smeta{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;letter-spacing:.07em;}
+.tl-tagline{font-family:var(--serif);font-style:italic;font-size:.8rem;color:rgba(201,168,76,.6);max-width:260px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+
+/* Horizontal scrollable strip */
+#tlScroll{position:absolute;top:calc(55px + env(safe-area-inset-top));bottom:36px;left:0;right:0;overflow-x:auto;overflow-y:hidden;z-index:10;scrollbar-width:none;cursor:grab;isolation:isolate;}
+#tlScroll::-webkit-scrollbar{display:none;}
+#tlScroll.grabbing{cursor:grabbing;}
+#tlStrip{display:inline-flex;align-items:center;height:100%;padding:0 10vw 0 3vw;position:relative;min-width:100%;}
+.tl-spine{position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.22) 5%,rgba(201,168,76,0.22) 95%,transparent);pointer-events:none;}
+
+/* Cap */
+.tl-cap{display:inline-flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;margin:0 24px;position:relative;z-index:2;}
+.tl-cap-dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.1),0 0 20px rgba(201,168,76,.3);}
+.tl-cap-yr{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.1em;white-space:nowrap;}
+.tl-cap-lbl{font-family:var(--display);font-size:7px;letter-spacing:.22em;color:var(--muted);}
+
+/* Event column */
+.ev-col{display:inline-flex;flex-direction:column;align-items:center;flex-shrink:0;width:260px;margin:0 16px;position:relative;z-index:2;}
+.ev-col.up{flex-direction:column-reverse;}
+.ev-dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--gold);background:var(--dark);flex-shrink:0;box-shadow:0 0 0 3px rgba(201,168,76,.08);}
+.ev-dot.death{background:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.12),0 0 16px rgba(201,168,76,.3);}
+.ev-conn{width:1px;background:rgba(201,168,76,.2);flex-shrink:0;height:48px;}
+.ev-card{background:#181410;border:1px solid rgba(201,168,76,.2);border-radius:2px;overflow:hidden;width:100%;cursor:pointer;transition:border-color .35s,box-shadow .35s,transform .4s cubic-bezier(.25,.46,.45,.94);box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.ev-card.tour-active{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(201,168,76,.3),0 20px 60px rgba(0,0,0,.8)!important;transform:scale(1.04)!important;}
+.ev-card:hover,.ev-card.tapped{border-color:rgba(201,168,76,.5);box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(201,168,76,.1);transform:scale(1.06) translateY(-4px);}
+.ev-col.up .ev-card:hover,.ev-col.up .ev-card.tapped{transform:scale(1.06) translateY(4px);}
+.ev-img{width:100%;height:180px;object-fit:cover;object-position:center 15%;display:block;filter:brightness(.85) contrast(1.05);transition:filter .4s;}
+.ev-card:hover .ev-img{filter:brightness(.95) contrast(1.08);}
+.ev-yr{font-family:var(--mono);font-size:16px;color:var(--gold);letter-spacing:.12em;margin-bottom:.35rem;opacity:.85;font-weight:300;}
+
+/* Birth map card */
+.ev-map{width:100%;height:160px;position:relative;overflow:hidden;background:#0e1520;cursor:pointer;border-bottom:1px solid var(--gold2);}
+.ev-map-canvas{width:100%;height:100%;}
+.ev-map-pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.8));}
+.ev-map-label{position:absolute;bottom:0;left:0;right:0;padding:.4rem .6rem;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--gold);pointer-events:none;}
+
+/* Childhood card style */
+.ev-childhood-badge{display:inline-block;font-family:var(--mono);font-size:6.5px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold2);padding:.15rem .45rem;margin-bottom:.4rem;border-radius:1px;opacity:.7;}
+.ev-title{font-family:var(--display);font-size:1.45rem;font-weight:600;color:var(--cream);line-height:1.18;margin-bottom:.45rem;letter-spacing:.02em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.ev-text{font-family:var(--serif);font-size:1rem;line-height:1.75;color:rgba(221,213,190,0.92);overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;}
+.ev-quote::after{content:" — ACCURACY UNVERIFIED";display:block;font-family:var(--mono);font-size:6px;letter-spacing:.1em;color:var(--muted);opacity:.4;margin-top:.25rem;font-style:normal;}
+.ev-quote{margin-top:.4rem;padding:.65rem .8rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);font-family:var(--serif);font-style:italic;font-size:1.05rem;color:var(--cream);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;}
+.ev-body{padding:1rem 1.1rem 1.2rem;}
+.ev-play-wrap{position:relative;}
+.ev-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);opacity:0;transition:opacity .3s;}
+.ev-card:hover .ev-play-btn{opacity:1;}
+.ev-play-btn svg{width:40px;height:40px;}
+
+/* Scrubber */
+.tl-scrub{position:absolute;bottom:0;left:0;right:0;z-index:25;height:36px;display:flex;align-items:center;padding:0 1.5rem;gap:.75rem;background:rgba(10,8,6,.94);border-top:1px solid var(--gold2);backdrop-filter:blur(8px);}
+.tl-scrub-lbl{font-family:var(--mono);font-size:7.5px;color:var(--muted);letter-spacing:.08em;white-space:nowrap;flex-shrink:0;}
+.tl-scrub-track{flex:1;height:2px;background:var(--muted2);border-radius:1px;position:relative;cursor:pointer;}
+.tl-scrub-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(201,168,76,.3),var(--gold));border-radius:1px;}
+.tl-scrub-thumb{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:var(--gold);border:1.5px solid var(--dark);transform:translate(-50%,-50%);box-shadow:0 0 6px rgba(201,168,76,.4);}
+
+/* Zoom */
+.tl-zoom{position:absolute;bottom:2.8rem;right:1.25rem;z-index:25;display:flex;flex-direction:column;gap:5px;}
+.tl-zbtn{width:34px;height:34px;border-radius:50%;background:rgba(10,8,6,.88);border:1px solid var(--gold2);color:var(--gold);font-family:var(--mono);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;backdrop-filter:blur(4px);user-select:none;}
+.tl-zbtn:hover{background:rgba(201,168,76,.12);border-color:var(--gold);}
+.tl-zbtn.sm{font-size:8px;}
+
+/* Fullscreen btn */
+.fs-btn{position:fixed;z-index:500;bottom:1.2rem;left:1.2rem;display:none;}
+@media(min-width:769px){.fs-btn{width:30px;height:30px;background:rgba(12,10,7,.7);border:1px solid var(--gold2);border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;backdrop-filter:blur(4px);}
+.fs-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.1);}}
+.fs-btn svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:1.5;stroke-linecap:round;}
+
+/* Legal footer — timeline only */
+.tl-footer{
+  position:absolute;bottom:36px;left:0;right:0;z-index:22;
+  display:flex;align-items:center;justify-content:center;gap:1.5rem;
+  padding:.35rem 1.5rem;
+  background:linear-gradient(to top,rgba(10,8,6,.85) 0%,transparent 100%);
+  pointer-events:none;
+}
+.tl-footer a, .tl-footer span{
+  font-family:var(--mono);font-size:7px;letter-spacing:.1em;
+  color:var(--muted);opacity:.5;text-decoration:none;
+  pointer-events:auto;cursor:pointer;
+  transition:opacity .2s;white-space:nowrap;
+}
+.tl-footer a:hover, .tl-footer span:hover{opacity:.9;}
+.tl-footer-sep{opacity:.2!important;pointer-events:none!important;}
+
+/* Legal modal */
+#legalModal{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(10,8,6,.92);backdrop-filter:blur(12px);
+  display:none;align-items:center;justify-content:center;
+  padding:2rem;
+}
+#legalModal.on{display:flex;}
+.legal-box{
+  max-width:560px;width:100%;
+  background:#13110D;
+  border:1px solid var(--gold2);
+  border-radius:3px;
+  padding:2.5rem 2.5rem 2rem;
+  position:relative;max-height:80vh;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--gold2) transparent;
+}
+.legal-close{
+  position:absolute;top:1rem;right:1.25rem;
+  background:none;border:none;color:var(--muted);
+  font-family:var(--mono);font-size:11px;cursor:pointer;
+  transition:color .2s;letter-spacing:.1em;
+}
+.legal-close:hover{color:var(--gold);}
+.legal-title{
+  font-family:var(--display);font-size:1rem;font-weight:600;
+  color:var(--cream);letter-spacing:.15em;margin-bottom:.3rem;
+}
+.legal-sub{
+  font-family:var(--mono);font-size:8px;letter-spacing:.15em;
+  color:var(--gold);opacity:.7;margin-bottom:1.5rem;
+}
+.legal-section{margin-bottom:1.25rem;}
+.legal-section h3{
+  font-family:var(--display);font-size:8px;letter-spacing:.2em;
+  color:var(--gold);opacity:.7;margin-bottom:.4rem;
+}
+.legal-section p{
+  font-family:var(--serif);font-size:.85rem;line-height:1.7;
+  color:var(--muted);
+}
+.legal-section p strong{color:var(--txt);}
+.legal-divider{height:1px;background:var(--gold2);margin:1.25rem 0;opacity:.5;}
+
+/* Quote uncertainty badge */
+.ev-quote-badge{
+  display:inline-block;font-family:var(--mono);font-size:6px;
+  letter-spacing:.1em;color:var(--muted);opacity:.5;
+  margin-top:.3rem;
+}
+
+/* Video overlay */
+#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;cursor:default;}
+#videoOverlay.on{display:flex;}
+#videoFrame{width:min(90vw,1280px);height:min(75vh,calc(min(90vw,1280px)*9/16));border:none;flex-shrink:0;}
+#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;text-align:center;}
+#videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.5);margin-bottom:.5rem;}
+#videoClose{position:absolute;top:1.2rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:var(--mono);font-size:8px;letter-spacing:.15em;padding:.35rem .8rem;cursor:pointer;transition:all .2s;border-radius:2px;}
+#videoClose:hover{color:#fff;border-color:rgba(255,255,255,.5);}
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <div class="intro-logo">STARSEUM<span style="color:var(--gold);font-size:.28em;vertical-align:top;margin-top:.08em;display:inline-block;letter-spacing:.1em;opacity:.9;">.AI</span></div>
+  <div class="intro-rule"></div>
+  <div class="intro-sub">A museum of extraordinary lives</div>
+</div>
+<!-- Search + Mic unified bar -->
+<div id="mSearchWrap" style="position:fixed;top:calc(.85rem + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(440px,80vw);z-index:10000;display:none;opacity:0;transition:opacity .6s ease;align-items:center;gap:10px;">
+  <input type="text" id="mSearch" placeholder="🔍  Search a name…" autocomplete="off" spellcheck="false"
+    style="flex:1;min-width:0;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:3px;padding:.65rem 1.1rem;font-family:var(--mono);font-size:13px;letter-spacing:.07em;color:var(--cream);outline:none;box-shadow:0 4px 28px rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+  <button id="mVoiceBtn" title="Voice command"
+    style="flex-shrink:0;background:rgba(8,6,4,.15);border:1px solid rgba(201,168,76,.35);border-radius:50%;width:44px;height:44px;cursor:pointer;color:var(--gold);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .2s;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+  <div id="mSearchResults" style="display:none;position:absolute;top:calc(100% + 5px);left:0;right:54px;background:rgba(8,6,4,.98);border:1px solid rgba(201,168,76,.3);max-height:300px;overflow-y:auto;border-radius:3px;box-shadow:0 8px 36px rgba(0,0,0,.9);"></div>
+</div>
+
+<div id="mosaicScreen">
+  <div id="mosaicCanvas"></div>
+
+  <div id="mobileTutorial" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(10,8,6,.8);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1.2rem;text-align:center;padding:2rem;">
+      <svg width="56" height="56" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.7)" stroke-width="1.5" stroke-linecap="round"/><circle cx="30" cy="30" r="6" fill="rgba(201,168,76,0.12)" stroke="rgba(201,168,76,0.5)" stroke-width="1"/></svg>
+      <p style="font-family:var(--serif);font-size:1rem;color:var(--cream);line-height:1.6;max-width:220px;opacity:.88;">Drag to explore · Tap a face to enter their museum</p>
+      <button id="mtClose" style="background:none;border:1px solid var(--gold2);color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:.18em;padding:.4rem 1.2rem;cursor:pointer;border-radius:2px;">GOT IT</button>
+    </div>
+  </div>
+  <div class="m-hud"><div class="m-logo">STARSEUM<em>AI</em></div></div>
+</div>
+
+<!-- Prototype disclaimer screen — shown after logo, before mosaic -->
+<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
+  <div style="max-width:min(820px,92vw);width:100%;margin:0 auto;">
+    <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
+    <div style="font-family:var(--serif);font-size:clamp(1rem,2.2vw,1.55rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
+      This prototype curates content from publicly available<br>information, images and video.
+    </div>
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
+    <div style="font-family:var(--mono);font-size:clamp(.55rem,.85vw,.7rem);letter-spacing:.12em;color:var(--muted);line-height:2.1;">
+      Biographical content is AI-generated and may contain inaccuracies<br>
+      For educational &amp; memorial purposes only &nbsp;&middot;&nbsp; Not for commercial use<br>
+      <span id="reportLink" style="color:var(--gold);opacity:.75;cursor:pointer;border-bottom:1px solid rgba(201,168,76,.3);pointer-events:auto;">REPORT CONTENT</span> to be amended or removed
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding overlays -->
+<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.75);backdrop-filter:blur(4px);">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4rem;pointer-events:none;">
+    <!-- Big drag icon -->
+    <svg width="72" height="72" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.65)" stroke-width="1.2" stroke-linecap="round"/></svg>
+    <!-- Instructions -->
+    <div style="text-align:center;display:flex;flex-direction:column;gap:1rem;">
+      <div style="font-family:var(--mono);font-size:14px;letter-spacing:.18em;color:var(--cream);">DRAG TO EXPLORE</div>
+      <div style="font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:rgba(240,230,204,.55);">EXPLORE AND SELECT A STAR</div>
+    </div>
+  </div>
+  <button onclick="dismissOnboard('mosaic')" style="position:absolute;bottom:calc(12% + 120px);left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.7rem 2.5rem;cursor:pointer;border-radius:2px;pointer-events:auto;transition:all .2s;white-space:nowrap;">ENTER THE MUSEUM</button>
+</div>
+<div id="onboardTimeline" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,6,.65);backdrop-filter:blur(2px);">
+  <div style="position:absolute;inset:0;pointer-events:none;">
+    <!-- Top UI labels -->
+    <div style="position:absolute;top:3.2rem;left:50%;transform:translateX(-50%);display:flex;gap:4rem;align-items:flex-start;text-align:center;">
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">BACK</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">TIMELINE · BIO · MEDIA</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">TOUR GUIDE</div></div>
+      <div><div style="font-size:1.1rem;color:var(--gold);">↑</div><div style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--cream);">ASK QUESTIONS</div></div>
+    </div>
+    <!-- Centre instruction -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+      <div style="font-family:var(--display);font-size:1.1rem;letter-spacing:.18em;color:var(--cream);margin-bottom:.5rem;">EXPLORE THEIR LIFE</div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);">← DRAG LEFT & RIGHT · SCROLL TO ZOOM · CLICK CARDS</div>
+    </div>
+    <!-- Bottom label -->
+    <div style="position:absolute;bottom:3.5rem;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);">🎤 TOUR GUIDE IS NARRATING THIS EXHIBITION</div>
+  </div>
+  <button onclick="dismissOnboard('timeline')" style="position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--gold);color:var(--gold);font-family:var(--display);font-size:11px;letter-spacing:.2em;padding:.5rem 1.8rem;cursor:pointer;border-radius:2px;">BEGIN</button>
+</div>
+
+<div id="transLayer"><canvas id="holeCanvas"></canvas></div>
+<div id="zoomDark"></div>
+
+<div id="loadScreen">
+  <img class="lp-img" id="lpImg" src="" alt="">
+  <div class="lp-name" id="lpName"></div>
+  <div class="lp-dates" id="lpDates"></div>
+  <div class="lp-bar"><div class="lp-fill" id="lpFill"></div></div>
+  <div class="lp-step" id="lpStep">CURATING MUSEUM</div>
+  <div class="lp-anim"><div class="lp-dot"></div><div class="lp-dot"></div><div class="lp-dot"></div></div>
+  <div class="lp-err" id="lpErr"></div>
+</div>
+
+<!-- Timeline bar — position:fixed so card transforms/scales inside tlScreen can NEVER cover it -->
+<div class="tl-bar" id="tlBar" style="display:none;">
+  <button class="tl-back" id="tlBack">← MUSEUM</button>
+  <div class="tl-info">
+    <div class="tl-sname" id="tlName"></div>
+    <div class="tl-smeta" id="tlMeta"></div>
+  </div>
+  <div class="tl-tagline" id="tlTagline"></div>
+  <div class="tl-tabs">
+    <button class="tl-tab active" data-tab="timeline" style="pointer-events:auto;cursor:pointer;">TIMELINE</button>
+    <button class="tl-tab" data-tab="bio" style="pointer-events:auto;cursor:pointer;">BIO</button>
+    <button class="tl-tab" data-tab="media" style="pointer-events:auto;cursor:pointer;">MEDIA</button>
+  </div>
+  <div id="qaWrap" style="position:relative;display:flex;align-items:center;gap:.4rem;flex-shrink:0;">
+    <input type="text" id="qaInput" placeholder="Ask a question…" autocomplete="off"
+      style="background:rgba(10,8,6,.6);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .7rem;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--cream);outline:none;width:140px;transition:border-color .2s;">
+    <button id="qaBtn" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.32rem .55rem;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);cursor:pointer;transition:all .2s;">ASK</button>
+    <div id="qaAnswer" style="display:none;position:absolute;top:100%;right:0;width:320px;background:rgba(10,8,6,.97);border:1px solid var(--gold2);border-radius:2px;padding:1rem 1.1rem;margin-top:.3rem;z-index:10001;font-family:var(--serif);font-size:.88rem;line-height:1.7;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.7);"></div>
+  </div>
+  <button id="tourBtn" style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.4);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gold);padding:.4rem .8rem;transition:all .2s;display:flex;align-items:center;gap:.4rem;flex-shrink:0;" title="Audio tour guide">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>TOUR
+  </button>
+  <button id="ccBtn" title="Toggle subtitles (accessibility)" style="background:none;border:1px solid rgba(201,168,76,.2);border-radius:2px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);padding:.4rem .55rem;flex-shrink:0;transition:all .2s;">CC</button>
+</div>
+
+<div id="tlScreen">
+  <div id="tlAmbient"></div>
+  <!-- Dedicated always-on-top back button -->
+  <button id="tlBackFixed" onclick="stopTour();goHome();"
+    style="position:fixed;top:.8rem;left:.8rem;z-index:9999;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.5);border-radius:2px;font-family:var(--display);font-size:9px;letter-spacing:2px;color:var(--cream);padding:.45rem .9rem;cursor:pointer;pointer-events:auto;transition:all .2s;display:none;">
+    ← MUSEUM
+  </button>
+  <div id="tlScroll">
+    <div id="tlStrip">
+      <div class="tl-spine"></div>
+    </div>
+  </div>
+  <div id="bioPanel"></div>
+  <div id="mediaPanel"></div>
+  <div class="tl-zoom">
+    <div class="tl-zbtn" id="zIn">+</div>
+    <div class="tl-zbtn" id="zOut">−</div>
+    <div class="tl-zbtn sm" id="zFit">FIT</div>
+  </div>
+  <div class="tl-footer">
+    <span id="legalBtn">LEGAL &amp; DISCLAIMER</span>
+    <span class="tl-footer-sep">·</span>
+    <span>AI-GENERATED CONTENT</span>
+    <span class="tl-footer-sep">·</span>
+    <span>IMAGES © WIKIMEDIA COMMONS CC-BY-SA</span>
+    <span class="tl-footer-sep">·</span>
+    <span>IN MEMORIAM · EDUCATIONAL USE ONLY</span>
+  </div>
+  <div class="tl-scrub">
+    <div class="tl-scrub-lbl" id="scrubBirth"></div>
+    <div class="tl-scrub-track" id="scrubTrack">
+      <div class="tl-scrub-fill" id="scrubFill"></div>
+      <div class="tl-scrub-thumb" id="scrubThumb"></div>
+    </div>
+    <div class="tl-scrub-lbl" id="scrubDeath"></div>
+  </div>
+</div>
+
+<!-- Legal Modal -->
+<div id="legalModal">
+  <div class="legal-box">
+    <button class="legal-close" id="legalClose">✕ CLOSE</button>
+    <div class="legal-title">STARSEUM</div>
+    <div class="legal-sub">LEGAL NOTICE &amp; DISCLAIMER</div>
+
+    <div class="legal-section">
+      <h3>AI-GENERATED CONTENT</h3>
+      <p>Biographical content, timelines, and quotes on this site are generated by <strong>Claude AI (Anthropic)</strong> and may contain inaccuracies, errors, or misattributed quotations. Starseum does not guarantee the accuracy of any AI-generated content. Quotes in particular should be treated as <strong>illustrative rather than verified</strong> — AI systems are known to misattribute or fabricate quotations.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>IN MEMORIAM</h3>
+      <p>Starseum is created <strong>as a respectful tribute</strong> to individuals who have passed. It is intended solely for educational, memorial, and cultural appreciation purposes. It is not affiliated with, endorsed by, or connected to any estate, rights holder, or official representative of any person featured.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>IMAGES &amp; MEDIA</h3>
+      <p>Photographs are sourced from <strong>Wikimedia Commons</strong> under Creative Commons licences (CC-BY-SA and public domain). Video content links to <strong>YouTube</strong> and is subject to YouTube's Terms of Service. Starseum does not host or own any video content.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>NO COMMERCIAL USE</h3>
+      <p>This site does not use any individual's name, likeness, or biographical information for commercial gain. No content is sold or monetised. If you are a rights holder and have concerns about any content, please contact us to request a correction or removal.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>QUOTES &amp; ATTRIBUTION</h3>
+      <p>Quotes displayed on this site are generated by AI and <strong>have not been independently verified</strong>. They are presented as illustrative of the subject's known views and should not be treated as confirmed primary sources. If you identify a misattributed or fabricated quote, please contact us immediately.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>EDITORIAL POLICY</h3>
+      <p>Starseum features only individuals who have passed away. Out of respect, <strong>new subjects are added no sooner than one month after their passing</strong>. We do not cover living people. Content is reviewed periodically for accuracy and sensitivity.</p>
+    </div>
+
+    <div class="legal-divider"></div>
+
+    <div class="legal-section">
+      <h3>CORRECTIONS</h3>
+      <p>We welcome corrections to factual errors. If you spot inaccurate content, please reach out. Starseum is committed to being accurate and respectful in its depiction of all individuals featured.</p>
+    </div>
+  </div>
+</div>
+
+<div id="videoOverlay" id="videoOverlay">
+  <button id="videoClose">✕ CLOSE</button>
+  <div id="videoMeta"></div>
+  <iframe id="videoFrame" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
+    <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video may be restricted. Watch it directly on YouTube.</div>
+    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">WATCH ON YOUTUBE ↗</a>
+  </div>
+</div>
+
+<div class="fs-btn" id="fsBtn">
+  <svg viewBox="0 0 16 16"><polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/><polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/></svg>
+</div>
+
+
+<script>
+// ── HOISTED STATE DECLARATIONS ──
+// All `let` vars referenced by IIFEs or functions called during init must be here
+let _subtitlesOn = localStorage.getItem('st_subtitles')==='1';
+let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
+let _tourSpeakGen=0;
+let voiceRecog=null;
+let tlScale=1.4,tlRunning=false,tlRaf;
+
+// ═══════════════════════════════════════════
+//  STARS
+// ═══════════════════════════════════════════
+const STARS=[
+  {name:"James Dean",slug:"James_Dean",years:"1931–1955"},
+  {name:"Marilyn Monroe",slug:"Marilyn_Monroe",years:"1926–1962"},
+  {name:"Audrey Hepburn",slug:"Audrey_Hepburn",years:"1929–1993"},
+  {name:"Elvis Presley",slug:"Elvis_Presley",years:"1935–1977"},
+  {name:"Jimi Hendrix",slug:"Jimi_Hendrix",years:"1942–1970"},
+  {name:"Janis Joplin",slug:"Janis_Joplin",years:"1943–1970"},
+  {name:"Jim Morrison",slug:"Jim_Morrison",years:"1943–1971"},
+  {name:"Bruce Lee",slug:"Bruce_Lee",years:"1940–1973"},
+  {name:"John Lennon",slug:"John_Lennon",years:"1940–1980"},
+  {name:"Bob Marley",slug:"Bob_Marley",years:"1945–1981"},
+  {name:"Princess Diana",slug:"Diana,_Princess_of_Wales",years:"1961–1997"},
+  {name:"Freddie Mercury",slug:"Freddie_Mercury",years:"1946–1991"},
+  {name:"Kurt Cobain",slug:"Kurt_Cobain",years:"1967–1994"},
+  {name:"Tupac Shakur",slug:"Tupac_Shakur",years:"1971–1996"},
+  {name:"River Phoenix",slug:"River_Phoenix",years:"1970–1993"},
+  {name:"Heath Ledger",slug:"Heath_Ledger",years:"1979–2008"},
+  {name:"Amy Winehouse",slug:"Amy_Winehouse",years:"1983–2011"},
+  {name:"Whitney Houston",slug:"Whitney_Houston",years:"1963–2012"},
+  {name:"Robin Williams",slug:"Robin_Williams",years:"1951–2014"},
+  {name:"David Bowie",slug:"David_Bowie",years:"1947–2016"},
+  {name:"Prince",slug:"Prince_(musician)",years:"1958–2016"},
+  {name:"Muhammad Ali",slug:"Muhammad_Ali",years:"1942–2016"},
+  {name:"Michael Jackson",slug:"Michael_Jackson",years:"1958–2009"},
+  {name:"Kobe Bryant",slug:"Kobe_Bryant",years:"1978–2020"},
+  {name:"Chadwick Boseman",slug:"Chadwick_Boseman",years:"1976–2020"},
+  {name:"Diego Maradona",slug:"Diego_Maradona",years:"1960–2020"},
+  {name:"Paul Walker",slug:"Paul_Walker",years:"1973–2013"},
+  {name:"Queen Elizabeth II",slug:"Elizabeth_II",years:"1926–2022"},
+  {name:"Pelé",slug:"Pelé",years:"1940–2022"},
+  {name:"Anthony Bourdain",slug:"Anthony_Bourdain",years:"1956–2018"},
+  {name:"Notorious B.I.G.",slug:"The_Notorious_B.I.G.",years:"1972–1997"},
+  {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
+  {name:"Frank Sinatra",slug:"Frank_Sinatra",years:"1915–1998"},
+  {name:"Billie Holiday",slug:"Billie_Holiday",years:"1915–1959"},
+  {name:"Miles Davis",slug:"Miles_Davis",years:"1926–1991"},
+  {name:"Aretha Franklin",slug:"Aretha_Franklin",years:"1942–2018"},
+  {name:"Johnny Cash",slug:"Johnny_Cash",years:"1932–2003"},
+  {name:"Maya Angelou",slug:"Maya_Angelou",years:"1928–2014"},
+  {name:"Martin Luther King Jr.",slug:"Martin_Luther_King_Jr.",years:"1929–1968"},
+  {name:"John F. Kennedy",slug:"John_F._Kennedy",years:"1917–1963"},
+  {name:"Albert Einstein",slug:"Albert_Einstein",years:"1879–1955"},
+  {name:"Marie Curie",slug:"Marie_Curie",years:"1867–1934"},
+  {name:"Nikola Tesla",slug:"Nikola_Tesla",years:"1856–1943"},
+  {name:"Steve Jobs",slug:"Steve_Jobs",years:"1955–2011"},
+  {name:"Pablo Picasso",slug:"Pablo_Picasso",years:"1881–1973"},
+  {name:"Frida Kahlo",slug:"Frida_Kahlo",years:"1907–1954"},
+  {name:"Coco Chanel",slug:"Coco_Chanel",years:"1883–1971"},
+  {name:"Charlie Chaplin",slug:"Charlie_Chaplin",years:"1889–1977"},
+  {name:"Ernest Hemingway",slug:"Ernest_Hemingway",years:"1899–1961"},
+  {name:"Winston Churchill",slug:"Winston_Churchill",years:"1874–1965"},
+  // Music legends
+  {name:"Jimi Hendrix",slug:"Jimi_Hendrix",years:"1942–1970"},
+  {name:"Janis Joplin",slug:"Janis_Joplin",years:"1943–1970"},
+  {name:"Jim Morrison",slug:"Jim_Morrison",years:"1943–1971"},
+  {name:"Billie Holiday",slug:"Billie_Holiday",years:"1915–1959"},
+  {name:"Edith Piaf",slug:"Édith_Piaf",years:"1915–1963"},
+  {name:"Buddy Holly",slug:"Buddy_Holly",years:"1936–1959"},
+  {name:"Otis Redding",slug:"Otis_Redding",years:"1941–1967"},
+  {name:"Marvin Gaye",slug:"Marvin_Gaye",years:"1939–1984"},
+  {name:"Karen Carpenter",slug:"Karen_Carpenter",years:"1950–1983"},
+  {name:"Jeff Buckley",slug:"Jeff_Buckley",years:"1966–1997"},
+  {name:"Aaliyah",slug:"Aaliyah",years:"1979–2001"},
+  {name:"Left Eye",slug:"Lisa_Lopes",years:"1971–2002"},
+  {name:"Ol' Dirty Bastard",slug:"Ol'_Dirty_Bastard",years:"1968–2004"},
+  {name:"Mac Miller",slug:"Mac_Miller",years:"1992–2018"},
+  {name:"Lil Peep",slug:"Lil_Peep",years:"1996–2017"},
+  {name:"Avicii",slug:"Avicii",years:"1989–2018"},
+  // Film & TV
+  {name:"Marilyn Monroe",slug:"Marilyn_Monroe",years:"1926–1962"},
+  {name:"James Dean",slug:"James_Dean",years:"1931–1955"},
+  {name:"Audrey Hepburn",slug:"Audrey_Hepburn",years:"1929–1993"},
+  {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
+  {name:"Peter Sellers",slug:"Peter_Sellers",years:"1925–1980"},
+  {name:"Gene Wilder",slug:"Gene_Wilder",years:"1933–2016"},
+  {name:"John Candy",slug:"John_Candy",years:"1950–1994"},
+  {name:"Chris Farley",slug:"Chris_Farley",years:"1964–1997"},
+  {name:"John Belushi",slug:"John_Belushi",years:"1949–1982"},
+  {name:"Brittany Murphy",slug:"Brittany_Murphy",years:"1977–2009"},
+  {name:"Luke Perry",slug:"Luke_Perry",years:"1966–2019"},
+  {name:"Anton Yelchin",slug:"Anton_Yelchin",years:"1989–2016"},
+  // Sport
+  {name:"Ayrton Senna",slug:"Ayrton_Senna",years:"1960–1994"},
+  {name:"George Best",slug:"George_Best",years:"1946–2005"},
+  {name:"Johan Cruyff",slug:"Johan_Cruyff",years:"1947–2016"},
+  {name:"Joe Frazier",slug:"Joe_Frazier",years:"1944–2011"},
+  {name:"Arthur Ashe",slug:"Arthur_Ashe",years:"1943–1993"},
+  {name:"Florence Griffith-Joyner",slug:"Florence_Griffith-Joyner",years:"1959–1998"},
+  // Culture & history
+  {name:"Andy Warhol",slug:"Andy_Warhol",years:"1928–1987"},
+  {name:"Jean-Michel Basquiat",slug:"Jean-Michel_Basquiat",years:"1960–1988"},
+  {name:"Keith Haring",slug:"Keith_Haring",years:"1958–1990"},
+  {name:"Hunter S. Thompson",slug:"Hunter_S._Thompson",years:"1937–2005"},
+  {name:"Christopher Hitchens",slug:"Christopher_Hitchens",years:"1949–2011"},
+  {name:"Nelson Mandela",slug:"Nelson_Mandela",years:"1918–2013"},
+  {name:"Mahatma Gandhi",slug:"Mahatma_Gandhi",years:"1869–1948"},
+  {name:"Malcolm X",slug:"Malcolm_X",years:"1925–1965"},
+  {name:"Che Guevara",slug:"Che_Guevara",years:"1928–1967"},
+  {name:"Patrice Lumumba",slug:"Patrice_Lumumba",years:"1925–1961"},
+];
+// Ethical policy: stars added only 1+ month after passing
+// Last reviewed: June 2026
+
+// ═══════════════════════════════════════════
+//  MOSAIC
+// ═══════════════════════════════════════════
+const isMobile=window.innerWidth<600;
+const TW=isMobile?114:192, TH=isMobile?149:250, TG=isMobile?2:3, SX=TW+TG, SY=TH+TG;
+const mc=document.getElementById('mosaicCanvas');
+let camX=0,camY=0,velX=0,velY=0;
+let mZoom=1,mZoomTarget=1;
+const M_ZOOM_MIN=0.6,M_ZOOM_MAX=1.4;
+let mDrag=false,mDidDrag=false,mDX0,mDY0,mCX0,mCY0,mLX,mLY;
+let edgePX=0,edgePY=0;
+let mActive=true,mRaf;
+let thumbs={},rendered=new Set();
+let hoveredTile=null,clickedTile=null;
+
+const rowPerms={};
+function seededShuffle(arr,seed){
+  const a=[...arr];
+  let s=(seed^0x9e3779b9)>>>0;
+  const rand=()=>{s=Math.imul(s^(s>>>16),0x45d9f3b);s=Math.imul(s^(s>>>16),0x45d9f3b);s=s^(s>>>16);return(s>>>0)/4294967296;};
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function getRowPerm(r){
+  if(rowPerms[r])return rowPerms[r];
+  const n=STARS.length;
+  // Each row gets a different prime-multiplied seed
+  const seed=Math.abs(r*2654435761+(r*r*196613)+7)>>>0;
+  let perm=seededShuffle([...Array(n).keys()],seed);
+  // Get previous row's perm to avoid vertical duplicates
+  const prevPerm=rowPerms[r-1]||rowPerms[r+1];
+  // Check 2 previous rows to avoid vertical duplicates
+  for(let prevR=r-1;prevR>=r-2;prevR--){
+    const prev=rowPerms[prevR];
+    if(!prev)continue;
+    for(let i=0;i<Math.min(perm.length,20);i++){
+      if(STARS[perm[i]].slug===STARS[prev[i]].slug){
+        for(let j=i+6;j<perm.length;j++){
+          if(STARS[perm[j]].slug!==STARS[prev[j]]?.slug){
+            [perm[i],perm[j]]=[perm[j],perm[i]];break;
+          }
+        }
+      }
+    }
+  }
+  // Also ensure no same slug within 3 positions in the same row
+  for(let i=0;i<perm.length;i++){
+    for(let k=1;k<=3;k++){
+      if(i+k<perm.length&&STARS[perm[i]].slug===STARS[perm[i+k]].slug){
+        for(let j=i+k+4;j<perm.length;j++){
+          if(STARS[perm[j]].slug!==STARS[perm[i]].slug){
+            [perm[i+k],perm[j]]=[perm[j],perm[i+k]];break;
+          }
+        }
+      }
+    }
+  }
+  rowPerms[r]=perm;
+  return perm;
+}
+function starAt(c,r){
+  const n=STARS.length,p=getRowPerm(r),col=((c%n)+n)%n;
+  return STARS[p[col]];
+}
+
+function mInit(){
+  renderTiles();mLoop();
+  const ms=document.getElementById('mosaicScreen');
+  ms.addEventListener('mousedown',e=>{
+    mDrag=true;mDidDrag=false;
+    mDX0=e.clientX;mDY0=e.clientY;mCX0=camX;mCY0=camY;
+    mLX=e.clientX;mLY=e.clientY;velX=0;velY=0;
+    mc.style.cursor='grabbing';e.preventDefault();
+  },{passive:false});
+  window.addEventListener('mousemove',e=>{
+    // Don't pan if search is focused
+    if(document.activeElement&&document.activeElement.id==='mSearch'){edgePX=0;edgePY=0;return;}
+    if(mDrag){
+      const dx=e.clientX-mDX0,dy=e.clientY-mDY0;
+      if(Math.abs(dx)>4||Math.abs(dy)>4)mDidDrag=true;
+      velX=e.clientX-mLX;velY=e.clientY-mLY;
+      mLX=e.clientX;mLY=e.clientY;
+      camX=mCX0+dx;camY=mCY0+dy;return;
+    }
+    const vw=window.innerWidth,vh=window.innerHeight;
+    const x=e.clientX,y=e.clientY;
+    const zx=vw*0.45,zy=vh*0.45,spd=18;
+    edgePX=x<zx?spd*Math.pow((zx-x)/zx,2.5):x>vw-zx?-spd*Math.pow((x-(vw-zx))/zx,2.5):0;
+    edgePY=y<zy?spd*Math.pow((zy-y)/zy,2.5):y>vh-zy?-spd*Math.pow((y-(vh-zy))/zy,2.5):0;
+    const ms2=document.getElementById('mosaicCanvas');
+    if(ms2){
+      ms2.className=ms2.className.replace(/\bcur-\w+\b/g,'').trim();
+      const goW=edgePX>1,goE=edgePX<-1,goN=edgePY>1,goS=edgePY<-1;
+      if(goN&&goW)ms2.classList.add('cur-nw');
+      else if(goN&&goE)ms2.classList.add('cur-ne');
+      else if(goS&&goW)ms2.classList.add('cur-sw');
+      else if(goS&&goE)ms2.classList.add('cur-se');
+      else if(goW)ms2.classList.add('cur-w');
+      else if(goE)ms2.classList.add('cur-e');
+      else if(goN)ms2.classList.add('cur-n');
+      else if(goS)ms2.classList.add('cur-s');
+    }
+  });
+  window.addEventListener('mouseup',()=>{mDrag=false;mc.style.cursor='';});
+  ms.addEventListener('mouseleave',()=>{edgePX=0;edgePY=0;setHover(null);});
+  ms.addEventListener('wheel',e=>{
+    if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>Math.abs(e.deltaX)){
+      e.preventDefault();
+      mZoomTarget=Math.max(M_ZOOM_MIN,Math.min(M_ZOOM_MAX,mZoomTarget*(e.deltaY>0?0.94:1.06)));
+    }
+  },{passive:false});
+  let tX0,tY0,tCX0,tCY0,tLX,tLY,tMoved=false;
+  ms.addEventListener('touchstart',e=>{
+    const t=e.touches[0];mDrag=true;mDidDrag=false;tMoved=false;
+    tX0=t.clientX;tY0=t.clientY;tCX0=camX;tCY0=camY;
+    tLX=t.clientX;tLY=t.clientY;velX=0;velY=0;
+  },{passive:true});
+  ms.addEventListener('touchmove',e=>{
+    if(!mDrag)return;
+    const t=e.touches[0];
+    const dx=t.clientX-tX0,dy=t.clientY-tY0;
+    if(Math.abs(dx)>8||Math.abs(dy)>8){mDidDrag=true;tMoved=true;}
+    velX=t.clientX-tLX;velY=t.clientY-tLY;
+    tLX=t.clientX;tLY=t.clientY;
+    camX=tCX0+dx;camY=tCY0+dy;
+  },{passive:true});
+  ms.addEventListener('touchend',e=>{
+    mDrag=false;
+    edgePX=0;edgePY=0;
+    if(!tMoved&&e.changedTouches[0]){
+      const t=e.changedTouches[0];
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const tile=el?.closest?.('.star-tile');
+      if(tile?._star)enterStar(tile._star,tile);
+    }
+  });
+}
+
+function setHover(tile){
+  if(hoveredTile===tile)return;
+  hoveredTile=tile;
+  const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+  if(!tile){tiles.forEach(t=>t.removeAttribute('data-b'));return;}
+  const cx=parseInt(tile.style.left)+TW/2, cy=parseInt(tile.style.top)+TH/2;
+  tiles.forEach(t=>{
+    const tx=parseInt(t.style.left)+TW/2, ty=parseInt(t.style.top)+TH/2;
+    const d=Math.max(Math.abs(tx-cx)/SX,Math.abs(ty-cy)/SY);
+    t.setAttribute('data-b',String(d<0.5?4:d<1.5?3:d<2.5?2:d<3.5?1:0));
+  });
+}
+
+// Mobile: update brightness based on distance from screen centre
+function updateMobileBrightness(){
+  if(!isMobile)return;
+  const vcx=window.innerWidth/2-camX;
+  const vcy=window.innerHeight/2-camY;
+  mc.querySelectorAll('.star-tile').forEach(t=>{
+    const tx=parseInt(t.style.left)+TW/2;
+    const ty=parseInt(t.style.top)+TH/2;
+    const dx=Math.abs(tx-vcx)/SX, dy=Math.abs(ty-vcy)/SY;
+    const d=Math.max(dx,dy);
+    t.setAttribute('data-b',String(d<0.5?4:d<1.5?3:d<2.5?2:d<3.5?1:0));
+  });
+}
+
+function mLoop(){
+  if(!mActive)return;
+  if(!mDrag){
+    velX*=0.97;velY*=0.97;
+    camX+=velX;camY+=velY;
+    if((edgePX||edgePY)&&document.activeElement?.id!=='mSearch'){camX+=edgePX;camY+=edgePY;}
+  }
+  mZoom+=(mZoomTarget-mZoom)*0.12;
+  mc.style.transform=`translate(${Math.round(camX)}px,${Math.round(camY)}px) scale(${mZoom.toFixed(3)})`;
+  mc.style.transformOrigin='center center';
+  renderTiles();
+  if(isMobile)updateMobileBrightness();
+  mRaf=requestAnimationFrame(mLoop);
+}
+
+function renderTiles(){
+  const vw=window.innerWidth,vh=window.innerHeight,buf=2;
+  const c0=Math.floor((-camX-buf*SX)/SX),c1=Math.ceil((-camX+vw+buf*SX)/SX);
+  const r0=Math.floor((-camY-buf*SY)/SY),r1=Math.ceil((-camY+vh+buf*SY)/SY);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){
+    const key=`${c},${r}`;
+    if(rendered.has(key))continue;
+    rendered.add(key);
+    makeTile(starAt(c,r),c*SX,r*SY);
+  }
+}
+
+function makeTile(star,tx,ty){
+  const t=document.createElement('div');
+  t.className='star-tile';t._star=star;
+  t.style.cssText=`left:${tx}px;top:${ty}px;width:${TW}px;height:${TH}px;`;
+  const ph=document.createElement('div');ph.className='star-ph';
+  ph.innerHTML=`<div class="star-ph-i">${star.name[0]}</div>`;
+  t.appendChild(ph);
+  t.appendChild(Object.assign(document.createElement('div'),{className:'star-tile-shade'}));
+  const lb=document.createElement('div');lb.className='star-tile-label';
+  lb.innerHTML=`<div class="stn">${star.name}</div><div class="sty">${star.years}</div>`;
+  t.appendChild(lb);
+  t.addEventListener('mouseenter',()=>{if(!mDrag&&!mDidDrag)setHover(t);});
+  t.addEventListener('mouseleave',()=>{if(hoveredTile===t)setHover(null);});
+  t.addEventListener('click',()=>{if(!mDidDrag){setHover(null);enterStar(star,t);}});
+  mc.appendChild(t);
+  if(thumbs[star.slug]){injectThumb(t,ph,thumbs[star.slug]);return;}
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(star.slug)}`)
+    .then(r=>r.ok?r.json():null).then(d=>{
+      if(!d?.thumbnail?.source)return;
+      thumbs[star.slug]=d.thumbnail.source;
+      mc.querySelectorAll('.star-tile').forEach(el=>{
+        if(el._star?.slug===star.slug){const p=el.querySelector('.star-ph');if(p)injectThumb(el,p,d.thumbnail.source);}
+      });
+    }).catch(()=>{});
+}
+
+function injectThumb(tile,ph,src){
+  if(!ph?.parentNode)return;
+  const img=document.createElement('img');img.src=src;img.draggable=false;
+  img.onload=()=>{if(ph?.parentNode)ph.replaceWith(img);};
+}
+
+// ═══════════════════════════════════════════
+//  TRANSITION
+// ═══════════════════════════════════════════
+function enterStar(star,tile){
+  // Hide search when entering a museum
+  const sw=document.getElementById('mSearchWrap');
+  if(sw){sw.style.opacity='0';setTimeout(()=>{if(sw.style.opacity==='0')sw.style.display='none';},600);}
+  const sr=document.getElementById('mSearchResults');
+  if(sr)sr.style.display='none';
+  mActive=false;cancelAnimationFrame(mRaf);
+  edgePX=0;edgePY=0;clickedTile=tile;
+  const thumb=thumbs[star.slug]||null;
+  const rect=tile.getBoundingClientRect();
+  const vw=window.innerWidth,vh=window.innerHeight;
+
+  // Dark overlay fades over mosaic
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:70;background:var(--dark);opacity:0;transition:opacity .6s ease;pointer-events:none;';
+  document.body.appendChild(overlay);
+
+  // Clone the tile image — animates to loading screen position
+  const clone=document.createElement('div');
+  const tW=Math.min(180,vw*0.28), tH=tW*(rect.height/Math.max(rect.width,1));
+  const tX=(vw-tW)/2, tY=Math.max(60,vh*0.28);
+  clone.style.cssText=`position:fixed;z-index:90;overflow:hidden;border-radius:2px;pointer-events:none;
+    left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;
+    transition:left .6s cubic-bezier(.4,0,.2,1),top .6s cubic-bezier(.4,0,.2,1),width .6s cubic-bezier(.4,0,.2,1),height .6s cubic-bezier(.4,0,.2,1);`;
+  if(thumb){
+    const ci=document.createElement('img');
+    ci.src=thumb;ci.style.cssText='width:100%;height:100%;object-fit:cover;object-position:center top;display:block;';
+    clone.appendChild(ci);
+  }else{
+    clone.style.background='var(--card)';
+  }
+  document.body.appendChild(clone);
+
+  // Trigger animation next frame
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    overlay.style.opacity='1';
+    clone.style.left=tX+'px';
+    clone.style.top=tY+'px';
+    clone.style.width=tW+'px';
+    clone.style.height=tH+'px';
+  }));
+
+  setTimeout(()=>{
+    document.getElementById('mosaicScreen').style.display='none';
+    document.body.removeChild(overlay);
+    startJourney(star,thumb,clone,tX,tY,tW,tH);
+  },680);
+}
+
+// ═══════════════════════════════════════════
+//  LOADING
+// ═══════════════════════════════════════════
+function showLoad(star,thumb,clone,clX,clY,clW,clH){
+  const ls=document.getElementById('loadScreen');
+  ls.classList.add('on');
+  const img=document.getElementById('lpImg');
+  if(thumb){img.src=thumb;img.style.display='block';}else{img.style.display='none';}
+  img.style.opacity='0'; // hidden until clone arrives
+  document.getElementById('lpName').textContent=star.name.toUpperCase();
+  document.getElementById('lpDates').textContent=star.years||'';
+  document.getElementById('lpErr').textContent='';
+  setLoad(5,'GATHERING RECORDS');
+
+  if(clone&&clone.parentNode&&clX!==undefined){
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const finalW=130,finalH=172;
+    const finalX=(vw-finalW)/2, finalY=Math.max(40,vh*0.28);
+    // Animate clone to lpImg's final position
+    setTimeout(()=>{
+      if(!clone.parentNode)return;
+      clone.style.transition='left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),width .45s,height .45s';
+      clone.style.left=finalX+'px'; clone.style.top=finalY+'px';
+      clone.style.width=finalW+'px'; clone.style.height=finalH+'px';
+      // Crossfade: show lpImg, fade clone simultaneously
+      setTimeout(()=>{
+        img.style.transition='opacity .3s ease'; img.style.opacity='1';
+        clone.style.transition='opacity .3s ease'; clone.style.opacity='0';
+        setTimeout(()=>{if(clone.parentNode)document.body.removeChild(clone);},320);
+      },470);
+    },40);
+  }else{
+    if(clone&&clone.parentNode)document.body.removeChild(clone);
+    img.style.opacity='1';
+  }
+}
+function setLoad(p,s){
+  document.getElementById('lpFill').style.width=p+'%';
+  if(s)document.getElementById('lpStep').textContent=s;
+}
+function hideLoad(){document.getElementById('loadScreen').classList.remove('on');}
+
+// ── VIDEO DATA PIPELINE ──
+async function fetchVideoData(tl, star){
+  const events=tl.events||[];
+  const queries=events.map((ev,i)=>{
+    if(ev.type==='birth'||i===0)return null;
+    if(ev.videoSearch)return ev.videoSearch;
+    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
+    return (star.name+' '+(words||ev.year||'')).substring(0,80).trim();
+  });
+  try{
+    const indexMap=[],activeQueries=[];
+    queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
+    if(!activeQueries.length)return{indexMap:[],results:[]};
+    const r=await fetch('/.netlify/functions/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queries:activeQueries.slice(0,8)})});
+    if(!r.ok)return{indexMap:[],results:[]};
+    const data=await r.json();
+    return{indexMap,results:data.results||[]};
+  }catch(e){
+    console.log('fetchVideoData error:',e.message);
+    return{indexMap:[],results:[]};
+  }
+}
+
+function injectVideoData(tl,videoData){
+  const{indexMap=[],results=[]}=videoData;
+  const events=tl.events||[];
+  results.forEach((candidates,j)=>{
+    if(!candidates?.length)return;
+    const i=indexMap[j],ev=events[i];
+    if(!ev)return;
+    ev.youtubeId=candidates[0].videoId;
+    ev.youtubeCandidates=candidates;
+    ev._ytThumb=candidates[0].thumb;
+  });
+}
+
+async function enrichVideos(star,tl){
+  const events=tl.events||[];
+  events.forEach((ev,i)=>{
+    if(!ev.youtubeCandidates?.length)return;
+    const candidates=ev.youtubeCandidates;
+    const vWrap=document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
+    if(!vWrap)return;
+    const thumb=vWrap.querySelector('.ev-img');
+    if(thumb&&candidates[0].thumb)thumb.src=candidates[0].thumb;
+    vWrap.onclick=null;
+    vWrap.addEventListener('click',(e)=>{
+      if(vWrap._vWrapDrag)return;
+      openVideoWithFallback(candidates,ev.title||'');
+    },{once:true});
+  });
+  if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef,tourTlRef,{thumb:null,images:[]});
+}
+
+// ═══════════════════════════════════════════
+//  JOURNEY
+// ═══════════════════════════════════════════
+async function startJourney(star,thumb,clone,clX,clY,clW,clH){
+  showLoad(star,thumb,clone,clX,clY,clW,clH);
+  // Desktop only: speak star's name via ElevenLabs on loading screen
+  if(!isMobile){
+    let _nameSpeakDone=false;
+    (async()=>{
+      try{
+        const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
+        if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+      }catch(e){}
+      if(!_nameSpeakDone)speak(star.name+'.', 0.82);
+    })();
+  }
+  try{
+    setLoad(20,'CURATING MUSEUM');
+    const tl=await fetchTimeline(star.name);
+    // Pre-fetch welcome narration NOW — runs in parallel with images+video load
+    // By the time the timeline is built, audio should be ready to play instantly
+    const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+(tl.tagline||'')+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+    fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,800)})})
+      .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
+    setLoad(45,'SOURCING IMAGES & VIDEO');
+    // Fetch images and videos in parallel — both are needed before building
+    const [wiki, videoData] = await Promise.all([
+      fetchWikiImages(tl.wikipediaSlug||star.slug),
+      fetchVideoData(tl, star)
+    ]);
+    // Inject verified video candidates into events
+    injectVideoData(tl, videoData);
+    setLoad(88,'BUILDING EXHIBITION');
+    await sleep(200);setLoad(100,'');await sleep(150);
+    hideLoad();
+    buildTimeline(star,tl,wiki,thumb);
+    enrichVideos(star,tl); // data already in tl.events — just wires DOM
+    document.getElementById('tlScreen').classList.add('on');
+    document.getElementById('tlBar').style.display='flex';
+    const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='block';
+  // Hide mosaic UI
+  const sw=document.getElementById('mSearchWrap');if(sw){sw.style.opacity='0';setTimeout(()=>{sw.style.display='none';},600);}
+    const zd=document.getElementById('zoomDark');
+    zd.style.opacity='0';setTimeout(()=>{zd.style.pointerEvents='none';},600);
+  }catch(err){
+    console.error(err);
+    const msg=typeof err==='string'?err:(err?.message||'Could not load. Please try again.');
+    document.getElementById('lpErr').textContent=msg+'  Tap to return.';
+    setLoad(0,'ERROR');
+    document.getElementById('loadScreen').addEventListener('click',goHome,{once:true});
+  }
+}
+
+function goHome(){
+  stopTour();
+  const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='none';
+  document.getElementById('tlBar').style.display='none';
+  // Show mosaic UI
+  const sw=document.getElementById('mSearchWrap');if(sw){sw.style.display='flex';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
+  stopTL();
+  document.getElementById('tlScreen').classList.remove('on');
+  document.getElementById('loadScreen').classList.remove('on');
+  document.getElementById('mosaicScreen').style.display='block';
+  if(clickedTile){const img=clickedTile.querySelector('img');if(img){img.style.filter='';img.style.opacity='';}clickedTile=null;}
+  document.getElementById('zoomDark').style.opacity='0';
+  setTimeout(()=>{document.getElementById('zoomDark').style.pointerEvents='none';},500);
+  mActive=true;velX=0;velY=0;mLoop();
+}
+document.getElementById('tlBack').addEventListener('click',()=>{ stopTour(); goHome(); });
+
+// ═══════════════════════════════════════════
+//  APIs
+// ═══════════════════════════════════════════
+async function fetchTimeline(name, attempt=0){
+  try{
+    const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Error ${r.status}`);}
+    const data=await r.json();
+    if(data.error)throw new Error(data.error.message||data.error);
+    const raw=data.content?.find(b=>b.type==='text')?.text||'{}';
+    const clean=raw.replace(/^```json\s*|^```\s*|```\s*$/gm,'').trim();
+    if(!clean||clean==='{}')throw new Error('No data returned');
+    return JSON.parse(clean);
+  }catch(err){
+    if(attempt===0){
+      await sleep(1800);
+      return fetchTimeline(name,1);
+    }
+    throw err;
+  }
+}
+
+async function fetchWikiImages(slug){
+  const s=slug.replace(/ /g,'_');
+  const out={thumb:null,images:[],earlyImages:[]};
+  try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}}catch(e){}
+  try{
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=24&format=json&origin=*`);
+    if(r.ok){
+      const d=await r.json();
+      const pg=Object.values(d.query?.pages||{})[0];
+      const allFiles=(pg?.images||[]).filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title)).filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub/i.test(i.title));
+      const earlyFiles=allFiles.filter(i=>/young|youth|child|early|born|school/i.test(i.title));
+      const laterFiles=allFiles.filter(i=>!/young|youth|child|early|born|school/i.test(i.title));
+      // Resolve early and later files separately so we retain the distinction
+      const earlyNames=earlyFiles.slice(0,6).map(i=>i.title.replace('File:',''));
+      const laterNames=laterFiles.slice(0,12).map(i=>i.title.replace('File:',''));
+      const [earlyUrls,laterUrls]=await Promise.all([
+        Promise.all(earlyNames.map(resolveImg)),
+        Promise.all(laterNames.map(resolveImg))
+      ]);
+      out.earlyImages=earlyUrls.filter(Boolean);
+      out.images=[...out.earlyImages,...laterUrls.filter(Boolean)];
+    }
+  }catch(e){}
+  return out;
+}
+async function resolveImg(f){
+  try{
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
+    const d=await r.json();
+    const url=Object.values(d.query?.pages||{})[0]?.imageinfo?.[0]?.url||null;
+    return(url&&/\.(jpg|jpeg|png)$/i.test(url))?url:null;
+  }catch(e){return null;}
+}
+
+// ═══════════════════════════════════════════
+//  TIMELINE — simple flexbox strip
+// ═══════════════════════════════════════════
+// tlScale, tlRunning, tlRaf declared at top of script
+
+function buildTimeline(star,tl,wiki,heroThumb){
+  // Deduplicate by URL and filter out portrait-style duplicates
+  const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i).filter(Boolean);
+  // Dedicated early/childhood image pool — resolved filenames tagged young/child/early
+  const earlyImgs=(wiki.earlyImages||[]).filter(Boolean);
+  const fullName=tl.fullName||star.name;
+  const diedPart=tl.died?` – ${tl.died}`:'';
+  document.getElementById('tlName').textContent=fullName;
+  document.getElementById('tlMeta').textContent=[tl.born?`${tl.born}${diedPart}`:'', (tl.fields||[]).join(' & '),tl.nationality].filter(Boolean).join(' · ');
+  document.getElementById('tlTagline').textContent=tl.tagline||'';
+  if(allImgs[0])document.getElementById('tlAmbient').style.backgroundImage=`url('${allImgs[0]}')`;
+
+  const strip=document.getElementById('tlStrip');
+  while(strip.children.length>1)strip.removeChild(strip.lastChild);
+
+  const events=[...(tl.events||[])].sort((a,b)=>parseInt(a.year)-parseInt(b.year));
+  const getY=s=>parseInt((s||'').toString().substring(0,4))||0;
+
+  document.getElementById('scrubBirth').textContent=tl.born||'';
+  document.getElementById('scrubDeath').textContent=tl.died||'';
+
+  // Birth cap
+  strip.appendChild(makeCap(tl.born||'','BIRTH'));
+
+  // Build a per-build used-URL set (not window-global, which persists across museums)
+  const usedImgUrls=new Set();
+
+  events.forEach((ev,i)=>{
+    const isUp=i%2===0;
+    const isDeath=ev.type==='death'||i===events.length-1;
+
+    const col=document.createElement('div');
+    col.className='ev-col'+(isUp?' up':'');
+
+    const dot=document.createElement('div');
+    dot.className='ev-dot'+(isDeath?' death':'');
+
+    const conn=document.createElement('div');
+    conn.className='ev-conn';
+
+    const card=document.createElement('div');
+    card.className='ev-card';
+
+    const isBirth=ev.type==='birth'||i===0;
+    const isChildhood=ev.type==='childhood'||i===1;
+    const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
+    const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
+
+    // ── Image selection (no duplicates) ──
+    let cardImg=null;
+    if(isDeath){
+      // Death: last image in pool (most recent-era photo)
+      for(let j=imgPool.length-1;j>=0;j--){
+        if(!usedImgUrls.has(imgPool[j])){cardImg=imgPool[j];break;}
+      }
+      if(!cardImg)cardImg=imgPool[imgPool.length-1]||null;
+    }else if(isChildhood){
+      // Childhood: use dedicated early/young tagged images first, then fall back to imgPool
+      const preferred=earlyImgs.length?earlyImgs:imgPool;
+      cardImg=preferred.find(u=>!usedImgUrls.has(u))
+             ||imgPool.find(u=>!usedImgUrls.has(u))
+             ||imgPool[0]||null;
+    }else{
+      // All others: first unused image, cycling forward
+      cardImg=imgPool.find(u=>!usedImgUrls.has(u))||imgPool[i%Math.max(imgPool.length,1)]||null;
+    }
+    if(cardImg)usedImgUrls.add(cardImg);
+
+    if(isBirth){
+      // Birth card — interactive map via OpenStreetMap
+      const mapWrap=document.createElement('div');
+      mapWrap.className='ev-map';
+      const birthLat=parseFloat(tl.birthLat)||0;
+      const birthLng=parseFloat(tl.birthLng)||0;
+      const city=tl.birthCity||(tl.born?tl.nationality+' '+tl.born:'birthplace');
+      const lbl=document.createElement('div');
+      lbl.className='ev-map-label';
+      lbl.textContent='📍 '+city;
+      mapWrap.appendChild(lbl);
+      function placeMap(lat2,lng2){
+        const z=9;
+        const osmImg=document.createElement('img');
+        osmImg.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(40%) brightness(0.55) sepia(0.25);';
+        osmImg.src='https://tile.openstreetmap.org/'+z+'/'+lngToTileX(lng2,z)+'/'+latToTileY(lat2,z)+'.png';
+        osmImg.onerror=function(){osmImg.style.background='#0e1520';};
+        mapWrap.insertBefore(osmImg,mapWrap.firstChild);
+        const pin=document.createElement('div');
+        pin.className='ev-map-pin';
+        pin.innerHTML='<svg width="22" height="30" viewBox="0 0 24 32"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20S24 21 24 12C24 5.4 18.6 0 12 0z" fill="#C9A84C"/><circle cx="12" cy="12" r="5" fill="#0A0806"/></svg>';
+        mapWrap.appendChild(pin);
+        mapWrap.onclick=function(){window.open('https://www.openstreetmap.org/?mlat='+lat2+'&mlon='+lng2+'&zoom=12','_blank','noopener');};
+      }
+      if(birthLat&&birthLng){
+        placeMap(birthLat,birthLng);
+      }else{
+        fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(city)+'&format=json&limit=1',{headers:{'Accept-Language':'en'}})
+          .then(function(r){return r.json();}).then(function(d){
+            if(d&&d[0])placeMap(parseFloat(d[0].lat),parseFloat(d[0].lon));
+          }).catch(function(){});
+      }
+      card.appendChild(mapWrap);
+    }else if(i<=2&&cardImg){
+      // Early events (0-2) get sepia/vintage treatment
+      const wrap=document.createElement('div');wrap.className='ev-play-wrap';
+      const img=document.createElement('img');img.className='ev-img';
+      img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+      img.style.objectPosition='center top';
+      const sepiaAmt=Math.max(0.2,0.6-(i*0.15));
+      img.style.filter=`sepia(${sepiaAmt}) contrast(1.08) brightness(0.82)`;
+      img.onerror=()=>wrap.remove();
+      wrap.appendChild(img);card.appendChild(wrap);
+    }else if(hasVideo){
+      // Video card — show thumbnail placeholder + play button, embed on click
+      const vWrap=document.createElement('div');
+      vWrap.className='ev-video-wrap';
+      vWrap.dataset.evIdx=String(i); // anchor to event index, not DOM position
+      vWrap.style.cssText='position:relative;width:100%;background:#0a0806;cursor:pointer;border-top:2px solid rgba(201,168,76,0.4);';
+
+      // Thumbnail: use Wikipedia image as poster
+      if(cardImg){
+        const thumb=document.createElement('img');
+        thumb.className='ev-img';thumb.src=cardImg;thumb.alt=ev.title||'';thumb.loading='lazy';
+        thumb.onerror=()=>{};
+        vWrap.appendChild(thumb);
+      }else{
+        const ph=document.createElement('div');
+        ph.style.cssText='height:160px;background:#13110C;display:flex;align-items:center;justify-content:center;';
+        ph.innerHTML='<svg width="48" height="48" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.3)"/></svg>';
+        vWrap.appendChild(ph);
+      }
+
+      // Play overlay
+      const pb=document.createElement('div');pb.className='ev-play-btn';
+      pb.innerHTML=`<svg viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="39" stroke="rgba(201,168,76,0.85)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.95)"/></svg>`;
+      vWrap.appendChild(pb);
+
+      // Video label
+      const vlbl=document.createElement('div');
+      vlbl.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:.5rem .7rem;background:linear-gradient(to top,rgba(0,0,0,.92),transparent);font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--gold);pointer-events:none;';
+      vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
+      vWrap.appendChild(vlbl);
+
+      const ytSearch=(ev.videoSearch||(star.name+' '+(ev.title||'')+' '+(ev.year||''))).trim();
+      let _vWrapDrag=false;
+      vWrap.addEventListener('mousedown',()=>{_vWrapDrag=false;});
+      vWrap.addEventListener('mousemove',()=>{_vWrapDrag=true;});
+      vWrap.addEventListener('click',(e)=>{if(_vWrapDrag)return;openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);});
+      card.appendChild(vWrap);
+    }else if(isChildhood){
+      // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
+      if(cardImg){
+        const wrap=document.createElement('div');wrap.className='ev-play-wrap';
+        const img=document.createElement('img');img.className='ev-img';
+        img.style.objectPosition='center top'; // faces not torsos
+        img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+        img.style.filter='sepia(0.45) contrast(1.1) brightness(0.82)';
+        img.onerror=()=>wrap.remove();
+        wrap.appendChild(img);card.appendChild(wrap);
+      }
+    }else if(cardImg){
+      const wrap=document.createElement('div');
+      wrap.className='ev-play-wrap';
+      const img=document.createElement('img');
+      img.className='ev-img';img.src=cardImg;img.alt=ev.title||'';img.loading='lazy';
+      img.onerror=()=>wrap.remove();
+      wrap.appendChild(img);
+      card.appendChild(wrap);
+    }
+
+    const body=document.createElement('div');body.className='ev-body';
+    const firstSent=(ev.text||'').replace(/([.!?])\s.*/,'$1');
+    const earlyBadge=isChildhood?'<div class="ev-childhood-badge">EARLY LIFE</div>':'';
+    body.innerHTML=`
+      ${earlyBadge}
+      <div class="ev-yr">${ev.year||''}</div>
+      <div class="ev-title">${ev.title||''}</div>
+      ${ev.quote
+        ? `<div class="ev-quote">&#8220;${ev.quote.replace(/^["“”"]|["“”"]$/g,'')}&#8221;</div>`
+        : `<div class="ev-text">${firstSent}</div>`}
+    `;
+    card.appendChild(body);
+
+    // Card click — jump tour to this step and immediately continue from there
+    const cardIdx=i;
+    card.addEventListener('click',e=>{
+      if(e.target.closest('.ev-video-wrap')||e.target.closest('.ev-play-btn'))return;
+      if(tourPlaying){
+        if(window.speechSynthesis)speechSynthesis.cancel();
+        if(tourAudio){tourAudio.pause();tourAudio=null;}
+        tourStep2=cardIdx;
+        setTimeout(()=>{ if(tourPlaying)runTourStep2(); },50);
+      }
+      const wasZoomed=card.classList.contains('tapped');
+      document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
+      if(!wasZoomed)card.classList.add('tapped');
+    });
+    col.appendChild(card);
+    col.appendChild(conn);
+    col.appendChild(dot);
+    strip.appendChild(col);
+  });
+
+  if(tl.died)strip.appendChild(makeCap(tl.died,'DEATH'));
+
+  // ── CINEMATIC ENTRY ──
+  // Cards start invisible and far left; slide in smoothly to birth position
+  const sc=document.getElementById('tlScroll');
+  const strip2=document.getElementById('tlStrip');
+  strip2.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
+  strip2.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(160*tlScale)+'px');
+
+  // Start well off-screen to the right (appearing to come from before time)
+  requestAnimationFrame(()=>{
+    if(!sc)return;
+    sc.scrollLeft=sc.scrollWidth; // start at far right (birth is at left=0)
+
+    // Fade in the timeline screen
+    const tlScreen=document.getElementById('tlScreen');
+    tlScreen.style.opacity='0';
+    tlScreen.style.transition='none';
+    requestAnimationFrame(()=>{
+      tlScreen.style.transition='opacity .5s ease';
+      tlScreen.style.opacity='1';
+    });
+
+    // After a brief pause, glide smoothly to the birth card (scrollLeft=0)
+    setTimeout(()=>{
+      const start=sc.scrollLeft;
+      const end=0;
+      const dur=2200; // 2.2s cinematic glide
+      let t0=null;
+      function ease(t){ return 1-Math.pow(1-t,4); } // ease-out-quart — fast start, luxurious deceleration
+      function step(ts){
+        if(!t0)t0=ts;
+        const prog=Math.min((ts-t0)/dur,1);
+        sc.scrollLeft=start+(end-start)*ease(prog);
+        updateScrubber();
+        if(prog<1)requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, 180);
+  });
+
+  // Setup interactions
+  setupScrollDrag(sc);
+  setupZoom();
+  setupTLEdgePan(sc);
+  sc.addEventListener('scroll',updateScrubber,{passive:true});
+  tourStarRef=star;tourTlRef=tl;
+  // Welcome audio pre-fetched earlier in startJourney — already in tl._welcomeAudio by now
+  // Auto-start tour immediately
+  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
+  buildBioPanel(star,tl,heroThumb);
+  buildMediaPanel(star,tl,wiki);
+  // Reset to timeline tab — panels start hidden, tlScroll always visible
+  document.querySelectorAll('.tl-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='timeline'));
+  document.getElementById('bioPanel').classList.remove('on');
+  document.getElementById('mediaPanel').classList.remove('on');
+  // Video IDs fetched on demand when user clicks play
+  // Tap outside card collapses zoomed card
+  sc.addEventListener('click',e=>{
+    if(!e.target.closest('.ev-card')){
+      document.querySelectorAll('.ev-card.tapped').forEach(c=>c.classList.remove('tapped'));
+    }
+  });
+  tlRunning=true;
+}
+
+function makeCap(yr,lbl){
+  const w=document.createElement('div');w.className='tl-cap';
+  w.innerHTML=`<div class="tl-cap-yr">${yr}</div><div class="tl-cap-dot"></div><div class="tl-cap-lbl">${lbl}</div>`;
+  return w;
+}
+
+function updateScrubber(){
+  const sc=document.getElementById('tlScroll');
+  const max=sc.scrollWidth-sc.clientWidth;
+  if(max<=0)return;
+  const p=sc.scrollLeft/max;
+  document.getElementById('scrubFill').style.width=(p*100)+'%';
+  document.getElementById('scrubThumb').style.left=(p*100)+'%';
+}
+
+function setupScrollDrag(sc){
+  let drag=false,sx0,sl0,lx,vel=0,lastT=0,rafId=null;
+
+  function cancelCoast(){if(rafId){cancelAnimationFrame(rafId);rafId=null;}}
+
+  sc.addEventListener('mousedown',e=>{
+    cancelCoast();
+    drag=true;sx0=e.clientX;sl0=sc.scrollLeft;lx=e.clientX;vel=0;lastT=performance.now();
+    sc.classList.add('grabbing');e.preventDefault();
+  },{passive:false});
+
+  window.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const now=performance.now(),dt=Math.max(1,now-lastT);
+    vel=(lx-e.clientX)/dt*16; // px/frame at 60fps
+    lx=e.clientX;lastT=now;
+    sc.scrollLeft=sl0-(e.clientX-sx0);
+  });
+
+  window.addEventListener('mouseup',()=>{
+    if(!drag)return;drag=false;sc.classList.remove('grabbing');
+    // Coast with friction then elastic snap
+    let v=vel;
+    const max=sc.scrollWidth-sc.clientWidth;
+    function coast(){
+      if(Math.abs(v)<0.4){
+        if(sc.scrollLeft<0)elasticSnap(sc,0);
+        else if(sc.scrollLeft>max)elasticSnap(sc,max);
+        return;
+      }
+      sc.scrollLeft+=v;v*=0.94;updateScrubber();
+      rafId=requestAnimationFrame(coast);
+    }
+    rafId=requestAnimationFrame(coast);
+  });
+
+  // Touch — separate high-friction momentum for mobile
+  let tx0,tsl0,tlx,tvel=0,tLastT=0;
+  sc.addEventListener('touchstart',e=>{
+    cancelCoast();
+    const t=e.touches[0];tx0=t.clientX;tsl0=sc.scrollLeft;tlx=t.clientX;tvel=0;tLastT=performance.now();
+  },{passive:true});
+  sc.addEventListener('touchmove',e=>{
+    const t=e.touches[0];
+    const now=performance.now(),dt=Math.max(1,now-tLastT);
+    tvel=(tlx-t.clientX)/dt*16;
+    tlx=t.clientX;tLastT=now;
+    sc.scrollLeft=tsl0-(t.clientX-tx0);
+    updateScrubber();
+  },{passive:true});
+  sc.addEventListener('touchend',()=>{
+    let v=tvel;
+    const max=sc.scrollWidth-sc.clientWidth;
+    function coast(){
+      if(Math.abs(v)<0.5){
+        if(sc.scrollLeft<0)elasticSnap(sc,0);
+        else if(sc.scrollLeft>max)elasticSnap(sc,max);
+        return;
+      }
+      sc.scrollLeft+=v;v*=0.92;updateScrubber();
+      rafId=requestAnimationFrame(coast);
+    }
+    rafId=requestAnimationFrame(coast);
+  },{passive:true});
+
+  document.getElementById('scrubTrack').addEventListener('click',e=>{
+    const rect=e.currentTarget.getBoundingClientRect();
+    const target=(e.clientX-rect.left)/rect.width*(sc.scrollWidth-sc.clientWidth);
+    elasticSnap(sc,target);
+  });
+}
+
+function elasticSnap(sc,target){
+  const start=sc.scrollLeft;
+  const dist=target-start;
+  const dur=400;
+  let t0=null;
+  function step(ts){
+    if(!t0)t0=ts;
+    const p=Math.min((ts-t0)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    sc.scrollLeft=start+dist*ease;
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function setupTLEdgePan(sc){
+  // Pan timeline when cursor in outer 25% of screen
+  let tlEdgeRaf,tlEdgeVel=0;
+  document.getElementById('tlScreen').addEventListener('mousemove',e=>{
+    const vw=window.innerWidth;
+    const zone=vw*0.25,spd=8;
+    const x=e.clientX;
+    tlEdgeVel=x<zone?-spd*Math.pow((zone-x)/zone,2):x>vw-zone?spd*Math.pow((x-(vw-zone))/zone,2):0;
+  });
+  document.getElementById('tlScreen').addEventListener('mouseleave',()=>{tlEdgeVel=0;});
+  function edgePanLoop(){
+    if(tlEdgeVel&&!document.getElementById('tlScroll').classList.contains('grabbing')){
+      sc.scrollLeft+=tlEdgeVel;
+      updateScrubber();
+    }
+    tlEdgeRaf=requestAnimationFrame(edgePanLoop);
+  }
+  tlEdgeRaf=requestAnimationFrame(edgePanLoop);
+  // Store ref to cancel on goHome
+  sc._edgeRaf=tlEdgeRaf;
+}
+
+function setupZoom(){
+  const strip=document.getElementById('tlStrip');
+  const sc=document.getElementById('tlScroll');
+  function apply(s){
+    tlScale=Math.min(2.5,Math.max(0.7,s)); // min 0.7 keeps cards readable
+    strip.querySelectorAll('.ev-col').forEach(c=>{c.style.width=Math.round(260*tlScale)+'px';c.style.margin=`0 ${Math.round(16*tlScale)}px`;});
+    strip.querySelectorAll('.ev-conn').forEach(c=>c.style.height=Math.round(48*tlScale)+'px');
+    strip.querySelectorAll('.ev-img').forEach(img=>img.style.height=Math.round(120*tlScale)+'px');
+    // Scale text proportionally; floor at legible sizes
+    const fs=Math.max(0.72,Math.min(1.2,tlScale));
+    strip.querySelectorAll('.ev-title').forEach(el=>el.style.fontSize=Math.max(0.78,Math.round(fs*15.2)/16)+'rem');
+    strip.querySelectorAll('.ev-text').forEach(el=>el.style.fontSize=Math.max(0.72,Math.round(fs*12.5)/16)+'rem');
+    // Year label: hide below 0.85 so it doesn't crowd
+    strip.querySelectorAll('.ev-yr').forEach(el=>{
+      el.style.fontSize=Math.round(fs*8)+'px';
+      el.style.display=tlScale<0.85?'none':'';
+    });
+    // Body padding: compress at small zoom
+    strip.querySelectorAll('.ev-body').forEach(el=>{
+      el.style.padding=tlScale<0.9?'.5rem .65rem .6rem':'1rem 1.1rem 1.2rem';
+    });
+  }
+  document.getElementById('zIn').onclick=()=>apply(tlScale*1.3);
+  document.getElementById('zOut').onclick=()=>apply(tlScale/1.3);
+  document.getElementById('zFit').onclick=()=>{apply(1.4);sc.scrollLeft=0;};
+  sc.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();apply(e.deltaY>0?tlScale*0.9:tlScale*1.1);}},{passive:false});
+}
+
+function stopTL(){
+  tlRunning=false;cancelAnimationFrame(tlRaf);
+  const strip=document.getElementById('tlStrip');
+  if(strip)while(strip.children.length>1)strip.removeChild(strip.lastChild);
+}
+
+// ── MAP HELPERS ──
+function lngToTileX(lng,z){return Math.floor((lng+180)/360*Math.pow(2,z));}
+function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));}
+
+// ── BIO PANEL ──
+function buildBioPanel(star,tl,heroThumb){
+  const panel=document.getElementById('bioPanel');
+  if(!panel)return;
+  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent(tl.wikipediaSlug||star.slug)}`;
+  panel.innerHTML=`
+    ${heroThumb?`<img class="bio-portrait" src="${heroThumb}" alt="${tl.fullName||star.name}">`:''}
+    <div>
+      <div class="bio-name">${tl.fullName||star.name}</div>
+      <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
+      <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
+    </div>
+    <div class="bio-text" id="bioText" style="clear:both;margin-top:1.5rem">
+      <em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>
+    </div>
+    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);">
+      <a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>
+    </div>
+  `;
+  const wikiSlug=encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'));
+  fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+wikiSlug+'&prop=extracts&exintro=false&explaintext=true&exsectionformat=plain&format=json&origin=*')
+    .then(r=>r.ok?r.json():null).then(d=>{
+      const el=document.getElementById('bioText');
+      if(!el||!d)return;
+      const pg=Object.values(d.query?.pages||{})[0];
+      const text=pg?.extract||'';
+      if(!text)return;
+      const paras=text.split('\n').map(p=>p.trim()).filter(p=>p.length>60).slice(0,8);
+      el.innerHTML=paras.map(p=>'<p style="margin-bottom:1.2em">'+p+'</p>').join('');
+    }).catch(()=>{});
+}
+
+// ── MEDIA PANEL ──
+function buildMediaPanel(star,tl,wiki){
+  const panel=document.getElementById('mediaPanel');
+  if(!panel)return;
+  const events=(tl.events||[]).filter(e=>e.youtubeId&&e.youtubeId.length===11);
+  panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
+  const grid=document.getElementById('mediaGrid');
+  if(!grid)return;
+  events.forEach(ev=>{
+    const item=document.createElement('div');item.className='media-item';
+    const thumbSrc=ev._ytThumb||'';
+    item.innerHTML=`
+      ${thumbSrc
+        ?`<img class="media-item-thumb" src="${thumbSrc}" alt="${ev.title||''}" loading="lazy">`
+        :`<div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>`}
+      <div class="media-item-label">${ev.title||''}</div>
+      <div class="media-item-sub">${ev.year||''} · VIDEO</div>
+    `;
+    item.addEventListener('click',()=>openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title||star.name));
+    grid.appendChild(item);
+  });
+  // Add YouTube search links for star's name
+  const searchTerms=[star.name+' documentary',star.name+' interview',star.name+' performance'];
+  searchTerms.forEach(term=>{
+    const item=document.createElement('div');item.className='media-item';
+    item.innerHTML=`
+      <div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>
+      <div class="media-item-label">${term}</div>
+      <div class="media-item-sub">SEARCH YOUTUBE</div>
+    `;
+    item.addEventListener('click',()=>window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(term),'_blank'));
+    grid.appendChild(item);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  VIDEO — YouTube IFrame API for reliable error detection
+// ═══════════════════════════════════════════
+
+// Load YouTube IFrame API once
+if(!window._ytAPILoaded){
+  window._ytAPILoaded=true;
+  window._ytReadyCallbacks=[];
+  window.onYouTubeIframeAPIReady=function(){
+    window._ytAPIReady=true;
+    window._ytReadyCallbacks.forEach(fn=>fn());
+    window._ytReadyCallbacks=[];
+  };
+  const _s=document.createElement('script');
+  _s.src='https://www.youtube.com/iframe_api';
+  document.head.appendChild(_s);
+}
+function whenYTReady(fn){
+  if(window._ytAPIReady)fn();
+  else window._ytReadyCallbacks.push(fn);
+}
+
+async function openVideo(videoId, title){
+  const overlay=document.getElementById('videoOverlay');
+  const frame=document.getElementById('videoFrame');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+  overlay.classList.add('on');
+  fallback.style.display='flex';
+  frame.style.display='none';
+  frame.src='';
+  meta.textContent='LOADING…';
+  ytLink.href='https://www.youtube.com/watch?v='+videoId;
+  ytLink.textContent='OPEN ON YOUTUBE ↗';
+  return new Promise((resolve)=>{
+    let settled=false;
+    const settle=(ok)=>{if(!settled){settled=true;resolve(ok);}};
+    window._videoCloseCleanup=()=>settle(false);
+    whenYTReady(()=>{
+      if(window._ytPlayer){try{window._ytPlayer.destroy();}catch(e){}}
+      frame.style.display='block';frame.style.width='100%';frame.style.height='100%';frame.style.border='none';
+      fallback.style.display='none';
+      window._ytPlayer=new YT.Player('videoFrame',{
+        videoId:videoId,
+        playerVars:{autoplay:1,rel:0,modestbranding:1,origin:window.location.origin},
+        events:{
+          onReady:(e)=>{e.target.playVideo();},
+          onStateChange:(e)=>{
+            if(e.data===YT.PlayerState.PLAYING){
+              meta.textContent=(title||'').toUpperCase();settle(true);
+            }
+          },
+          onError:(e)=>{
+            console.warn('YT error',e.data,'for',videoId);
+            frame.style.display='none';fallback.style.display='flex';
+            meta.textContent='VIDEO UNAVAILABLE';settle(false);
+          }
+        }
+      });
+    });
+    setTimeout(()=>{
+      if(!settled){frame.style.display='none';fallback.style.display='flex';meta.textContent='VIDEO UNAVAILABLE';settle(false);}
+    },12000);
+  });
+}
+
+async function openVideoWithFallback(candidates, title){
+  if(!candidates?.length){window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(title),'_blank');return;}
+  for(const candidate of candidates){
+    const success=await openVideo(candidate.videoId,candidate.title||title);
+    if(success)return;
+  }
+  window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(title),'_blank');
+}
+
+function closeVideo(){
+  if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
+  document.getElementById('videoOverlay').classList.remove('on');
+  document.getElementById('videoFrame').src='';
+  document.getElementById('videoFallback').style.display='none';
+  document.getElementById('videoFrame').style.display='block';
+}
+document.getElementById('videoClose').addEventListener('click',closeVideo);
+document.getElementById('videoOverlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeVideo();
+});
+
+// ═══════════════════════════════════════════
+//  FULLSCREEN + UTILS
+// ═══════════════════════════════════════════
+document.getElementById('fsBtn').addEventListener('click',()=>{
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+  if(!fsEl){
+    if(req)req.call(el).catch(()=>{
+      // iOS Safari: use screen.orientation trick or just toggle UI chrome
+      document.body.style.height='100vh';
+    });
+  }else{
+    if(exit)exit.call(document);
+  }
+});
+// Listen for all fullscreen change events
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev=>{
+  document.addEventListener(ev,()=>{
+    const icon=document.getElementById('fsBtn').querySelector('svg');
+    const isFs=!!(document.fullscreenElement||document.webkitFullscreenElement);
+    icon.innerHTML=isFs
+      ? '<polyline points="5,1 1,1 1,5"/><polyline points="15,5 15,1 11,1"/><polyline points="11,15 15,15 15,11"/><polyline points="1,11 1,15 5,15"/>'
+      : '<polyline points="1,5 1,1 5,1"/><polyline points="11,1 15,1 15,5"/><polyline points="15,11 15,15 11,15"/><polyline points="5,15 1,15 1,11"/>';
+  });
+});
+
+// Legal modal
+document.getElementById('legalBtn').addEventListener('click',()=>document.getElementById('legalModal').classList.add('on'));
+document.getElementById('legalClose').addEventListener('click',()=>document.getElementById('legalModal').classList.remove('on'));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.getElementById('legalModal').classList.remove('on');
+    closeVideo();
+  }
+});
+document.getElementById('legalModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── SINGLE SPEECH CHANNEL ──
+// All non-tour speech goes through here so only one voice plays at a time
+function speak(text,rate=0.92){
+  if(!window.speechSynthesis||!text)return;
+  speechSynthesis.cancel();
+  if(tourAudio){tourAudio.pause();tourAudio=null;}
+  const u=new SpeechSynthesisUtterance(text.substring(0,500));
+  u.rate=rate;
+  speechSynthesis.speak(u);
+}
+window.addEventListener('resize',()=>{
+  const sc=document.getElementById('tlScroll');if(sc)updateScrubber();
+});
+
+// ── INTRO SEQUENCE ──
+// Each screen fades OUT before the next fades IN — no overlap
+const LOGO_HOLD    = 2800; // how long logo is fully visible
+const FADE         = 650;  // all crossfades use this duration
+const DISC_HOLD    = 5000; // disclaimer hold time
+
+mc.classList.add('intro-hidden');
+
+// Phase 1 → 2: Logo fades out, then disclaimer fades in
+setTimeout(()=>{
+  const intro=document.getElementById('intro');
+  intro.classList.add('done'); // triggers opacity:0 via CSS transition
+  setTimeout(()=>{
+    intro.classList.add('gone'); // remove from layout after fade
+    // Pre-render mosaic tiles while disclaimer is visible
+    mInit();
+    // Disclaimer fades in
+    const ds=document.getElementById('disclaimerScreen');
+    ds.style.display='flex';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ ds.style.opacity='1'; }));
+  }, FADE);
+}, LOGO_HOLD);
+
+// Phase 2 → 3: Disclaimer fades out, mosaic fades in
+const MOSAIC_START = LOGO_HOLD + FADE + DISC_HOLD;
+setTimeout(()=>{
+  const ds=document.getElementById('disclaimerScreen');
+  ds.style.opacity='0';
+  setTimeout(()=>{
+    ds.style.display='none';
+    // Mosaic tiles stagger in
+    mc.classList.remove('intro-hidden');
+    const tiles=Array.from(mc.querySelectorAll('.star-tile'));
+    tiles.forEach(t=>{
+      t.style.opacity='0';t.style.transform='scale(0.94)';t.style.transition='none';
+      const delay=Math.random()*900;
+      setTimeout(()=>{
+        t.style.transition='opacity .65s ease, transform .65s cubic-bezier(.25,.46,.45,.94)';
+        t.style.opacity='1';t.style.transform='scale(1)';
+      }, delay);
+    });
+    // Fade in search+voice together
+    const sw=document.getElementById('mSearchWrap');
+    if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
+    // Show tutorials now that mosaic is visible
+    if(window._showTutorialsWhenReady)window._showTutorialsWhenReady();
+  }, FADE);
+}, MOSAIC_START);
+
+// Mobile: track which tile is in centre and show its label
+if(isMobile){
+  const ms=document.getElementById('mosaicScreen');
+  function updateMobileCentre(){
+    const cx=window.innerWidth/2-camX;
+    const cy=window.innerHeight/2-camY;
+    const col=Math.round((cx-TW/2)/SX);
+    const row=Math.round((cy-TH/2)/SY);
+    mc.querySelectorAll('.mobile-centre').forEach(t=>t.classList.remove('mobile-centre'));
+    const key=`${col},${row}`;
+    const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>{
+      const tl=parseInt(t.style.left),tt=parseInt(t.style.top);
+      return Math.abs(tl-col*SX)<SX/2&&Math.abs(tt-row*SY)<SY/2;
+    });
+    if(tile)tile.classList.add('mobile-centre');
+  }
+  setInterval(updateMobileCentre,200);
+}
+
+// ── STATIC UI WIRING ──
+document.getElementById('reportLink')?.addEventListener('click',()=>{
+  window.open('mailto:hello@starseum.app?subject=Content%20Report','_blank');
+});
+// CC subtitle toggle
+(function(){
+  const btn=document.getElementById('ccBtn');
+  if(!btn)return;
+  function updateCC(){
+    btn.style.color=_subtitlesOn?'var(--gold)':'var(--muted)';
+    btn.style.borderColor=_subtitlesOn?'rgba(201,168,76,.5)':'rgba(201,168,76,.2)';
+    btn.title=_subtitlesOn?'Subtitles ON — click to turn off':'Subtitles OFF — click for accessibility';
+  }
+  updateCC();
+  btn.addEventListener('click',()=>{
+    _subtitlesOn=!_subtitlesOn;
+    localStorage.setItem('st_subtitles',_subtitlesOn?'1':'0');
+    updateCC();
+    showVoiceHint(_subtitlesOn?'SUBTITLES ON':'SUBTITLES OFF',2000);
+  });
+})();
+
+// Tutorial — shown only after mosaic is fully revealed, never during intro/disclaimer
+// Versioned key so each new deploy shows it again (bump DEPLOY_VER on each release)
+const DEPLOY_VER='2026-06-07';
+(function(){
+  const tutKey='st_tutorial_v'+DEPLOY_VER;
+  const obKey='st_onboard_v'+DEPLOY_VER;
+  const mt=document.getElementById('mobileTutorial');
+  // Wire mobile close button now, but don't show yet
+  document.getElementById('mtClose')?.addEventListener('click',()=>{
+    if(mt)mt.style.display='none';
+    localStorage.setItem(tutKey,'1');
+  });
+  // Show tutorials ONLY after mosaic is fully revealed (hooked into Phase 5 of intro)
+  window._showTutorialsWhenReady=function(){
+    if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
+    const ob=document.getElementById('onboardMosaic');
+    if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
+  };
+})();
+
+// ── SEARCH ──
+function initSearch(){
+  const inp=document.getElementById('mSearch');
+  const res=document.getElementById('mSearchResults');
+  if(!inp||!res)return;
+  // Kill mosaic momentum when search is active
+  inp.addEventListener('focus',()=>{ velX=0;velY=0;edgePX=0;edgePY=0; });
+  inp.addEventListener('blur',()=>{ edgePX=0;edgePY=0; });
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim().toLowerCase();
+    if(q.length<2){res.style.display='none';return;}
+    const matches=STARS.filter(s=>s.name.toLowerCase().includes(q)).slice(0,12); // was 6, doubled
+    res.innerHTML='';
+    if(!matches.length){res.style.display='none';return;}
+    matches.forEach(star=>{
+      const item=document.createElement('div');
+      item.style.cssText='padding:1rem 1.3rem;cursor:pointer;font-family:var(--serif);font-size:1.25rem;color:var(--cream);border-bottom:1px solid var(--gold2);display:flex;align-items:center;gap:1rem;';
+      const thumb=thumbs[star.slug];
+      item.innerHTML=(thumb?`<img src="${thumb}" style="width:52px;height:68px;object-fit:cover;border-radius:1px;flex-shrink:0;" alt="">`:'')
+        +`<div><div style="font-family:var(--display);font-size:16px;letter-spacing:.06em;">${star.name}</div><div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:.2rem;">${star.years}</div></div>`;
+      item.addEventListener('mouseover',()=>item.style.background='rgba(201,168,76,.08)');
+      item.addEventListener('mouseout',()=>item.style.background='');
+      item.addEventListener('click',()=>{
+        res.style.display='none';inp.value='';
+        // Hide search bar immediately when a star is selected
+        const sw=document.getElementById('mSearchWrap');if(sw){sw.style.opacity='0';setTimeout(()=>{sw.style.display='none';},600);}
+        const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
+        enterStar(star,tile||mc.querySelector('.star-tile'));
+      });
+      res.appendChild(item);
+    });
+    res.style.display='block';
+  });
+  inp.addEventListener('keydown',e=>{if(e.key==='Escape'){res.style.display='none';}});
+  document.addEventListener('click',e=>{if(!e.target.closest('#mSearchWrap'))res.style.display='none';});
+}
+
+// ── VOICE COMMANDS ── (voiceRecog declared at top of script)
+function initVoice(){
+  const btn=document.getElementById('mVoiceBtn');
+  if(!btn)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){btn.style.display='none';return;}
+  voiceRecog=new SR();voiceRecog.continuous=false;voiceRecog.lang='en-US';
+  voiceRecog.onresult=e=>handleVoiceCmd(e.results[0][0].transcript.toLowerCase());
+  voiceRecog.onend=()=>{btn.style.borderColor='rgba(201,168,76,.15)';btn.style.color='var(--muted)';};
+  btn.addEventListener('click',()=>{
+    showVoiceHint('SAY A NAME  e.g. "James Dean" · "scroll right" · "play video"',4500);
+    btn.style.borderColor='var(--gold)';btn.style.color='var(--gold)';
+    setTimeout(()=>{ try{voiceRecog.start();}catch(e){} },200);
+  });
+}
+
+// Subtitles off by default; toggleable for accessibility — declared at top of script
+
+function showVoiceHint(msg,ms=2500){
+  // Only show subtitle bar if subtitles are enabled OR it's a non-narration hint (short, caps, command feedback)
+  const isNarration = ms===99999;
+  if(isNarration && !_subtitlesOn){ clearTimeout(window._vhTimer); return; }
+  let el=document.getElementById('voiceHint');
+  if(!el){el=document.createElement('div');el.id='voiceHint';
+    el.style.cssText='position:fixed;bottom:3rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(10,8,6,.92);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:.45rem 1.1rem;font-family:var(--mono);font-size:15px;letter-spacing:.1em;color:var(--gold);pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;';
+    document.body.appendChild(el);}
+  el.textContent=msg;el.style.display='block';
+  clearTimeout(el._t);if(ms>0)el._t=setTimeout(()=>el.style.display='none',ms);
+}
+
+function handleVoiceCmd(cmd){
+  const star=STARS.find(s=>cmd.includes(s.name.toLowerCase())||s.name.toLowerCase().split(' ').some(w=>w.length>3&&cmd.includes(w)));
+  if(star){showVoiceHint('OPENING: '+star.name.toUpperCase());
+    const tile=Array.from(mc.querySelectorAll('.star-tile')).find(t=>t._star?.slug===star.slug);
+    setTimeout(()=>enterStar(star,tile||mc.querySelector('.star-tile')),400);return;}
+  const sc=document.getElementById('tlScroll');
+  if(cmd.match(/scroll right|next/)){sc?.scrollBy({left:320,behavior:'smooth'});showVoiceHint('SCROLLING →');return;}
+  if(cmd.match(/scroll left|previous/)){sc?.scrollBy({left:-320,behavior:'smooth'});showVoiceHint('← SCROLLING');return;}
+  if(cmd.match(/play|watch/)){document.querySelector('.ev-video-wrap')?.click();return;}
+  if(cmd.match(/go back|museum/)){goHome();return;}
+  if(cmd.match(/bio/)){document.querySelector('[data-tab="bio"]')?.click();showVoiceHint('BIO');return;}
+  if(cmd.match(/media/)){document.querySelector('[data-tab="media"]')?.click();showVoiceHint('MEDIA');return;}
+  if(cmd.match(/timeline/)){document.querySelector('[data-tab="timeline"]')?.click();showVoiceHint('TIMELINE');return;}
+  showVoiceHint('NOT RECOGNISED',2000);
+}
+
+// ── TOUR GUIDE ── (state declared at top of script)
+
+async function startTour(star,tl){
+  if(tourPlaying){stopTour();return;}
+  tourPlaying=true;tourStep2=0;tourStarRef=star;tourTlRef=tl;
+  tourEvts=(tl.events||[]).sort((a,b)=>parseInt(a.year)-parseInt(b.year));
+  document.getElementById('tourBtn').style.color='var(--gold)';
+  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+  // Use pre-fetched audio if available, else fetch now
+  if(tl._welcomeAudio){
+    showVoiceHint(welcomeText.substring(0,55)+'…',99999);
+    const myGen=++_tourSpeakGen;
+    await new Promise(res=>{const a=new Audio('data:audio/mpeg;base64,'+tl._welcomeAudio);tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);});
+    tl._welcomeAudio=null;
+  }else{
+    await tourSpeak(welcomeText);
+  }
+  await runTourStep2();
+}
+
+async function runTourStep2(){
+  if(!tourPlaying)return;
+  if(tourStep2>=tourEvts.length){
+    await tourSpeak('And so ends our journey through their extraordinary life. Would you like to visit another museum? Return to the mosaic to explore more remarkable people.');
+    stopTour();
+    return;
+  }
+  const ev=tourEvts[tourStep2];
+  const sc=document.getElementById('tlScroll');
+  const cols=sc?sc.querySelectorAll('.ev-col'):[];
+  // Highlight current card
+  document.querySelectorAll('.ev-card.tour-active').forEach(c=>c.classList.remove('tour-active'));
+  const activeCol=cols[tourStep2];
+  if(activeCol){
+    activeCol.scrollIntoView({behavior:'smooth',inline:'center'});
+    const activeCard=activeCol.querySelector('.ev-card');
+    if(activeCard)activeCard.classList.add('tour-active');
+  }
+  const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' They once said: '+ev.quote:'');
+  await tourSpeak(txt);
+  if(!tourPlaying)return;
+  if(ev.youtubeId||ev.videoSearch){
+    await tourSpeak('There is video footage of this moment. Would you like to watch it?');
+    showVoiceHint('SAY "YES" TO WATCH',6000);
+    const resp=await tourListen(5000);
+    if(resp&&resp.match(/yes|watch|play/)){
+      // Find video wrap for this specific card
+      const allVWraps=document.querySelectorAll('.ev-video-wrap');
+      const vw=allVWraps[Math.min(tourStep2,allVWraps.length-1)];
+      if(vw){ vw.click(); await new Promise(r=>setTimeout(r,800)); }
+      await new Promise(r=>{
+        const chk=setInterval(()=>{if(!document.getElementById('videoOverlay')?.classList.contains('on')){clearInterval(chk);r();}},500);
+        setTimeout(()=>{clearInterval(chk);r();},60000);
+      });
+      await tourSpeak('Let\'s continue.');
+    }
+  }
+  tourStep2++;
+  await runTourStep2();
+}
+
+async function tourSpeak(text){
+  if(!tourPlaying||!text)return;
+  const myGen=++_tourSpeakGen;
+  if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
+  if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
+  if(!tourPlaying||myGen!==_tourSpeakGen)return;
+  if(_subtitlesOn) showVoiceHint(text.substring(0,80)+'…',99999);
+  // Primary: ElevenLabs
+  try{
+    const r=await fetch('/.netlify/functions/tourguide',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text.substring(0,800)})
+    });
+    if(myGen!==_tourSpeakGen)return;
+    if(r.ok){
+      const d=await r.json();
+      if(d.audio&&myGen===_tourSpeakGen){
+        await new Promise(res=>{
+          const a=new Audio('data:audio/mpeg;base64,'+d.audio);
+          tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);
+        });
+        return;
+      }
+    }
+  }catch(e){}
+  // Fallback: browser TTS only if ElevenLabs failed
+  if(!tourPlaying||myGen!==_tourSpeakGen)return;
+  await new Promise(res=>{
+    if(!window.speechSynthesis){res();return;}
+    const u=new SpeechSynthesisUtterance(text.substring(0,500));
+    u.rate=0.9;u.onend=res;u.onerror=res;
+    u.onpause=()=>{if(!tourPlaying)res();};
+    speechSynthesis.speak(u);
+  });
+}
+
+function tourListen(ms){
+  return new Promise(res=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){setTimeout(()=>res(null),ms);return;}
+    const r=new SR();r.lang='en-US';
+    r.onresult=e=>res(e.results[0][0].transcript.toLowerCase());
+    r.onerror=()=>res(null);
+    setTimeout(()=>{try{r.stop();}catch(e){}res(null);},ms);
+    r.start();
+  });
+}
+
+function stopTour(){
+  tourPlaying=false;
+  tourStep2=0;
+  _tourSpeakGen++; // invalidate any in-flight tourSpeak chain
+  if(tourAudio){tourAudio.pause();tourAudio.src='';tourAudio=null;}
+  // Cancel speech synthesis multiple times — it can be queued
+  if(window.speechSynthesis){
+    speechSynthesis.cancel();
+    setTimeout(()=>speechSynthesis.cancel(),100);
+    setTimeout(()=>speechSynthesis.cancel(),300);
+  }
+  document.querySelectorAll('.ev-card.tour-active').forEach(c=>c.classList.remove('tour-active'));
+  const tb=document.getElementById('tourBtn');if(tb)tb.style.color='var(--muted)';
+  const vhEl=document.getElementById('voiceHint');if(vhEl)vhEl.style.display='none';
+}
+
+document.getElementById('tourBtn')?.addEventListener('click',()=>{
+  if(tourTlRef&&tourStarRef)startTour(tourStarRef,tourTlRef);
+  else showVoiceHint('OPEN A MUSEUM FIRST',2000);
+});
+
+
+// ── Q&A FEATURE ──
+(function(){
+  const inp=document.getElementById('qaInput');
+  const btn=document.getElementById('qaBtn');
+  const ans=document.getElementById('qaAnswer');
+  if(!inp||!btn)return;
+
+  async function askQuestion(){
+    const q=inp.value.trim();
+    if(!q||!tourTlRef)return;
+    ans.style.display='block';
+    ans.textContent='Thinking…';
+    try{
+      const context=JSON.stringify({
+        name:tourTlRef.fullName,
+        born:tourTlRef.born,died:tourTlRef.died,
+        fields:tourTlRef.fields,nationality:tourTlRef.nationality,
+        events:(tourTlRef.events||[]).map(e=>({year:e.year,title:e.title,text:e.text}))
+      });
+      const r=await fetch('/.netlify/functions/claude',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:'__qa__',context,question:q})
+      });
+      const data=await r.json();
+      const raw=(data.content?.find(b=>b.type==='text')?.text)||"I don't have that information.";
+      ans.textContent=raw.replace(/^```.*|```$/gm,'').trim();
+      // Read answer aloud via shared speech channel
+      speak(ans.textContent.substring(0,300));
+    }catch(e){ans.textContent='Could not get an answer right now.';}
+  }
+
+  btn.addEventListener('click',askQuestion);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')askQuestion();});
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('#qaWrap'))ans.style.display='none';
+  });
+})();
+
+// ── ONBOARDING ──
+function dismissOnboard(which){
+  const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
+  if(el)el.style.display='none';
+  localStorage.setItem('st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07'),'1');
+}
+function showOnboard(which,delayMs){
+  const key='st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07');
+  if(localStorage.getItem(key))return;
+  const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
+  if(el)setTimeout(()=>el.style.display='block',delayMs||0);
+}
+// Welcome narration on first visit (or after 24h) — fires after mosaic reveals
+setTimeout(()=>{
+  const lastVisit=localStorage.getItem('st_last_visit');
+  const now=Date.now();
+  if(!lastVisit||now-parseInt(lastVisit)>86400000){
+    localStorage.setItem('st_last_visit',now);
+    setTimeout(()=>{
+      if(!isMobile){
+        const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
+        speak(welcome, 0.88);
+      }
+    },4500);
+  }
+},3500);
+
+// ── TIMELINE ONBOARD ──
+const _origBuildTL=buildTimeline;
+initSearch();
+initVoice();
+
+</script>
+</body>
+</html>
