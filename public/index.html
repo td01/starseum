@@ -905,7 +905,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vlbl.innerHTML='<span style="display:flex;align-items:center;gap:.4rem"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5.5" stroke="rgba(201,168,76,0.9)" stroke-width="1" fill="rgba(201,168,76,0.15)"/><path d="M5 3.5l3.5 2.5L5 8.5V3.5z" fill="rgba(201,168,76,1)"/></svg>WATCH VIDEO</span>';
       vWrap.appendChild(vlbl);
 
-   vWrap.addEventListener('click',()=>openVideo(ev.videoId || ev.video, ev.title, videoQuery));
+  vWrap.addEventListener('click', () => openVideo(ev.videoId || ev.video, ev.title, videoQuery));
       card.appendChild(vWrap);
     }else if(cardImg){
       const wrap=document.createElement('div');
@@ -1119,7 +1119,7 @@ function openVideo(videoId, title, searchQuery) {
     // If the data card possesses no usable video properties at all, spawn search route
     frame.style.display = 'none';
     fallback.style.display = 'flex';
-    ytLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent}`;
+  ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' documentary')}`;
     overlay.classList.add('on');
   }
 }
