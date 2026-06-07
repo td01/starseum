@@ -60,21 +60,28 @@ Return ONLY valid JSON, no markdown, no explanation:
       "year": "YYYY",
       "title": "Short punchy headline 5 words max",
       "text": "Two vivid sentences about this moment.",
-      "type": "birth|childhood|education|career|achievement|personal|death",
+      "type": "birth|childhood|education|career|achievement|interview|personal|death",
       "quote": "a real verified famous quote by them, or null",
-      "youtubeId": "real 11-char YouTube video ID or null",
-      "videoSearch": "highly specific YouTube search query e.g. '${name} BBC interview 1987' or '${name} live performance 1975 concert' or '${name} documentary full' — must be unique per event and findable on YouTube"
+      "youtubeId": null,
+      "videoSearch": "highly specific YouTube search query — see rules below"
     }
   ]
 }
 Rules:
 - Include exactly 10 events in chronological order, last must be type "death"
 - birthLat and birthLng must be accurate decimal coordinates for their birthplace
-- The first event (birth) should have type "birth" — leave youtubeId null
-- The second event must be type "childhood" covering ages 5–15: formative years, family, upbringing
-- youtubeId: only include an ID you are CERTAIN exists on YouTube right now. Leave null if any doubt. Do not guess.
-- videoSearch: REQUIRED for every event. Make each query highly specific and distinct — include the person's name, a specific year or era, and the nature of footage (interview, performance, documentary, speech, match, fight, film clip). Bad: "${name} video". Good: "${name} live at Wembley 1986" or "${name} CBS interview 1994" or "${name} championship final 1988"
+- Event 1: type "birth" — leave youtubeId null
+- Event 2: type "childhood" — formative years ages 5–15, family, upbringing
+- Events 3–9: MUST include at least 3 events of type "interview" — real TV or news interviews where ${name} spoke on camera. Include specific shows, years, and broadcasters (e.g. "Tonight Show 1987", "BBC Newsnight 1993", "Oprah Winfrey Show 1995", "60 Minutes 2001"). These should be milestone moments in their public life.
+- Event 10: type "death" (final event)
+- youtubeId: always null — do not guess IDs
+- videoSearch: REQUIRED for every event (except birth). Prioritise finding real interview footage on YouTube:
+  * For interview events: "${name} interview [show name] [year]" e.g. "David Bowie BBC interview 1983" or "Muhammad Ali Dick Cavett Show 1971"
+  * For performance/achievement events: "${name} [specific performance/game/speech] [year]" e.g. "Freddie Mercury Live Aid 1985"
+  * For documentary/profile events: "${name} documentary [broadcaster] [year]"
+  * Each videoSearch must be unique, specific, and name a real findable event on YouTube
 - Quotes must be verified real quotes — use null if uncertain`;
+
 
   const payload = JSON.stringify({
     model: "claude-haiku-4-5-20251001",
