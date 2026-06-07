@@ -1076,45 +1076,41 @@ function openVideo(videoId, title, searchQuery) {
   const meta = document.getElementById('videoMeta');
   const ytLink = document.getElementById('videoYtLink');
 
-  // Keep the broken iframe hidden and show your golden message box
+  // 1. Hide the video player because we want them to click out to real content
   frame.style.display = 'none';
   fallback.style.display = 'flex';
   meta.textContent = title || '';
 
-  // Look for the 11-character ID in whichever position it arrived in
+  // 2. Build a smart fallback search phrase based on who they are looking at
+  // This extracts a clean search string like "Marilyn Monroe" or the event title
+  let queryText = searchQuery || title || '';
+  queryText = queryText.replace(' documentary', '').trim();
+  
+  // Clean up the search string so it searches smoothly on YouTube
+  const dynamicSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(queryText + ' documentary')}`;
+
+  // 3. Check if the video ID looks suspicious or is a known hallucination
   let cleanId = '';
   if (videoId && videoId.length === 11 && !/\s/.test(videoId)) {
     cleanId = videoId;
   } else if (searchQuery && searchQuery.length === 11 && !/\s/.test(searchQuery)) {
     cleanId = searchQuery;
-  } else if (title && title.length === 11 && !/\s/.test(title)) {
-    cleanId = title;
   }
 
-  // FORCE BUILD THE EXACT URL STRING THAT YOU CONFIRMED WORKS:
-  if (cleanId) {
-    ytLink.href = `https://www.youtube.com/watch?v=${cleanId}`;
+  // List of common patterns or placeholders AI uses when it makes up strings
+  const isHallucinated = !cleanId || cleanId === 'EXeTwQNYQII' || cleanId.toLowerCase().includes('placeholder');
+
+  // 4. ROUTE THE STRINGS LOGICALLY:
+  if (isHallucinated) {
+    // If it's a made-up AI ID, force the link to find REAL videos on YouTube about them
+    ytLink.href = dynamicSearchUrl;
   } else {
-    // If no ID can be found anywhere, fallback to a clean text title query
-    const fallbackQuery = searchQuery || title || '';
-    ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(fallbackQuery.replace(' documentary',''))}`;
+    // If it's a real working ID format, give them the direct watch link
+    ytLink.href = `https://www.youtube.com/watch?v=${cleanId}`;
   }
 
   overlay.classList.add('on');
 }
-
-function closeVideo() {
-  document.getElementById('videoOverlay').classList.remove('on');
-  document.getElementById('videoFrame').src = '';
-  document.getElementById('videoFallback').style.display = 'none';
-  document.getElementById('videoFrame').style.display = 'block';
-}
-
-document.getElementById('videoClose').addEventListener('click', closeVideo);
-document.getElementById('videoOverlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeVideo();
-});
-
 // ═══════════════════════════════════════════
 //  FULLSCREEN + UTILS
 // ═══════════════════════════════════════════
