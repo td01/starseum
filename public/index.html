@@ -66,6 +66,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   }
   /* ENTER button: less offset on mobile */
   #onboardMosaic button[onclick]{bottom:calc(12% + 40px)!important;}
+  /* Disclaimer: larger on mobile so text flows to ~3 lines */
+  #disclaimerScreen [style*="font-family:var(--serif)"]{font-size:clamp(1.4rem,5vw,2rem)!important;}
 }
 .star-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--card);}
 .star-ph-i{font-family:var(--display);font-size:2.8rem;color:rgba(201,168,76,.1);}
@@ -621,10 +623,6 @@ const STARS=[
   {name:"Ernest Hemingway",slug:"Ernest_Hemingway",years:"1899–1961"},
   {name:"Winston Churchill",slug:"Winston_Churchill",years:"1874–1965"},
   // Music legends
-  {name:"Jimi Hendrix",slug:"Jimi_Hendrix",years:"1942–1970"},
-  {name:"Janis Joplin",slug:"Janis_Joplin",years:"1943–1970"},
-  {name:"Jim Morrison",slug:"Jim_Morrison",years:"1943–1971"},
-  {name:"Billie Holiday",slug:"Billie_Holiday",years:"1915–1959"},
   {name:"Edith Piaf",slug:"Édith_Piaf",years:"1915–1963"},
   {name:"Buddy Holly",slug:"Buddy_Holly",years:"1936–1959"},
   {name:"Otis Redding",slug:"Otis_Redding",years:"1941–1967"},
@@ -638,10 +636,6 @@ const STARS=[
   {name:"Lil Peep",slug:"Lil_Peep",years:"1996–2017"},
   {name:"Avicii",slug:"Avicii",years:"1989–2018"},
   // Film & TV
-  {name:"Marilyn Monroe",slug:"Marilyn_Monroe",years:"1926–1962"},
-  {name:"James Dean",slug:"James_Dean",years:"1931–1955"},
-  {name:"Audrey Hepburn",slug:"Audrey_Hepburn",years:"1929–1993"},
-  {name:"Marlon Brando",slug:"Marlon_Brando",years:"1924–2004"},
   {name:"Peter Sellers",slug:"Peter_Sellers",years:"1925–1980"},
   {name:"Gene Wilder",slug:"Gene_Wilder",years:"1933–2016"},
   {name:"John Candy",slug:"John_Candy",years:"1950–1994"},
@@ -1030,7 +1024,11 @@ async function fetchVideoData(tl, star){
     console.log('youtube function response status:', r.status);
     if(!r.ok)return{indexMap:[],results:[]};
     const data=await r.json();
-    console.log('youtube function version:', data.version||'OLD (pre-v4)', '| results:', (data.results||[]).map((res,i)=>({query:slicedQueries[i],isArray:Array.isArray(res),count:Array.isArray(res)?res.length:(res?.videoId?1:0),first:Array.isArray(res)?res[0]?.videoId:res?.videoId})));
+    // Diagnostic: print exact structure of first result so we can see what we're getting
+    if(data.results?.[0]!==undefined){
+      console.log('RAW result[0] type:', typeof data.results[0], Array.isArray(data.results[0])?'ARRAY':'NOT-ARRAY', 'JSON:', JSON.stringify(data.results[0]).substring(0,200));
+    }
+    console.log('youtube function version:', data.version||'OLD', '| counts:', (data.results||[]).map(r=>Array.isArray(r)?r.length:(r?1:0)));
     return{indexMap:slicedMap,results:data.results||[]};
   }catch(e){
     console.error('fetchVideoData error:',e.message);
@@ -2111,7 +2109,7 @@ function initSearch(){
   const res=document.getElementById('mSearchResults');
   if(!inp||!res)return;
   // Kill mosaic momentum when search is active
-  inp.addEventListener('focus',()=>{ velX=0;velY=0;edgePX=0;edgePY=0; });
+  inp.addEventListener('focus',()=>{ edgePX=0;edgePY=0; }); // stop edge pan but preserve drag momentum
   inp.addEventListener('blur',()=>{ edgePX=0;edgePY=0; });
   inp.addEventListener('input',()=>{
     const q=inp.value.trim().toLowerCase();
