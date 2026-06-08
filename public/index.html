@@ -545,16 +545,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="videoOverlay" id="videoOverlay">
   <button id="videoClose">✕ CLOSE</button>
   <div id="videoMeta"></div>
-  <!-- YouTube iframe player -->
   <iframe id="videoFrame" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="display:none;"></iframe>
-  <!-- Wikimedia Commons HTML5 video player -->
   <video id="commonsFrame" controls autoplay style="display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;" preload="metadata">
     <source id="commonsSource" src="" type="video/webm">
   </video>
+  <!-- Always-visible YouTube link — shown beneath player or as fallback -->
+  <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="display:none;font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.4);padding:.4rem 1rem;border-radius:2px;text-decoration:none;margin-top:.5rem;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">OPEN ON YOUTUBE ↗</a>
   <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
     <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
     <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">No embeddable video found for this moment.</div>
-    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">SEARCH ON YOUTUBE ↗</a>
   </div>
 </div>
 
@@ -1872,10 +1871,12 @@ async function openVideo(videoId, title){
   overlay.classList.add('on');
   fallback.style.display='none';
   meta.textContent=(title||'').substring(0,60).toUpperCase();
+  // Always show the OPEN ON YOUTUBE link — it's the reliable fallback
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
+  ytLink.style.display='inline-block';
 
-  // Remove old iframe, create fresh one
+  // Remove old iframe
   const old=document.getElementById('videoFrame');
   if(old)old.remove();
   const frame=document.createElement('iframe');
@@ -1884,15 +1885,16 @@ async function openVideo(videoId, title){
   frame.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
   frame.style.cssText='display:block;border:none;';
   frame.style.width='min(90vw, 1280px)';
-  frame.style.height='min(75vh, calc(min(90vw, 1280px) * 9/16))';
+  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
   overlay.insertBefore(frame,fallback);
 
-  // Set src and show — let YouTube's own UI handle unavailable videos
-  frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
-  console.log('Playing video:', videoId, title);
+  // youtube-nocookie.com is Google's recommended domain for third-party embeds
+  // It bypasses some embed restrictions and improves privacy
+  frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
+  console.log('Playing video:', videoId, title, '→', frame.src);
 
   window._videoCloseCleanup=()=>{frame.src='about:blank';};
-  return true; // always return true — iframe shows YouTube's own unavailable UI if blocked
+  return true;
 }
 
 async function openVideoWithFallback(candidates, title){
