@@ -1,6 +1,6 @@
-// YouTube Data API v3
-// Fast two-step: search → Videos API batch status check → scored ranking → 5 candidates
-// oEmbed removed: too slow for Netlify's 10s timeout. Reliability via scoring instead.
+// YouTube Data API v3 — Starseum v4 (2026-06-08)
+// Fast scoring approach: search → score by channel/title → return array of candidates
+// Each query returns an ARRAY of candidate objects [{videoId, title, thumb, score}]
 exports.handler = async function(event, context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -116,14 +116,17 @@ exports.handler = async function(event, context) {
     return [];
   }
 
-  // Run up to 8 queries in parallel — each is just 2 API calls (search + status)
+  // Run up to 8 queries in parallel
   const allResults = await Promise.all(
     queries.slice(0, 8).map(q => findVideos(q, 5))
   );
 
+  // Log summary so Netlify function logs confirm this version is running
+  console.log('youtube.js v4 returning', allResults.length, 'result arrays, counts:', allResults.map(r=>r.length));
+
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ results: allResults })
+    body: JSON.stringify({ results: allResults, version: 4 })
   };
 };
