@@ -72,10 +72,13 @@ exports.handler = async function(event, context) {
       + "&maxResults=" + maxResults
       + "&key=" + apiKey;
     const d = await httpsGet(url);
-    if (!d) { console.error("YT search: null response for", query); return []; }
-    if (d.error) { console.error("YT search API error:", d.error.code, d.error.message); return []; }
+    if (!d) { console.error("YT search: null response (timeout/network) for:", query); return []; }
+    if (d.error) {
+      console.error("YT API error:", JSON.stringify(d.error));
+      return [];
+    }
     const items = (d.items || []).filter(i => i.id?.videoId?.length === 11);
-    console.log(`ytSearch "${query}": ${items.length} raw results`);
+    console.log(`ytSearch "${query.substring(0,40)}": ${items.length} results`);
     return items.map(i => ({
       videoId: i.id.videoId,
       title: i.snippet?.title || "",
