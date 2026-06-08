@@ -363,7 +363,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
   <div style="max-width:min(820px,92vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1rem,2.2vw,1.55rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
+    <div style="font-family:var(--serif);font-size:clamp(1rem,3.3vw,2.3rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
       This prototype curates content from publicly available<br>information, images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
@@ -755,11 +755,12 @@ function mInit(){
       mLX=e.clientX;mLY=e.clientY;
       camX=mCX0+dx;camY=mCY0+dy;return;
     }
-    // Stop edge-pan within 75px of search+mic bar
+    // Stop edge-pan within 75px of search+mic bar (only when visible)
     const sw=document.getElementById('mSearchWrap');
-    const inDeadZone=sw&&sw.style.display!=='none'&&(()=>{
+    const swVisible=sw&&sw.style.display!=='none'&&parseFloat(sw.style.opacity||'1')>0;
+    const inDeadZone=swVisible&&(()=>{
       const r=sw.getBoundingClientRect();
-      return e.clientX>=r.left-75&&e.clientX<=r.right+75&&e.clientY>=r.top-75&&e.clientY<=r.bottom+75;
+      return r.width>0&&e.clientX>=r.left-75&&e.clientX<=r.right+75&&e.clientY>=r.top-75&&e.clientY<=r.bottom+75;
     })();
     const vw=window.innerWidth,vh=window.innerHeight;
     const x=e.clientX,y=e.clientY;
@@ -1019,14 +1020,17 @@ async function fetchVideoData(tl, star){
   try{
     const indexMap=[],activeQueries=[];
     queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
-    console.log('fetchVideoData: sending', activeQueries.length, 'queries:', activeQueries);
-    if(!activeQueries.length)return{indexMap:[],results:[]};
-    const r=await fetch('/.netlify/functions/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queries:activeQueries.slice(0,8)})});
+    // Slice BOTH together so indexMap[j] always matches results[j]
+    const slicedQueries=activeQueries.slice(0,8);
+    const slicedMap=indexMap.slice(0,8);
+    console.log('fetchVideoData: sending', slicedQueries.length, 'queries:', slicedQueries);
+    if(!slicedQueries.length)return{indexMap:[],results:[]};
+    const r=await fetch('/.netlify/functions/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queries:slicedQueries})});
     console.log('youtube function response status:', r.status);
     if(!r.ok)return{indexMap:[],results:[]};
     const data=await r.json();
-    console.log('youtube results:', data.results?.map((res,i)=>({query:activeQueries[i],count:res?.length,first:res?.[0]?.videoId})));
-    return{indexMap,results:data.results||[]};
+    console.log('youtube results:', (data.results||[]).map((res,i)=>({query:slicedQueries[i],count:res?.length,first:res?.[0]?.videoId})));
+    return{indexMap:slicedMap,results:data.results||[]};
   }catch(e){
     console.error('fetchVideoData error:',e.message);
     return{indexMap:[],results:[]};
@@ -1075,12 +1079,15 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   // Desktop only: speak star's name via ElevenLabs on loading screen
   if(!isMobile){
     let _nameSpeakDone=false;
+    // Format years from star.years e.g. "1945–1981" → "1945 to 1981"
+    const yearsSpoken=star.years?', '+star.years.replace(/[–—-]/,' to '):'';
+    const nameText=star.name+yearsSpoken+'.';
     (async()=>{
       try{
-        const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:star.name+'.'})});
+        const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:nameText})});
         if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
       }catch(e){}
-      if(!_nameSpeakDone)speak(star.name+'.', 0.82);
+      if(!_nameSpeakDone)speak(nameText, 0.82);
     })();
   }
   try{
@@ -1122,6 +1129,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
 
 function goHome(){
   stopTour();
+  closeVideo(); // close any open video overlay
   const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='none';
   document.getElementById('tlBar').style.display='none';
   // Show mosaic UI
