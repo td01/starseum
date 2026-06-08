@@ -1012,39 +1012,33 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // Verified YouTube IDs from official channels — guaranteed to embed
 // Key = star slug, value = array of {videoId, title, year, type}
 const CURATED_VIDEOS = {
-  // ── Verified YouTube IDs from official/reliable channels ──
-  // Dick Cavett Show channel (official, embeds reliably)
+  // ── Verified YouTube IDs — from official/Dick Cavett/reliable channels ──
   'Jimi_Hendrix': [
     {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show 1969',year:'1969'},
-    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Interview — Dick Cavett 1969',year:'1969'},
+    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Interview Dick Cavett',year:'1969'},
     {videoId:'YmVNh-fwl08',title:'Jimi Hendrix on Life as a Young Musician',year:'1969'},
     {videoId:'da-969idG7Y',title:'Jimi Hendrix on His Electric Church',year:'1969'},
+    {videoId:'keYcGzRkhzY',title:'Jimi Hendrix on Stage Destruction',year:'1969'},
   ],
   'Muhammad_Ali': [
     {videoId:'kGuNWh3yTSo',title:'Best of Muhammad Ali on Dick Cavett',year:'1970'},
-    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War — Dick Cavett',year:'1970'},
-    {videoId:'C6A5buJhEPg',title:'Ali & Frazier on Dick Cavett 1974',year:'1974'},
+    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War Dick Cavett',year:'1970'},
+    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
     {videoId:'pR3XxV5aL68',title:'Muhammad Ali on Early Retirement',year:'1970'},
     {videoId:'Oqsji_F7cKU',title:'Muhammad Ali on Computerised Fights',year:'1970'},
   ],
   'Joe_Frazier': [
-    {videoId:'C6A5buJhEPg',title:'Ali & Frazier on Dick Cavett 1974',year:'1974'},
-    {videoId:'LU8XBaMTX7g',title:'Ali & Frazier Pick Up Dick Cavett',year:'1974'},
-    {videoId:'QpGk3pn3BFo',title:'Ali & Frazier on Parkinson/Cavett 1974',year:'1974'},
+    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
+    {videoId:'LU8XBaMTX7g',title:'Ali and Frazier Pick Up Dick Cavett',year:'1974'},
+    {videoId:'QpGk3pn3BFo',title:'Ali and Frazier on Parkinson Cavett 1974',year:'1974'},
   ],
   'Freddie_Mercury': [
-    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982 (Official Queen)',year:'1982'},
-    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute: Freddie Mercury 1984',year:'1984'},
+    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982 Official Queen',year:'1982'},
+    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute Freddie Mercury 1984',year:'1984'},
     {videoId:'ywyzFJYGOig',title:'Freddie Mercury Rare ET Interview 1982',year:'1982'},
   ],
   'Bob_Marley': [
-    {videoId:'rLA6k1ndgB0',title:'Bob Marley - One Love (Official)',year:'1977'},
-  ],
-  'John_Lennon': [
-    {videoId:'VGf9PTYyJ4A',title:'John Lennon Archive Interview',year:'1969'},
-  ],
-  'James_Dean': [
-    {videoId:'kGuNWh3yTSo',title:'James Dean Archive',year:'1955'},
+    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way Documentary 1979',year:'1979'},
   ],
 };
 
@@ -1876,7 +1870,7 @@ async function openVideo(videoId, title){
   const ytLink=document.getElementById('videoYtLink');
 
   overlay.classList.add('on');
-  fallback.style.display='none'; // start hidden — show iframe immediately
+  fallback.style.display='none';
   meta.textContent=(title||'').substring(0,60).toUpperCase();
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
@@ -1888,57 +1882,17 @@ async function openVideo(videoId, title){
   frame.id='videoFrame';
   frame.setAttribute('allowfullscreen','');
   frame.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
-  frame.style.cssText='display:block;border:none;flex-shrink:0;';
-  // Match #videoFrame CSS dimensions
+  frame.style.cssText='display:block;border:none;';
   frame.style.width='min(90vw, 1280px)';
   frame.style.height='min(75vh, calc(min(90vw, 1280px) * 9/16))';
   overlay.insertBefore(frame,fallback);
 
-  return new Promise((resolve)=>{
-    let settled=false;
-    const settle=(ok)=>{if(!settled){settled=true;resolve(ok);}};
-    window._videoCloseCleanup=()=>{
-      window.removeEventListener('message',msgHandler);
-      settle(false);
-    };
+  // Set src and show — let YouTube's own UI handle unavailable videos
+  frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  console.log('Playing video:', videoId, title);
 
-    const msgHandler=(e)=>{
-      if(!String(e.origin).includes('youtube'))return;
-      try{
-        const d=JSON.parse(e.data);
-        // Only treat genuine error events as failures
-        // onError info codes: 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embed not allowed
-        if(d.event==='onError'){
-          const code=d.info;
-          console.warn('YT onError code',code,'for',videoId);
-          if(code===100||code===101||code===150){
-            // Confirmed embed-blocked — show fallback and try next candidate
-            window.removeEventListener('message',msgHandler);
-            frame.style.display='none';
-            fallback.style.display='flex';
-            meta.textContent='VIDEO UNAVAILABLE';
-            settle(false);
-          }
-          // codes 2 and 5 are player/param errors — don't fail, let it show
-        }
-        // onStateChange: 1=playing, ignore all others (including -1=unstarted which is normal)
-        else if(d.event==='onStateChange'&&d.info===1){
-          window.removeEventListener('message',msgHandler);
-          settle(true);
-        }
-      }catch(_){}
-    };
-    window.addEventListener('message',msgHandler);
-
-    const origin=window.location.origin;
-    frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
-
-    // Settle as success after 8s if no error received — video is playing
-    setTimeout(()=>{
-      window.removeEventListener('message',msgHandler);
-      settle(true);
-    },8000);
-  });
+  window._videoCloseCleanup=()=>{frame.src='about:blank';};
+  return true; // always return true — iframe shows YouTube's own unavailable UI if blocked
 }
 
 async function openVideoWithFallback(candidates, title){
