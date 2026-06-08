@@ -545,11 +545,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="videoOverlay" id="videoOverlay">
   <button id="videoClose">✕ CLOSE</button>
   <div id="videoMeta"></div>
-  <iframe id="videoFrame" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  <!-- YouTube iframe player -->
+  <iframe id="videoFrame" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="display:none;"></iframe>
+  <!-- Wikimedia Commons HTML5 video player -->
+  <video id="commonsFrame" controls autoplay style="display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;" preload="metadata">
+    <source id="commonsSource" src="" type="video/webm">
+  </video>
   <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
     <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video is restricted from embedding. Watch it directly on YouTube.</div>
-    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">WATCH ON YOUTUBE ↗</a>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">No embeddable video found for this moment.</div>
+    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">SEARCH ON YOUTUBE ↗</a>
   </div>
 </div>
 
@@ -1004,36 +1009,68 @@ function setLoad(p,s){
 function hideLoad(){document.getElementById('loadScreen').classList.remove('on');}
 
 // ── VIDEO DATA PIPELINE ──
+// Strategy: Wikimedia Commons first (free, no quota, always embeddable)
+//           YouTube second (for events Commons can't cover)
 async function fetchVideoData(tl, star){
   const events=tl.events||[];
   const queries=events.map((ev,i)=>{
     if(ev.type==='birth'||i===0)return null;
-    if(ev.videoSearch)return ev.videoSearch;
-    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,3).join(' ');
-    return (star.name+' '+(words||ev.year||'')).substring(0,80).trim();
+    // For Commons: simpler queries work better — name + key topic
+    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,2).join(' ');
+    return (star.name+' '+(words||ev.year||'')).substring(0,60).trim();
   });
+
+  const indexMap=[],activeQueries=[];
+  queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
+  const slicedQueries=activeQueries.slice(0,8);
+  const slicedMap=indexMap.slice(0,8);
+  if(!slicedQueries.length)return{indexMap:[],results:[]};
+
+  // Step 1: Try Wikimedia Commons for all queries in parallel
+  let commonsResults=[];
   try{
-    const indexMap=[],activeQueries=[];
-    queries.forEach((q,i)=>{if(q){indexMap.push(i);activeQueries.push(q);}});
-    // Slice BOTH together so indexMap[j] always matches results[j]
-    const slicedQueries=activeQueries.slice(0,8);
-    const slicedMap=indexMap.slice(0,8);
-    console.log('fetchVideoData: sending', slicedQueries.length, 'queries:', slicedQueries);
-    if(!slicedQueries.length)return{indexMap:[],results:[]};
-    const r=await fetch('/.netlify/functions/youtube',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queries:slicedQueries})});
-    console.log('youtube function response status:', r.status);
-    if(!r.ok)return{indexMap:[],results:[]};
-    const data=await r.json();
-    // Diagnostic: print exact structure of first result so we can see what we're getting
-    if(data.results?.[0]!==undefined){
-      console.log('RAW result[0] type:', typeof data.results[0], Array.isArray(data.results[0])?'ARRAY':'NOT-ARRAY', 'JSON:', JSON.stringify(data.results[0]).substring(0,200));
+    const r=await fetch('/.netlify/functions/commons',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({queries:slicedQueries})
+    });
+    if(r.ok){
+      const data=await r.json();
+      commonsResults=data.results||[];
+      const found=commonsResults.filter(Boolean).length;
+      console.log(`Commons: ${found}/${slicedQueries.length} found`);
     }
-    console.log('youtube function version:', data.version||'OLD', '| counts:', (data.results||[]).map(r=>Array.isArray(r)?r.length:(r?1:0)));
-    return{indexMap:slicedMap,results:data.results||[]};
-  }catch(e){
-    console.error('fetchVideoData error:',e.message);
-    return{indexMap:[],results:[]};
+  }catch(e){console.log('Commons fetch error:',e.message);}
+
+  // Step 2: For queries Commons didn't cover, try YouTube
+  const ytQueries=[];const ytMap=[];
+  slicedQueries.forEach((q,j)=>{
+    if(!commonsResults[j]){ytQueries.push(q);ytMap.push(j);}
+  });
+
+  let ytResults=new Array(slicedQueries.length).fill(null);
+  if(ytQueries.length){
+    try{
+      const r=await fetch('/.netlify/functions/youtube',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({queries:ytQueries})
+      });
+      if(r.ok){
+        const data=await r.json();
+        (data.results||[]).forEach((res,k)=>{
+          if(res&&(Array.isArray(res)?res.length:res.videoId)){
+            ytResults[ytMap[k]]=res;
+          }
+        });
+        const ytFound=ytResults.filter(Boolean).length;
+        console.log(`YouTube fallback: ${ytFound}/${ytQueries.length} found`);
+      }
+    }catch(e){console.log('YouTube fetch error:',e.message);}
   }
+
+  // Merge: Commons takes priority, YouTube fills gaps
+  const merged=slicedQueries.map((_,j)=>commonsResults[j]||ytResults[j]||null);
+  console.log('Video merge: Commons+YouTube total:', merged.filter(Boolean).length, 'of', slicedQueries.length);
+  return{indexMap:slicedMap,results:merged};
 }
 
 function injectVideoData(tl,videoData){
@@ -1041,39 +1078,52 @@ function injectVideoData(tl,videoData){
   const events=tl.events||[];
   let injected=0;
   results.forEach((item,j)=>{
-    // Normalise: item may be an array of candidates (new format) OR a single object (old format)
-    // OR null/undefined (no result for this query)
-    let candidates;
-    if(!item){return;}
-    else if(Array.isArray(item)){candidates=item;}
-    else if(item.videoId){candidates=[item];} // single object — wrap in array
-    else{return;}
-    if(!candidates.length)return;
+    if(!item)return;
     const i=indexMap[j],ev=events[i];
     if(!ev)return;
-    ev.youtubeId=candidates[0].videoId;
-    ev.youtubeCandidates=candidates;
-    ev._ytThumb=candidates[0].thumb;
-    injected++;
-    console.log(`injected event[${i}] "${ev.title}" → ${candidates[0].videoId}`);
+    if(item.source==='commons'){
+      // Wikimedia Commons video
+      ev.commonsVideo=item; // {fileUrl, thumbUrl, title, pageUrl}
+      ev._ytThumb=item.thumbUrl;
+      injected++;
+      console.log(`Commons injected event[${i}] "${ev.title}" → ${item.fileUrl.substring(0,60)}`);
+    }else if(Array.isArray(item)&&item.length){
+      // YouTube candidate array
+      ev.youtubeId=item[0].videoId;
+      ev.youtubeCandidates=item;
+      ev._ytThumb=item[0].thumb;
+      injected++;
+      console.log(`YouTube injected event[${i}] "${ev.title}" → ${item[0].videoId}`);
+    }else if(item.videoId){
+      // YouTube single object
+      ev.youtubeId=item.videoId;
+      ev.youtubeCandidates=[item];
+      ev._ytThumb=item.thumb;
+      injected++;
+      console.log(`YouTube(obj) injected event[${i}] "${ev.title}" → ${item.videoId}`);
+    }
   });
-  console.log('injectVideoData: injected', injected, 'videos into', events.length, 'events');
+  console.log('injectVideoData: injected', injected, 'of', results.length, 'into', events.length, 'events');
 }
 
 async function enrichVideos(star,tl){
   const events=tl.events||[];
   events.forEach((ev,i)=>{
-    if(!ev.youtubeCandidates?.length)return;
-    const candidates=ev.youtubeCandidates;
+    const hasCommons=!!ev.commonsVideo;
+    const hasYT=!!(ev.youtubeCandidates?.length||ev.youtubeId);
+    if(!hasCommons&&!hasYT)return;
     const vWrap=document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
     if(!vWrap)return;
     const thumb=vWrap.querySelector('.ev-img');
-    if(thumb&&candidates[0].thumb)thumb.src=candidates[0].thumb;
+    const thumbSrc=ev._ytThumb||(hasCommons?ev.commonsVideo.thumbUrl:null);
+    if(thumb&&thumbSrc)thumb.src=thumbSrc;
     vWrap.onclick=null;
-    vWrap.addEventListener('click',(e)=>{
-      if(vWrap._vWrapDrag)return;
-      openVideoWithFallback(candidates,ev.title||'');
-    },{once:true});
+    const playFn=()=>{
+      if(hasCommons)openCommonsVideo(ev.commonsVideo,ev.title);
+      else openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);
+    };
+    vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;playFn();},{once:true});
+    vWrap.addEventListener('touchend',(e)=>{e.preventDefault();playFn();},{passive:false,once:true});
   });
   if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef,tourTlRef,{thumb:null,images:[]});
 }
@@ -1753,7 +1803,7 @@ function buildBioPanel(star,tl,heroThumb){
 function buildMediaPanel(star,tl,wiki){
   const panel=document.getElementById('mediaPanel');
   if(!panel)return;
-  const events=(tl.events||[]).filter(e=>e.youtubeId&&e.youtubeId.length===11);
+  const events=(tl.events||[]).filter(e=>(e.youtubeId&&e.youtubeId.length===11)||e.commonsVideo);
   panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
   const grid=document.getElementById('mediaGrid');
   if(!grid)return;
@@ -1767,7 +1817,10 @@ function buildMediaPanel(star,tl,wiki){
       <div class="media-item-label">${ev.title||''}</div>
       <div class="media-item-sub">${ev.year||''} · VIDEO</div>
     `;
-    item.addEventListener('click',()=>openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title||star.name));
+    item.addEventListener('click',()=>{
+      if(ev.commonsVideo)openCommonsVideo(ev.commonsVideo,ev.title||star.name);
+      else openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title||star.name);
+    });
     grid.appendChild(item);
   });
   if(events.length===0){
@@ -1886,11 +1939,61 @@ async function openVideoWithFallback(candidates, title){
   if(ytLink){ytLink.href='https://www.youtube.com/watch?v='+last.videoId;ytLink.textContent='WATCH ON YOUTUBE ↗';}
 }
 
+// Open Wikimedia Commons video — uses HTML5 <video> element, always embeddable
+function openCommonsVideo(commonsItem, title){
+  const overlay=document.getElementById('videoOverlay');
+  const commonsFrame=document.getElementById('commonsFrame');
+  const commonsSource=document.getElementById('commonsSource');
+  const ytFrame=document.getElementById('videoFrame');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+
+  overlay.classList.add('on');
+  ytFrame.style.display='none';
+  ytFrame.src='';
+  fallback.style.display='none';
+  meta.textContent=(title||commonsItem.title||'').substring(0,60).toUpperCase();
+
+  // Detect video type
+  const url=commonsItem.fileUrl;
+  const ext=url.split('.').pop().toLowerCase().split('?')[0];
+  const mimeMap={ogv:'video/ogg',webm:'video/webm',mp4:'video/mp4'};
+  const mime=mimeMap[ext]||'video/webm';
+
+  commonsSource.src=url;
+  commonsSource.type=mime;
+  commonsFrame.style.display='block';
+  commonsFrame.load();
+  commonsFrame.play().catch(()=>{});
+
+  // Attribution link
+  if(ytLink&&commonsItem.pageUrl){
+    ytLink.href=commonsItem.pageUrl;
+    ytLink.textContent='VIEW ON WIKIMEDIA COMMONS ↗';
+    ytLink.style.display='inline-block';
+  }
+
+  commonsFrame.onerror=()=>{
+    commonsFrame.style.display='none';
+    fallback.style.display='flex';
+    meta.textContent='VIDEO UNAVAILABLE';
+  };
+
+  window._videoCloseCleanup=()=>{
+    commonsFrame.pause();
+    commonsFrame.src='';
+    commonsSource.src='';
+  };
+}
+
 function closeVideo(){
   if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
   document.getElementById('videoOverlay').classList.remove('on');
   const frame=document.getElementById('videoFrame');
-  if(frame){frame.src='about:blank';setTimeout(()=>{frame.src='';},100);}
+  if(frame){frame.src='about:blank';setTimeout(()=>{frame.src='';frame.style.display='none';},100);}
+  const cf=document.getElementById('commonsFrame');
+  if(cf){try{cf.pause();}catch(e){}cf.style.display='none';}
   document.getElementById('videoFallback').style.display='none';
 }
 document.getElementById('videoClose').addEventListener('click',closeVideo);
