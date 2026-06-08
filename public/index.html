@@ -546,7 +546,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <iframe id="videoFrame" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
   <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
     <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video may be restricted. Watch it directly on YouTube.</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">This video is restricted from embedding. Watch it directly on YouTube.</div>
     <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);padding:.5rem 1.2rem;border-radius:2px;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">WATCH ON YOUTUBE ↗</a>
   </div>
 </div>
@@ -1766,8 +1766,8 @@ async function openVideo(videoId, title){
   const ytLink=document.getElementById('videoYtLink');
 
   overlay.classList.add('on');
-  fallback.style.display='flex';
-  meta.textContent='LOADING…';
+  fallback.style.display='none'; // start hidden — show iframe immediately
+  meta.textContent=(title||'').substring(0,60).toUpperCase();
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
 
@@ -1778,7 +1778,10 @@ async function openVideo(videoId, title){
   frame.id='videoFrame';
   frame.setAttribute('allowfullscreen','');
   frame.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
-  frame.style.cssText='display:none;width:100%;height:100%;border:none;position:absolute;inset:0;';
+  frame.style.cssText='display:block;border:none;flex-shrink:0;';
+  // Match #videoFrame CSS dimensions
+  frame.style.width='min(90vw, 1280px)';
+  frame.style.height='min(75vh, calc(min(90vw, 1280px) * 9/16))';
   overlay.insertBefore(frame,fallback);
 
   return new Promise((resolve)=>{
@@ -1793,17 +1796,24 @@ async function openVideo(videoId, title){
       if(!String(e.origin).includes('youtube'))return;
       try{
         const d=JSON.parse(e.data);
-        // Error codes: 2=bad param, 5=HTML5 error, 100=not found, 101/150=not embeddable
-        if(d.event==='onError'||(d.event==='infoDelivery'&&d.info?.playerState===-1)){
-          console.warn('YT error for',videoId,d);
+        // Only treat genuine error events as failures
+        // onError info codes: 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embed not allowed
+        if(d.event==='onError'){
+          const code=d.info;
+          console.warn('YT onError code',code,'for',videoId);
+          if(code===100||code===101||code===150){
+            // Confirmed embed-blocked — show fallback and try next candidate
+            window.removeEventListener('message',msgHandler);
+            frame.style.display='none';
+            fallback.style.display='flex';
+            meta.textContent='VIDEO UNAVAILABLE';
+            settle(false);
+          }
+          // codes 2 and 5 are player/param errors — don't fail, let it show
+        }
+        // onStateChange: 1=playing, ignore all others (including -1=unstarted which is normal)
+        else if(d.event==='onStateChange'&&d.info===1){
           window.removeEventListener('message',msgHandler);
-          frame.style.display='none';fallback.style.display='flex';
-          meta.textContent='VIDEO UNAVAILABLE';settle(false);
-        }else if(d.event==='onStateChange'&&(d.info===1||d.info===3)){
-          // 1=playing, 3=buffering — video is loaded
-          window.removeEventListener('message',msgHandler);
-          frame.style.display='block';fallback.style.display='none';
-          meta.textContent=(title||'').substring(0,60).toUpperCase();
           settle(true);
         }
       }catch(_){}
@@ -1813,51 +1823,35 @@ async function openVideo(videoId, title){
     const origin=window.location.origin;
     frame.src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
 
-    // Optimistic: show the video after 2.5s if no error — most embeds work silently
-    frame.onload=()=>{
-      setTimeout(()=>{
-        if(!settled){
-          frame.style.display='block';fallback.style.display='none';
-          meta.textContent=(title||'').substring(0,60).toUpperCase();
-          settle(true);
-        }
-      },2500);
-    };
-
-    // Hard timeout: 20s — if still not settled, show whatever is in the frame
+    // Settle as success after 8s if no error received — video is playing
     setTimeout(()=>{
       window.removeEventListener('message',msgHandler);
-      if(!settled){
-        frame.style.display='block';fallback.style.display='none';
-        settle(true); // show it — user can see if it works
-      }
-    },20000);
+      settle(true);
+    },8000);
   });
 }
 
 async function openVideoWithFallback(candidates, title){
-  // Always try to embed — never redirect to search
-  const validCandidates=(candidates||[]).filter(c=>c?.videoId&&c.videoId.length===11);
-  if(!validCandidates.length){
-    // No candidates at all — open best watch URL
-    const ytSearch=encodeURIComponent(title||'');
-    // Can't embed without an ID — open on YouTube as last resort
-    document.getElementById('videoOverlay').classList.add('on');
-    document.getElementById('videoFallback').style.display='flex';
-    document.getElementById('videoMeta').textContent='NO VIDEO FOUND';
-    document.getElementById('videoYtLink').href='https://www.youtube.com/results?search_query='+ytSearch;
-    document.getElementById('videoYtLink').textContent='SEARCH ON YOUTUBE ↗';
+  const valid=(candidates||[]).filter(c=>c?.videoId&&c.videoId.length===11);
+  if(!valid.length){
+    // No candidates — show overlay with watch link
+    const overlay=document.getElementById('videoOverlay');
+    const fallback=document.getElementById('videoFallback');
+    const ytLink=document.getElementById('videoYtLink');
+    overlay.classList.add('on');
+    fallback.style.display='flex';
+    if(ytLink){ytLink.href='https://www.youtube.com/results?search_query='+encodeURIComponent(title);ytLink.textContent='SEARCH ON YOUTUBE ↗';}
     return;
   }
-  // Try each candidate — show the first one that plays
-  for(const candidate of validCandidates){
-    const success=await openVideo(candidate.videoId,candidate.title||title);
-    if(success)return;
+  // Try each candidate — openVideo only returns false on confirmed embed-blocked errors
+  for(const candidate of valid){
+    const success=await openVideo(candidate.videoId, candidate.title||title);
+    if(success)return; // playing — stop
+    // false = 100/101/150 error — try next candidate
   }
-  // All candidates failed embed but we have an ID — still show the last one
-  // (user sees the YouTube embed page with "watch on YouTube" option)
-  const last=validCandidates[validCandidates.length-1];
-  await openVideo(last.videoId, last.title||title);
+  // All confirmed blocked — show the last one anyway (user sees YouTube's own UI)
+  // This only happens if ALL candidates are embed-blocked
+  await openVideo(valid[valid.length-1].videoId, valid[valid.length-1].title||title);
 }
 
 function closeVideo(){
