@@ -1,6 +1,5 @@
-// YouTube Data API v3 — Starseum v4 (2026-06-08)
-// Fast scoring approach: search → score by channel/title → return array of candidates
-// Each query returns an ARRAY of candidate objects [{videoId, title, thumb, score}]
+// YouTube Data API v3 — Starseum v5 (2026-06-08)
+// Removed videoEmbeddable filter — was silently returning 0 results
 exports.handler = async function(event, context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -70,22 +69,19 @@ exports.handler = async function(event, context) {
       + "?part=snippet"
       + "&q=" + encodeURIComponent(query)
       + "&type=video"
-      + "&videoEmbeddable=true"
       + "&maxResults=" + maxResults
       + "&key=" + apiKey;
     const d = await httpsGet(url);
-    if (!d || d.error) {
-      console.error("YT search error:", d?.error?.code, d?.error?.message);
-      return [];
-    }
-    return (d.items || [])
-      .filter(i => i.id?.videoId?.length === 11)
-      .map(i => ({
-        videoId: i.id.videoId,
-        title: i.snippet?.title || "",
-        channelTitle: i.snippet?.channelTitle || "",
-        thumb: i.snippet?.thumbnails?.medium?.url || null,
-      }));
+    if (!d) { console.error("YT search: null response for", query); return []; }
+    if (d.error) { console.error("YT search API error:", d.error.code, d.error.message); return []; }
+    const items = (d.items || []).filter(i => i.id?.videoId?.length === 11);
+    console.log(`ytSearch "${query}": ${items.length} raw results`);
+    return items.map(i => ({
+      videoId: i.id.videoId,
+      title: i.snippet?.title || "",
+      channelTitle: i.snippet?.channelTitle || "",
+      thumb: i.snippet?.thumbnails?.medium?.url || null,
+    }));
   }
 
   async function findVideos(query, maxCandidates = 5) {
@@ -121,12 +117,6 @@ exports.handler = async function(event, context) {
     queries.slice(0, 8).map(q => findVideos(q, 5))
   );
 
-  // Log summary so Netlify function logs confirm this version is running
-  console.log('youtube.js v4 returning', allResults.length, 'result arrays, counts:', allResults.map(r=>r.length));
-
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ results: allResults, version: 4 })
-  };
+  console.log('youtube.js v5 returning', allResults.length, 'result arrays, counts:', allResults.map(r=>r.length));
+  return { statusCode: 200, headers, body: JSON.stringify({ results: allResults, version: 5 }) };
 };
