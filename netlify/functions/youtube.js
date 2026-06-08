@@ -1,6 +1,6 @@
 // YouTube Data API v3
-// Strategy: search → Videos API status check → oEmbed real-world embed test → return 5 candidates
-// oEmbed (youtube.com/oembed) is the authoritative test: 200 = truly embeddable on 3rd-party sites
+// Fast two-step: search → Videos API batch status check → scored ranking → 5 candidates
+// oEmbed removed: too slow for Netlify's 10s timeout. Reliability via scoring instead.
 exports.handler = async function(event, context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -22,28 +22,49 @@ exports.handler = async function(event, context) {
 
   const https = require("https");
 
-  function httpsGet(url, followRedirects = true) {
+  function httpsGet(url) {
     return new Promise((resolve) => {
-      const req = https.get(url, { timeout: 8000 }, (res) => {
-        // oEmbed check: we only need the status code, not the body
-        if (followRedirects && (res.statusCode === 301 || res.statusCode === 302)) {
-          resolve({ statusCode: res.statusCode, location: res.headers.location });
-          res.destroy();
-          return;
-        }
+      const req = https.get(url, { timeout: 6000 }, (res) => {
         let data = "";
         res.on("data", c => data += c);
         res.on("end", () => {
-          try { resolve({ statusCode: res.statusCode, body: JSON.parse(data) }); }
-          catch(e) { resolve({ statusCode: res.statusCode, body: null }); }
+          try { resolve(JSON.parse(data)); } catch(e) { resolve(null); }
         });
       });
-      req.on("error", () => resolve({ statusCode: 0, body: null }));
-      req.on("timeout", () => { req.destroy(); resolve({ statusCode: 0, body: null }); });
+      req.on("error", () => resolve(null));
+      req.on("timeout", () => { req.destroy(); resolve(null); });
     });
   }
 
-  // Search YouTube — bias toward official/archive channels with "full" content
+  // Channels that reliably allow third-party embeds
+  const TRUSTED_CHANNELS = [
+    'vevo', 'official', 'archive', 'remastered', 'bbc',
+    'criterion', 'documentary', 'classics', 'heritage',
+    'museum', 'library', 'arts', 'culture', 'film'
+  ];
+
+  // Score a candidate — higher = more likely to embed
+  function scoreCandidate(c) {
+    let score = 0;
+    const ch = (c.channelTitle || '').toLowerCase();
+    const title = (c.title || '').toLowerCase();
+    // Trusted channel types
+    if (TRUSTED_CHANNELS.some(t => ch.includes(t))) score += 30;
+    // Official/VEVO channels are very reliable
+    if (ch.includes('vevo')) score += 20;
+    if (ch.includes('official')) score += 15;
+    // Full content scores better than clips
+    if (title.includes('full')) score += 10;
+    if (title.includes('complete')) score += 8;
+    if (title.includes('interview')) score += 8;
+    if (title.includes('concert') || title.includes('live')) score += 6;
+    if (title.includes('documentary')) score += 6;
+    // Penalise likely fan reuploads
+    if (ch.includes('fan') || title.includes('tribute')) score -= 20;
+    if (title.includes('reaction') || title.includes('cover')) score -= 15;
+    return score;
+  }
+
   async function ytSearch(query, maxResults = 10) {
     const url = "https://www.googleapis.com/youtube/v3/search"
       + "?part=snippet"
@@ -52,8 +73,7 @@ exports.handler = async function(event, context) {
       + "&videoEmbeddable=true"
       + "&maxResults=" + maxResults
       + "&key=" + apiKey;
-    const res = await httpsGet(url);
-    const d = res.body;
+    const d = await httpsGet(url);
     if (!d || d.error) {
       console.error("YT search error:", d?.error?.code, d?.error?.message);
       return [];
@@ -65,19 +85,17 @@ exports.handler = async function(event, context) {
         title: i.snippet?.title || "",
         channelTitle: i.snippet?.channelTitle || "",
         thumb: i.snippet?.thumbnails?.medium?.url || null,
-        publishedAt: i.snippet?.publishedAt || ""
       }));
   }
 
-  // Stage 1: Videos API status check (fast, uses API quota)
-  async function statusCheck(videoIds) {
+  // Batch status check for all IDs at once (one API call)
+  async function batchStatusCheck(videoIds) {
     if (!videoIds.length) return new Set();
     const url = "https://www.googleapis.com/youtube/v3/videos"
       + "?part=status"
       + "&id=" + videoIds.join(",")
       + "&key=" + apiKey;
-    const res = await httpsGet(url);
-    const d = res.body;
+    const d = await httpsGet(url);
     if (!d) return new Set();
     return new Set(
       (d.items || [])
@@ -90,61 +108,43 @@ exports.handler = async function(event, context) {
     );
   }
 
-  // Stage 2: oEmbed real-world embed test — the authoritative check
-  // Returns true if the video will actually embed on a third-party site
-  async function oEmbedCheck(videoId) {
-    const url = "https://www.youtube.com/oembed"
-      + "?url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + videoId)
-      + "&format=json";
-    const res = await httpsGet(url, false);
-    // 200 = embeddable, 401/403 = embed disabled by owner, 404 = not found
-    const ok = res.statusCode === 200;
-    if (!ok) console.log(`oEmbed blocked (${res.statusCode}): ${videoId}`);
-    return ok;
-  }
-
-  // Find up to maxCandidates truly embeddable videos for a query
   async function findVideos(query, maxCandidates = 5) {
     if (!query || query.length < 3) return [];
 
-    // Try progressively broader searches
     const attempts = [
       query,
-      query.replace(/\d{4}/g, "").replace(/[^a-zA-Z0-9 ]/g, "").trim().split(/\s+/).slice(0, 6).join(" "),
-      query.split(" ").slice(0, 4).join(" ")
+      query.replace(/\d{4}/g, "").replace(/[^a-zA-Z0-9 ]/g, "").trim().split(/\s+/).slice(0, 5).join(" "),
+      query.split(" ").slice(0, 3).join(" ")
     ].filter((q, i, arr) => q && q.length >= 3 && arr.indexOf(q) === i);
 
     for (const q of attempts) {
-      const candidates = await ytSearch(q, 12);
+      const candidates = await ytSearch(q, 10);
       if (!candidates.length) continue;
 
-      // Stage 1: Videos API status filter (eliminates private/deleted/non-embeddable)
+      // Single batch call to verify status
       const ids = candidates.map(c => c.videoId);
-      const statusOk = await statusCheck(ids);
-      const stage1 = candidates.filter(c => statusOk.has(c.videoId));
-      if (!stage1.length) {
-        console.log(`"${q}": all ${candidates.length} failed status check`);
+      const okIds = await batchStatusCheck(ids);
+      const verified = candidates.filter(c => okIds.has(c.videoId));
+
+      if (!verified.length) {
+        console.log(`"${q}": 0 passed status check from ${candidates.length}`);
         continue;
       }
 
-      // Stage 2: oEmbed test — real-world embed permission check
-      // Test in parallel but cap at 6 to avoid timeout
-      const toTest = stage1.slice(0, 6);
-      const oEmbedResults = await Promise.all(toTest.map(c => oEmbedCheck(c.videoId)));
-      const verified = toTest.filter((_, i) => oEmbedResults[i]);
+      // Score and sort — best candidates first
+      const scored = verified
+        .map(c => ({ ...c, score: scoreCandidate(c) }))
+        .sort((a, b) => b.score - a.score);
 
-      if (verified.length > 0) {
-        console.log(`"${q}": ${verified.length}/${toTest.length} passed oEmbed check`);
-        return verified.slice(0, maxCandidates);
-      }
-      console.log(`"${q}": 0 passed oEmbed from ${stage1.length} status-ok candidates`);
+      console.log(`"${q}": ${scored.length} ok, top="${scored[0]?.title}" score=${scored[0]?.score}`);
+      return scored.slice(0, maxCandidates);
     }
 
-    console.log(`No embeddable video found for: "${query}"`);
+    console.log(`No video found for: "${query}"`);
     return [];
   }
 
-  // Process queries in parallel (cap at 8 to stay within Netlify function timeout)
+  // Run up to 8 queries in parallel — each is just 2 API calls (search + status)
   const allResults = await Promise.all(
     queries.slice(0, 8).map(q => findVideos(q, 5))
   );
