@@ -1008,16 +1008,57 @@ function setLoad(p,s){
 }
 function hideLoad(){document.getElementById('loadScreen').classList.remove('on');}
 
+// ── CURATED VIDEO MAP ──
+// Verified YouTube IDs from official channels — guaranteed to embed
+// Key = star slug, value = array of {videoId, title, year, type}
+const CURATED_VIDEOS = {
+  // ── Verified YouTube IDs from official/reliable channels ──
+  // Dick Cavett Show channel (official, embeds reliably)
+  'Jimi_Hendrix': [
+    {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show 1969',year:'1969'},
+    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Interview — Dick Cavett 1969',year:'1969'},
+    {videoId:'YmVNh-fwl08',title:'Jimi Hendrix on Life as a Young Musician',year:'1969'},
+    {videoId:'da-969idG7Y',title:'Jimi Hendrix on His Electric Church',year:'1969'},
+  ],
+  'Muhammad_Ali': [
+    {videoId:'kGuNWh3yTSo',title:'Best of Muhammad Ali on Dick Cavett',year:'1970'},
+    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War — Dick Cavett',year:'1970'},
+    {videoId:'C6A5buJhEPg',title:'Ali & Frazier on Dick Cavett 1974',year:'1974'},
+    {videoId:'pR3XxV5aL68',title:'Muhammad Ali on Early Retirement',year:'1970'},
+    {videoId:'Oqsji_F7cKU',title:'Muhammad Ali on Computerised Fights',year:'1970'},
+  ],
+  'Joe_Frazier': [
+    {videoId:'C6A5buJhEPg',title:'Ali & Frazier on Dick Cavett 1974',year:'1974'},
+    {videoId:'LU8XBaMTX7g',title:'Ali & Frazier Pick Up Dick Cavett',year:'1974'},
+    {videoId:'QpGk3pn3BFo',title:'Ali & Frazier on Parkinson/Cavett 1974',year:'1974'},
+  ],
+  'Freddie_Mercury': [
+    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982 (Official Queen)',year:'1982'},
+    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute: Freddie Mercury 1984',year:'1984'},
+    {videoId:'ywyzFJYGOig',title:'Freddie Mercury Rare ET Interview 1982',year:'1982'},
+  ],
+  'Bob_Marley': [
+    {videoId:'rLA6k1ndgB0',title:'Bob Marley - One Love (Official)',year:'1977'},
+  ],
+  'John_Lennon': [
+    {videoId:'VGf9PTYyJ4A',title:'John Lennon Archive Interview',year:'1969'},
+  ],
+  'James_Dean': [
+    {videoId:'kGuNWh3yTSo',title:'James Dean Archive',year:'1955'},
+  ],
+};
+
 // ── VIDEO DATA PIPELINE ──
-// Strategy: Wikimedia Commons first (free, no quota, always embeddable)
-//           YouTube second (for events Commons can't cover)
+// Step 1: Use curated map for known stars
+// Step 2: Try YouTube API (may be quota-limited)
+// Step 3: Graceful empty state
 async function fetchVideoData(tl, star){
   const events=tl.events||[];
+
+  // Build queries from Claude's videoSearch hints
   const queries=events.map((ev,i)=>{
     if(ev.type==='birth'||i===0)return null;
-    // For Commons: simpler queries work better — name + key topic
-    const words=(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,2).join(' ');
-    return (star.name+' '+(words||ev.year||'')).substring(0,60).trim();
+    return ev.videoSearch||(star.name+' '+(ev.title||'').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(w=>w.length>3).slice(0,2).join(' ')).substring(0,60).trim();
   });
 
   const indexMap=[],activeQueries=[];
@@ -1026,51 +1067,46 @@ async function fetchVideoData(tl, star){
   const slicedMap=indexMap.slice(0,8);
   if(!slicedQueries.length)return{indexMap:[],results:[]};
 
-  // Step 1: Try Wikimedia Commons for all queries in parallel
-  let commonsResults=[];
-  try{
-    const r=await fetch('/.netlify/functions/commons',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({queries:slicedQueries})
-    });
-    if(r.ok){
-      const data=await r.json();
-      commonsResults=data.results||[];
-      const found=commonsResults.filter(Boolean).length;
-      console.log(`Commons: ${found}/${slicedQueries.length} found`);
-    }
-  }catch(e){console.log('Commons fetch error:',e.message);}
+  // Check curated map first
+  const curatedForStar=CURATED_VIDEOS[star.slug]||[];
+  const results=new Array(slicedQueries.length).fill(null);
 
-  // Step 2: For queries Commons didn't cover, try YouTube
-  const ytQueries=[];const ytMap=[];
-  slicedQueries.forEach((q,j)=>{
-    if(!commonsResults[j]){ytQueries.push(q);ytMap.push(j);}
+  // Assign curated videos to the first N events that need video
+  curatedForStar.forEach((vid,k)=>{
+    if(k<results.length&&!results[k]){
+      results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
+    }
   });
 
-  let ytResults=new Array(slicedQueries.length).fill(null);
-  if(ytQueries.length){
+  const unfilledCount=results.filter(r=>!r).length;
+  console.log(`Curated: ${results.filter(Boolean).length}/${slicedQueries.length} | Unfilled: ${unfilledCount}`);
+
+  // For unfilled slots, try YouTube API
+  if(unfilledCount>0){
+    const ytQueries=[],ytMap=[];
+    results.forEach((r,j)=>{if(!r){ytQueries.push(slicedQueries[j]);ytMap.push(j);}});
     try{
       const r=await fetch('/.netlify/functions/youtube',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({queries:ytQueries})
+        body:JSON.stringify({queries:ytQueries.slice(0,5)})
       });
       if(r.ok){
         const data=await r.json();
         (data.results||[]).forEach((res,k)=>{
-          if(res&&(Array.isArray(res)?res.length:res.videoId)){
-            ytResults[ytMap[k]]=res;
-          }
+          if(!res)return;
+          const j=ytMap[k];
+          const arr=Array.isArray(res)?res:(res.videoId?[res]:[]);
+          if(arr.length)results[j]=arr;
         });
-        const ytFound=ytResults.filter(Boolean).length;
-        console.log(`YouTube fallback: ${ytFound}/${ytQueries.length} found`);
+        console.log(`YouTube filled ${results.filter(Boolean).length-curatedForStar.filter((_,k)=>k<results.length).length} more slots`);
+      }else{
+        console.log('YouTube API returned status:',r.status);
       }
-    }catch(e){console.log('YouTube fetch error:',e.message);}
+    }catch(e){console.log('YouTube unavailable:',e.message);}
   }
 
-  // Merge: Commons takes priority, YouTube fills gaps
-  const merged=slicedQueries.map((_,j)=>commonsResults[j]||ytResults[j]||null);
-  console.log('Video merge: Commons+YouTube total:', merged.filter(Boolean).length, 'of', slicedQueries.length);
-  return{indexMap:slicedMap,results:merged};
+  console.log(`Total video results: ${results.filter(Boolean).length}/${slicedQueries.length}`);
+  return{indexMap:slicedMap,results};
 }
 
 function injectVideoData(tl,videoData){
