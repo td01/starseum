@@ -361,9 +361,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
 <div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
-  <div style="max-width:min(820px,92vw);width:100%;margin:0 auto;">
+  <div style="max-width:min(920px,92vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
-    <div style="font-family:var(--serif);font-size:clamp(1rem,3.3vw,2.3rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:680px;margin-left:auto;margin-right:auto;">
+    <div style="font-family:var(--serif);font-size:clamp(1rem,2.8vw,2.1rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:800px;margin-left:auto;margin-right:auto;">
       This prototype curates content from publicly available<br>information, images and video.
     </div>
     <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin-bottom:clamp(1rem,2.5vw,2rem);"></div>
@@ -561,7 +561,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 // All `let` vars referenced by IIFEs or functions called during init must be here
 let _subtitlesOn = localStorage.getItem('st_subtitles')==='1';
 let tourPlaying=false,tourAudio=null,tourStep2=0,tourEvts=[],tourStarRef=null,tourTlRef=null;
-let _tourSpeakGen=0;
+let _tourUserStopped=false; // set when user explicitly stops tour; prevents auto-restart
 let voiceRecog=null;
 let tlScale=1.4,tlRunning=false,tlRaf;
 
@@ -1513,9 +1513,9 @@ function buildTimeline(star,tl,wiki,heroThumb){
   setupTLEdgePan(sc);
   sc.addEventListener('scroll',updateScrubber,{passive:true});
   tourStarRef=star;tourTlRef=tl;
-  // Welcome audio pre-fetched earlier in startJourney — already in tl._welcomeAudio by now
-  // Auto-start tour immediately
-  setTimeout(()=>{ if(tourStarRef)startTour(tourStarRef,tourTlRef); },100);
+  _tourUserStopped=false; // fresh museum — tour enabled by default
+  // Auto-start tour only if user hasn't explicitly stopped it
+  setTimeout(()=>{ if(tourStarRef&&!_tourUserStopped)startTour(tourStarRef,tourTlRef); },100);
   buildBioPanel(star,tl,heroThumb);
   buildMediaPanel(star,tl,wiki);
   // Reset to timeline tab — panels start hidden, tlScroll always visible
@@ -1917,14 +1917,16 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
         tourSpeak('Here are videos from '+tourStarRef.name+'\'s life. Select any to watch.');
       },150);
     }else if(tab==='timeline'&&tourPlaying){
-      // Resume tour on timeline
-      stopTour();
-      setTimeout(async()=>{
-        tourPlaying=true;
-        document.getElementById('tourBtn').style.color='var(--gold)';
-        await tourSpeak('Let\'s continue.');
-        await runTourStep2();
-      },200);
+      // Resume tour on timeline (only if user didn't explicitly stop)
+      if(!_tourUserStopped){
+        stopTour();
+        setTimeout(async()=>{
+          tourPlaying=true;
+          document.getElementById('tourBtn').style.color='var(--gold)';
+          await tourSpeak('Let\'s continue.');
+          await runTourStep2();
+        },200);
+      }
     }
   });
 });
@@ -2304,8 +2306,19 @@ function stopTour(){
 }
 
 document.getElementById('tourBtn')?.addEventListener('click',()=>{
-  if(tourTlRef&&tourStarRef)startTour(tourStarRef,tourTlRef);
-  else showVoiceHint('OPEN A MUSEUM FIRST',2000);
+  if(tourPlaying){
+    stopTour();
+    _tourUserStopped=true;
+    document.getElementById('tourBtn').style.color='var(--muted)';
+    document.getElementById('tourBtn').style.borderColor='rgba(201,168,76,.2)';
+  }else if(tourTlRef&&tourStarRef){
+    _tourUserStopped=false;
+    document.getElementById('tourBtn').style.color='var(--gold)';
+    document.getElementById('tourBtn').style.borderColor='rgba(201,168,76,.4)';
+    startTour(tourStarRef,tourTlRef);
+  }else{
+    showVoiceHint('OPEN A MUSEUM FIRST',2000);
+  }
 });
 
 
