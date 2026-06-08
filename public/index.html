@@ -1156,52 +1156,72 @@ async function fetchTimeline(name, attempt=0){
 async function fetchWikiImages(slug){
   const s=slug.replace(/ /g,'_');
   const out={thumb:null,images:[],earlyImages:[]};
-  try{const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}}catch(e){}
   try{
-    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=30&format=json&origin=*`);
-    if(r.ok){
-      const d=await r.json();
-      const pg=Object.values(d.query?.pages||{})[0];
-      const allFiles=(pg?.images||[])
-        .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
-        .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|coat|crest/i.test(i.title));
-      const names=allFiles.slice(0,20).map(i=>i.title.replace('File:',''));
-      // Fetch URL + extmetadata date for each image in one batched call
-      const resolved=await Promise.all(names.map(resolveImgWithDate));
-      const valid=resolved.filter(Boolean);
-      // Sort chronologically by date — earliest first gives us childhood photos at the top
-      valid.sort((a,b)=>{
-        if(!a.date&&!b.date)return 0;
-        if(!a.date)return 1;
-        if(!b.date)return -1;
-        return a.date.localeCompare(b.date);
-      });
-      // First third (chronologically earliest) = early images
-      const earlyCount=Math.max(2,Math.ceil(valid.length/3));
-      out.earlyImages=valid.slice(0,earlyCount).map(v=>v.url);
-      out.images=valid.map(v=>v.url);
-    }
+    const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
+    if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}
   }catch(e){}
+  try{
+    // Step 1: get image list
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=30&format=json&origin=*`);
+    if(!r.ok)return out;
+    const d=await r.json();
+    const pg=Object.values(d.query?.pages||{})[0];
+    const allFiles=(pg?.images||[])
+      .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
+      .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|coat|crest|wikimedia/i.test(i.title));
+    const names=allFiles.slice(0,18).map(i=>i.title.replace('File:',''));
+    if(!names.length)return out;
+
+    // Step 2: ONE batched API call for all image URLs + dates (not N individual calls)
+    const titlesParam=names.map(n=>'File:'+n).join('|');
+    const r2=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titlesParam)}&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=DateTime|DateTimeOriginal&format=json&origin=*`);
+    if(!r2.ok)return out;
+    const d2=await r2.json();
+    const pages=Object.values(d2.query?.pages||{});
+    const valid=pages
+      .map(p=>{
+        const info=p.imageinfo?.[0];
+        if(!info?.url||!/\.(jpg|jpeg|png)$/i.test(info.url))return null;
+        const meta=info.extmetadata||{};
+        const date=meta.DateTimeOriginal?.value||meta.DateTime?.value||null;
+        // Extract just the year (first 4 digits) for sorting
+        const year=date?date.match(/(\d{4})/)?.[1]||null:null;
+        return{url:info.url,year};
+      })
+      .filter(Boolean)
+      // Deduplicate by URL
+      .filter((v,i,a)=>a.findIndex(x=>x.url===v.url)===i);
+
+    // Sort by year ascending — earliest photos first
+    valid.sort((a,b)=>{
+      if(!a.year&&!b.year)return 0;
+      if(!a.year)return 1;
+      if(!b.year)return -1;
+      return parseInt(a.year)-parseInt(b.year);
+    });
+
+    // First third = early/childhood pool
+    const earlyCount=Math.max(2,Math.ceil(valid.length/3));
+    out.earlyImages=valid.slice(0,earlyCount).map(v=>v.url);
+    out.images=valid.map(v=>v.url);
+  }catch(e){console.log('fetchWikiImages error:',e.message);}
   return out;
 }
 
 async function resolveImgWithDate(f){
+  // Kept for compatibility — use fetchWikiImages batched approach instead
   try{
-    // Fetch both URL and extmetadata (includes DateTime, DateTimeOriginal)
-    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=DateTime|DateTimeOriginal|DateTimeCamera&format=json&origin=*`);
+    const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(f)}&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=DateTime|DateTimeOriginal&format=json&origin=*`);
     const d=await r.json();
     const info=Object.values(d.query?.pages||{})[0]?.imageinfo?.[0];
     if(!info?.url||!/\.(jpg|jpeg|png)$/i.test(info.url))return null;
     const meta=info.extmetadata||{};
-    // Pick the earliest available date field
-    const date=meta.DateTimeOriginal?.value||meta.DateTimeCamera?.value||meta.DateTime?.value||null;
-    // Clean date: keep only the year portion for comparison ("1965-03-12 00:00:00" → "1965")
-    const cleanDate=date?date.replace(/\s.*/,'').trim():null;
-    return{url:info.url,date:cleanDate};
+    const date=meta.DateTimeOriginal?.value||meta.DateTime?.value||null;
+    const year=date?date.match(/(\d{4})/)?.[1]||null:null;
+    return{url:info.url,year};
   }catch(e){return null;}
 }
 
-// Legacy shim — kept for any remaining callers
 async function resolveImg(f){
   const r=await resolveImgWithDate(f);
   return r?.url||null;
@@ -1664,32 +1684,48 @@ function latToTileY(lat,z){return Math.floor((1-Math.log(Math.tan(lat*Math.PI/18
 function buildBioPanel(star,tl,heroThumb){
   const panel=document.getElementById('bioPanel');
   if(!panel)return;
-  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent(tl.wikipediaSlug||star.slug)}`;
-  panel.innerHTML=`
-    ${heroThumb?`<img class="bio-portrait" src="${heroThumb}" alt="${tl.fullName||star.name}">`:''}
-    <div>
-      <div class="bio-name">${tl.fullName||star.name}</div>
-      <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
-      <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
-    </div>
-    <div class="bio-text" id="bioText" style="clear:both;margin-top:1.5rem">
-      <em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>
-    </div>
-    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);">
-      <a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>
-    </div>
+  const wikiUrl=`https://en.wikipedia.org/wiki/${encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'))}`;
+  // Build the panel — keep a direct reference to bioText div (no getElementById lookup needed)
+  const bioTextDiv=document.createElement('div');
+  bioTextDiv.className='bio-text';
+  bioTextDiv.style.cssText='clear:both;margin-top:1.5rem';
+  bioTextDiv.innerHTML='<em style="color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.1em">LOADING BIOGRAPHY…</em>';
+
+  panel.innerHTML='';
+  if(heroThumb){
+    const img=document.createElement('img');
+    img.className='bio-portrait';img.src=heroThumb;img.alt=tl.fullName||star.name;
+    panel.appendChild(img);
+  }
+  const info=document.createElement('div');
+  info.innerHTML=`
+    <div class="bio-name">${tl.fullName||star.name}</div>
+    <div class="bio-dates">${tl.born||''} ${tl.died?'– '+tl.died:''} · ${tl.nationality||''}</div>
+    <div class="bio-fields">${(tl.fields||[]).map(f=>`<span class="bio-field">${f.toUpperCase()}</span>`).join('')}</div>
   `;
+  panel.appendChild(info);
+  panel.appendChild(bioTextDiv);
+  const footer=document.createElement('div');
+  footer.style.cssText='margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold2);';
+  footer.innerHTML=`<a href="${wikiUrl}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:var(--gold);text-decoration:none;opacity:.7;">READ FULL ARTICLE ON WIKIPEDIA ↗</a>`;
+  panel.appendChild(footer);
+
+  // Fetch Wikipedia extract — use exintro=true for the concise lead section (always exists)
   const wikiSlug=encodeURIComponent((tl.wikipediaSlug||star.slug).replace(/ /g,'_'));
-  fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+wikiSlug+'&prop=extracts&exintro=false&explaintext=true&exsectionformat=plain&format=json&origin=*')
-    .then(r=>r.ok?r.json():null).then(d=>{
-      const el=document.getElementById('bioText');
-      if(!el||!d)return;
+  fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${wikiSlug}&prop=extracts&exintro=true&explaintext=true&exsentences=10&format=json&origin=*`)
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{
+      if(!d)return;
       const pg=Object.values(d.query?.pages||{})[0];
-      const text=pg?.extract||'';
-      if(!text)return;
-      const paras=text.split('\n').map(p=>p.trim()).filter(p=>p.length>60).slice(0,8);
-      el.innerHTML=paras.map(p=>'<p style="margin-bottom:1.2em">'+p+'</p>').join('');
-    }).catch(()=>{});
+      const text=(pg?.extract||'').trim();
+      if(!text){bioTextDiv.innerHTML='<em style="color:var(--muted);font-family:var(--mono);font-size:8px;">No biography available.</em>';return;}
+      // Split into sentences and group into readable paragraphs
+      const sentences=text.replace(/\n+/g,' ').split(/(?<=[.!?])\s+/).filter(s=>s.length>20);
+      const paras=[];
+      for(let i=0;i<sentences.length;i+=3)paras.push(sentences.slice(i,i+3).join(' '));
+      bioTextDiv.innerHTML=paras.slice(0,5).map(p=>`<p style="margin-bottom:1.2em;font-size:1rem;line-height:1.75;color:rgba(221,213,190,.92);">${p}</p>`).join('');
+    })
+    .catch(()=>{bioTextDiv.innerHTML='<em style="color:var(--muted);font-family:var(--mono);font-size:8px;">Biography could not be loaded.</em>';});
 }
 
 // ── MEDIA PANEL ──
