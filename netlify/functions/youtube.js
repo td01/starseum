@@ -88,26 +88,6 @@ exports.handler = async function(event, context) {
       }));
   }
 
-  // Batch status check for all IDs at once (one API call)
-  async function batchStatusCheck(videoIds) {
-    if (!videoIds.length) return new Set();
-    const url = "https://www.googleapis.com/youtube/v3/videos"
-      + "?part=status"
-      + "&id=" + videoIds.join(",")
-      + "&key=" + apiKey;
-    const d = await httpsGet(url);
-    if (!d) return new Set();
-    return new Set(
-      (d.items || [])
-        .filter(i =>
-          i.status?.embeddable === true &&
-          i.status?.uploadStatus === "processed" &&
-          i.status?.privacyStatus === "public"
-        )
-        .map(i => i.id)
-    );
-  }
-
   async function findVideos(query, maxCandidates = 5) {
     if (!query || query.length < 3) return [];
 
@@ -119,28 +99,20 @@ exports.handler = async function(event, context) {
 
     for (const q of attempts) {
       const candidates = await ytSearch(q, 10);
-      if (!candidates.length) continue;
-
-      // Single batch call to verify status
-      const ids = candidates.map(c => c.videoId);
-      const okIds = await batchStatusCheck(ids);
-      const verified = candidates.filter(c => okIds.has(c.videoId));
-
-      if (!verified.length) {
-        console.log(`"${q}": 0 passed status check from ${candidates.length}`);
+      if (!candidates.length) {
+        console.log(`"${q}": no search results`);
         continue;
       }
-
-      // Score and sort — best candidates first
-      const scored = verified
+      // Score and sort — best candidates first, no status check (quota risk)
+      const scored = candidates
         .map(c => ({ ...c, score: scoreCandidate(c) }))
         .sort((a, b) => b.score - a.score);
 
-      console.log(`"${q}": ${scored.length} ok, top="${scored[0]?.title}" score=${scored[0]?.score}`);
+      console.log(`"${q}": ${scored.length} results, top="${scored[0]?.title}" ch="${scored[0]?.channelTitle}" score=${scored[0]?.score}`);
       return scored.slice(0, maxCandidates);
     }
 
-    console.log(`No video found for: "${query}"`);
+    console.log(`No results for: "${query}"`);
     return [];
   }
 
