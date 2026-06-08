@@ -24,15 +24,15 @@ exports.handler = async function(event, context) {
 
   function httpsGet(url) {
     return new Promise((resolve) => {
-      const req = https.get(url, { timeout: 6000 }, (res) => {
+      const req = https.get(url, (res) => {
         let data = "";
         res.on("data", c => data += c);
         res.on("end", () => {
           try { resolve(JSON.parse(data)); } catch(e) { resolve(null); }
         });
       });
-      req.on("error", () => resolve(null));
-      req.on("timeout", () => { req.destroy(); resolve(null); });
+      req.on("error", (e) => { console.error("httpsGet error:", e.message); resolve(null); });
+      req.setTimeout(7000, () => { console.error("httpsGet timeout:", url.substring(0,80)); req.destroy(); resolve(null); });
     });
   }
 
