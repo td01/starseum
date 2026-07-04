@@ -1011,33 +1011,62 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // Verified YouTube IDs from official channels — guaranteed to embed
 // Key = star slug, value = array of {videoId, title, year, type}
 const CURATED_VIDEOS = {
-  // ── Verified YouTube IDs — from official/Dick Cavett/reliable channels ──
+  // ── Verified YouTube IDs ──
+  // Dick Cavett Show (official channel — reliable embeds)
   'Jimi_Hendrix': [
-    {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show 1969',year:'1969'},
-    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Interview Dick Cavett',year:'1969'},
+    {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show',year:'1969'},
+    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Dick Cavett Interview',year:'1969'},
     {videoId:'YmVNh-fwl08',title:'Jimi Hendrix on Life as a Young Musician',year:'1969'},
     {videoId:'da-969idG7Y',title:'Jimi Hendrix on His Electric Church',year:'1969'},
     {videoId:'keYcGzRkhzY',title:'Jimi Hendrix on Stage Destruction',year:'1969'},
   ],
   'Muhammad_Ali': [
     {videoId:'kGuNWh3yTSo',title:'Best of Muhammad Ali on Dick Cavett',year:'1970'},
-    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War Dick Cavett',year:'1970'},
-    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
+    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War',year:'1970'},
+    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett',year:'1974'},
     {videoId:'pR3XxV5aL68',title:'Muhammad Ali on Early Retirement',year:'1970'},
     {videoId:'Oqsji_F7cKU',title:'Muhammad Ali on Computerised Fights',year:'1970'},
   ],
   'Joe_Frazier': [
     {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
     {videoId:'LU8XBaMTX7g',title:'Ali and Frazier Pick Up Dick Cavett',year:'1974'},
-    {videoId:'QpGk3pn3BFo',title:'Ali and Frazier on Parkinson Cavett 1974',year:'1974'},
+    {videoId:'QpGk3pn3BFo',title:'Ali and Frazier Cavett 1974',year:'1974'},
   ],
+  // Official Queen YouTube channel
   'Freddie_Mercury': [
-    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982 Official Queen',year:'1982'},
-    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute Freddie Mercury 1984',year:'1984'},
-    {videoId:'ywyzFJYGOig',title:'Freddie Mercury Rare ET Interview 1982',year:'1982'},
+    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982',year:'1982'},
+    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute — Freddie Mercury',year:'1984'},
+    {videoId:'ywyzFJYGOig',title:'Freddie Mercury ET Interview 1982',year:'1982'},
   ],
+  // NZ archive documentary — embeds reliably
   'Bob_Marley': [
-    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way Documentary 1979',year:'1979'},
+    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way 1979',year:'1979'},
+  ],
+  // Janis Joplin — Dick Cavett
+  'Janis_Joplin': [
+    {videoId:'6b8BFGG3xWU',title:'Janis Joplin on Dick Cavett Show 1970',year:'1970'},
+    {videoId:'5DrFqCmDkHY',title:'Janis Joplin Dick Cavett Interview',year:'1970'},
+  ],
+  // Jim Morrison — Dick Cavett
+  'Jim_Morrison': [
+    {videoId:'yGFYOdxcPow',title:'The Doors on Dick Cavett Show 1969',year:'1969'},
+  ],
+  // Sly Stone — Dick Cavett
+  'Marvin_Gaye': [
+    {videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'},
+  ],
+  // David Bowie — reliable archive channel
+  'David_Bowie': [
+    {videoId:'5aSXSGzMvvA',title:'David Bowie Ziggy Stardust Era Interview 1973',year:'1973'},
+    {videoId:'5DrFqCmDkHY',title:'David Bowie Dick Cavett Interview 1974',year:'1974'},
+  ],
+  // John Lennon — archive
+  'John_Lennon': [
+    {videoId:'dqv7-hQJFNs',title:'John Lennon Working Class Hero Documentary',year:'1971'},
+  ],
+  // Elvis Presley — official EP channel
+  'Elvis_Presley': [
+    {videoId:'BkUgOqkLqio',title:'Elvis Presley 68 Comeback Special',year:'1968'},
   ],
 };
 
@@ -1333,10 +1362,27 @@ async function resolveImg(f){
 // tlScale, tlRunning, tlRaf declared at top of script
 
 function buildTimeline(star,tl,wiki,heroThumb){
-  // Deduplicate by URL and filter out portrait-style duplicates
-  const allImgs=[heroThumb,wiki.thumb,...wiki.images].filter((v,i,a)=>v&&a.indexOf(v)===i).filter(Boolean);
-  // Dedicated early/childhood image pool — resolved filenames tagged young/child/early
-  const earlyImgs=(wiki.earlyImages||[]).filter(Boolean);
+  // Build image pool — deduplicate strictly by URL
+  // heroThumb and wiki.thumb are often the same; wiki.images contains the richer set
+  const seen=new Set();
+  const allImgs=[wiki.thumb,heroThumb,...(wiki.images||[])].filter(u=>{
+    if(!u||seen.has(u))return false;
+    seen.add(u);return true;
+  });
+
+  // Shuffle non-early images for variety across events
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  const earlyImgs=(wiki.earlyImages||[]).filter(u=>u&&!seen.has(u)||wiki.earlyImages.includes(u));
+  // Separate early pool (first third, chronologically sorted) from the rest
+  const earlyPool=[...new Set(wiki.earlyImages||[])].filter(Boolean);
+  const laterPool=shuffle(allImgs.filter(u=>!earlyPool.includes(u)));
+  // Full shuffled pool for general use
+  const imgPool=[...earlyPool,...laterPool].filter(Boolean);
   const fullName=tl.fullName||star.name;
   const diedPart=tl.died?` – ${tl.died}`:'';
   document.getElementById('tlName').textContent=fullName;
@@ -1356,8 +1402,17 @@ function buildTimeline(star,tl,wiki,heroThumb){
   // Birth cap
   strip.appendChild(makeCap(tl.born||'','BIRTH'));
 
-  // Build a per-build used-URL set (not window-global, which persists across museums)
+  // Build a per-build used-URL set — reset each museum load
   const usedImgUrls=new Set();
+
+  // Pick the next unused image from a given pool, with fallback to any pool
+  function pickImg(preferred, fallback){
+    const p=preferred.find(u=>u&&!usedImgUrls.has(u));
+    if(p){usedImgUrls.add(p);return p;}
+    const f=(fallback||imgPool).find(u=>u&&!usedImgUrls.has(u));
+    if(f){usedImgUrls.add(f);return f;}
+    return null; // genuinely no images left — show placeholder
+  }
 
   events.forEach((ev,i)=>{
     const isUp=i%2===0;
@@ -1378,27 +1433,19 @@ function buildTimeline(star,tl,wiki,heroThumb){
     const isBirth=ev.type==='birth'||i===0;
     const isChildhood=ev.type==='childhood'||i===1;
     const hasVideo=!isBirth&&!!(ev.youtubeId||ev.videoSearch||isDeath);
-    const imgPool=allImgs.length>2?allImgs.slice(1):allImgs;
 
-    // ── Image selection (no duplicates) ──
+    // ── Image selection — strict no-duplicates ──
     let cardImg=null;
     if(isDeath){
-      // Death: last image in pool (most recent-era photo)
-      for(let j=imgPool.length-1;j>=0;j--){
-        if(!usedImgUrls.has(imgPool[j])){cardImg=imgPool[j];break;}
-      }
-      if(!cardImg)cardImg=imgPool[imgPool.length-1]||null;
+      // Death: try from end of pool (most recent-era photos)
+      const reversed=[...imgPool].reverse();
+      cardImg=reversed.find(u=>u&&!usedImgUrls.has(u))||null;
+      if(cardImg)usedImgUrls.add(cardImg);
     }else if(isChildhood){
-      // Childhood: use dedicated early/young tagged images first, then fall back to imgPool
-      const preferred=earlyImgs.length?earlyImgs:imgPool;
-      cardImg=preferred.find(u=>!usedImgUrls.has(u))
-             ||imgPool.find(u=>!usedImgUrls.has(u))
-             ||imgPool[0]||null;
+      cardImg=pickImg(earlyPool, imgPool);
     }else{
-      // All others: first unused image, cycling forward
-      cardImg=imgPool.find(u=>!usedImgUrls.has(u))||imgPool[i%Math.max(imgPool.length,1)]||null;
+      cardImg=pickImg(imgPool, []);
     }
-    if(cardImg)usedImgUrls.add(cardImg);
 
     if(isBirth){
       // Birth card — interactive map via OpenStreetMap
@@ -2521,7 +2568,7 @@ function showOnboard(which,delayMs){
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
   if(el)setTimeout(()=>el.style.display='block',delayMs||0);
 }
-// Welcome narration on first visit (or after 24h) — fires after mosaic reveals
+// Welcome narration on first visit (or after 24h) — uses ElevenLabs narrator voice
 setTimeout(()=>{
   const lastVisit=localStorage.getItem('st_last_visit');
   const now=Date.now();
@@ -2529,8 +2576,19 @@ setTimeout(()=>{
     localStorage.setItem('st_last_visit',now);
     setTimeout(()=>{
       if(!isMobile){
-        const welcome='Welcome to Starseum. A museum of extraordinary lives. Hover over any face to learn who they are, and click to enter their museum. You can also say a name out loud using the microphone icon.';
-        speak(welcome, 0.88);
+        const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
+        // Use ElevenLabs — same voice as the tour narrator
+        fetch('/.netlify/functions/tourguide',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({text:welcome})
+        }).then(r=>r.ok?r.json():null).then(d=>{
+          if(d?.audio){
+            const a=new Audio('data:audio/mpeg;base64,'+d.audio);
+            a.play().catch(()=>{});
+          }else{
+            speak(welcome,0.88); // fallback to browser TTS only if ElevenLabs fails
+          }
+        }).catch(()=>speak(welcome,0.88));
       }
     },4500);
   }
