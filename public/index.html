@@ -550,7 +550,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
     <source id="commonsSource" src="" type="video/webm">
   </video>
   <!-- Always-visible YouTube link — shown beneath player or as fallback -->
-  <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="display:none;font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.4);padding:.4rem 1rem;border-radius:2px;text-decoration:none;margin-top:.5rem;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">OPEN ON YOUTUBE ↗</a>
+
   <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;">
     <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="rgba(201,168,76,0.35)" stroke-width="1"/><polygon points="9.5,7 18,12 9.5,17" fill="rgba(201,168,76,0.5)"/></svg>
     <div style="font-family:var(--display);font-size:.9rem;letter-spacing:.18em;color:var(--cream);">WATCH ON YOUTUBE</div>
@@ -2502,22 +2502,6 @@ async function runTourStep2(){
   const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' '+pronoun+' once said: '+ev.quote:'');
   await tourSpeak(txt);
   if(!tourPlaying)return;
-  if(ev.youtubeId||ev.videoSearch){
-    await tourSpeak('There is video footage of this moment. Would you like to watch it?');
-    showVoiceHint('SAY "YES" TO WATCH',6000);
-    const resp=await tourListen(5000);
-    if(resp&&resp.match(/yes|watch|play/)){
-      // Find video wrap for this specific card
-      const allVWraps=document.querySelectorAll('.ev-video-wrap');
-      const vw=allVWraps[Math.min(tourStep2,allVWraps.length-1)];
-      if(vw){ vw.click(); await new Promise(r=>setTimeout(r,800)); }
-      await new Promise(r=>{
-        const chk=setInterval(()=>{if(!document.getElementById('videoOverlay')?.classList.contains('on')){clearInterval(chk);r();}},500);
-        setTimeout(()=>{clearInterval(chk);r();},60000);
-      });
-      await tourSpeak('Let\'s continue.');
-    }
-  }
   tourStep2++;
   await runTourStep2();
 }
