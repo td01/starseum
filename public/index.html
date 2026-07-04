@@ -356,19 +356,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   border-radius:2px;
 }
 #videoFrame.visible{opacity:1;}
-/* Audio player layout — image beside waveform */
+/* Audio overlay — rich visual layout */
 #audioOverlayContent{
-  display:none;flex-direction:row;align-items:center;gap:2.5rem;
-  width:min(92vw,900px);
+  display:none;
+  flex-direction:row;
+  align-items:center;
+  gap:3rem;
+  width:min(92vw,960px);
+  max-height:80vh;
 }
 #audioStarImg{
-  width:260px;height:340px;object-fit:cover;object-position:top;
+  width:280px;height:370px;
+  object-fit:cover;object-position:top center;
   flex-shrink:0;border-radius:2px;
-  filter:sepia(30%) brightness(0.85);
-  border:1px solid rgba(201,168,76,.2);
+  filter:sepia(20%) brightness(0.75) contrast(1.05);
+  border:1px solid rgba(201,168,76,.25);
+  box-shadow:0 20px 60px rgba(0,0,0,.8);
 }
-#audioFrame{flex:1;border:none;height:140px;background:transparent;}
-#audioInfo{margin-top:1rem;font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);text-align:center;}
+#audioPlayerWrap{
+  flex:1;display:flex;flex-direction:column;gap:1.2rem;
+}
+#audioFrame{
+  width:100%;height:120px;border:none;
+  background:transparent;border-radius:2px;
+  filter:invert(1) hue-rotate(180deg) brightness(0.7) sepia(0.5);
+}
+@media(max-width:600px){
+  #audioOverlayContent{flex-direction:column;gap:1.5rem;}
+  #audioStarImg{width:140px;height:185px;}
+}
 #videoFallback{
   display:none;position:absolute;inset:0;
   flex-direction:column;align-items:center;justify-content:center;
@@ -614,14 +630,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <!-- Audio player layout: star image + archive.org waveform -->
   <div id="audioOverlayContent">
     <img id="audioStarImg" src="" alt="">
-    <div style="flex:1;display:flex;flex-direction:column;gap:1rem;">
-      <div style="font-family:var(--display);font-size:1.1rem;letter-spacing:.15em;color:var(--cream);" id="audioTitle"></div>
-      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);" id="audioYear"></div>
-      <iframe id="audioFrame" src="" frameborder="0" allowfullscreen
-        style="width:100%;height:140px;border:none;background:transparent;"></iframe>
+    <div id="audioPlayerWrap">
+      <div style="font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:rgba(201,168,76,.4);">ARCHIVE AUDIO</div>
+      <div style="font-family:var(--display);font-size:1.3rem;letter-spacing:.08em;color:var(--cream);line-height:1.3;" id="audioTitle"></div>
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.6);" id="audioYear"></div>
+      <iframe id="audioFrame" src="" frameborder="0" allowfullscreen scrolling="no"></iframe>
       <a id="audioArchiveLink" href="#" target="_blank" rel="noopener"
-        style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(201,168,76,.5);text-decoration:none;">
-        VIEW ON ARCHIVE.ORG ↗
+        style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(201,168,76,.4);text-decoration:none;transition:color .2s;"
+        onmouseover="this.style.color='rgba(201,168,76,.8)'" onmouseout="this.style.color='rgba(201,168,76,.4)'">
+        VIEW FULL ARCHIVE ↗
       </a>
     </div>
   </div>
@@ -1148,7 +1165,10 @@ const CURATED_VIDEOS = {
   ],
   'John_Lennon': [
     {archiveId:'JohnLennonRemembered1985',title:'John Lennon Remembered 1985',year:'1985'},
-    {archiveId:'john-lennon-remembered',title:'In My Life: John Lennon BBC Documentary',year:'1980'},
+    {archiveId:'LastInterviewOfJohnLennon8December1980',title:'John Lennon — Last Interview December 1980',year:'1980',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/John_Lennon_1969_%28cropped%29.jpg/440px-John_Lennon_1969_%28cropped%29.jpg'},
+    {archiveId:'john-lennon-interview',title:'John Lennon Interviews Compilation',year:'1975',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/John_Lennon_1969_%28cropped%29.jpg/440px-John_Lennon_1969_%28cropped%29.jpg'},
   ],
   'Bob_Marley': [
     {archiveId:'behind-the-smile-the-real-life-of-bob-marley',title:'Behind The Smile — The Real Life of Bob Marley',year:'1981'},
@@ -1165,8 +1185,8 @@ const CURATED_VIDEOS = {
     {archiveId:'MalcolmXInterviewAtUCBerkeley',title:'Malcolm X Interview at UC Berkeley 1963',year:'1963'},
   ],
   'Tupac_Shakur': [
-    {archiveId:'tupac-shakur-thug-angel-2002-vhs',title:'Tupac Shakur — Thug Angel Documentary',year:'2002'},
-    {archiveId:'tupac-shakur-thug-immortal-vhs',title:'Tupac Shakur — Thug Immortal 1997',year:'1997'},
+    {archiveId:'tupac-shakur-thug-immortal-vhs',title:'Tupac Shakur — Thug Immortal 1997',year:'1997',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Tupac_Shakur_in_1993.jpg/440px-Tupac_Shakur_in_1993.jpg'},
   ],
   'Steve_Jobs': [
     {archiveId:'TheSteveJobs1995InterviewUnabridged',title:'Steve Jobs — Unabridged 1995 Interview',year:'1995'},
@@ -2279,6 +2299,8 @@ function openCommonsVideo(commonsItem, title){
 // Open archive.org video — cinematic fade-in, no bot detection
 function openArchiveVideo(identifier, title){
   killAllSpeech();
+  tourPlaying=false; // pause tour — resumes on closeVideo
+  _tourUserStopped=false; // allow auto-resume on close
   const overlay=document.getElementById('videoOverlay');
   const meta=document.getElementById('videoMeta');
   const audioContent=document.getElementById('audioOverlayContent');
@@ -2315,6 +2337,8 @@ function openArchiveVideo(identifier, title){
 // Open archive.org AUDIO with star image alongside — for interviews, radio etc.
 function openArchiveAudio(identifier, title, year, starImgUrl){
   killAllSpeech();
+  tourPlaying=false; // pause tour — resumes on closeVideo
+  _tourUserStopped=false;
   const overlay=document.getElementById('videoOverlay');
   const audioContent=document.getElementById('audioOverlayContent');
   const audioFrame=document.getElementById('audioFrame');
@@ -2396,32 +2420,26 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
     const tab=btn.dataset.tab;
     document.getElementById('bioPanel').classList.toggle('on',tab==='bio');
     document.getElementById('mediaPanel').classList.toggle('on',tab==='media');
-    // Immediately kill any narration when switching tabs
-    _tourSpeakGen++; // kills any in-flight tourSpeak
-    if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
-    if(tourAudio){tourAudio.pause();tourAudio=null;}
-    // Narrate the new section via ElevenLabs
+    // Kill all narration immediately when switching tabs
+    killAllSpeech();
     if(tab==='bio'&&tourTlRef){
-      const bioText=tourTlRef.fullName+'. '+tourTlRef.tagline+'. Born '+tourTlRef.born+' in '+tourTlRef.birthCity+', '+(tourTlRef.fields||[]).join(' and ')+'. '+p(tourTlRef,'they').charAt(0).toUpperCase()+p(tourTlRef,'they').slice(1)+' '+tourTlRef.nationality+'.';
-      setTimeout(()=>{
-        if(!tourPlaying){tourPlaying=true;}
-        tourSpeak(bioText);
-      },150);
+      // Stop tour, narrate bio section briefly
+      tourPlaying=false;
+      const bioText=tourTlRef.fullName+'. '+tourTlRef.tagline+'. '+p(tourTlRef,'they').charAt(0).toUpperCase()+p(tourTlRef,'they').slice(1)+' was born in '+tourTlRef.birthCity+'.';
+      setTimeout(()=>tourSpeak(bioText),200);
     }else if(tab==='media'&&tourStarRef){
-      setTimeout(()=>{
-        if(!tourPlaying){tourPlaying=true;}
-        tourSpeak('Here are videos from '+tourStarRef.name+'\'s life. Select any to watch.');
-      },150);
-    }else if(tab==='timeline'&&tourPlaying){
-      // Resume tour on timeline (only if user didn't explicitly stop)
-      if(!_tourUserStopped){
-        stopTour();
+      // Stop tour on media tab — user is browsing
+      tourPlaying=false;
+      setTimeout(()=>tourSpeak('Select any item to play.'),200);
+    }else if(tab==='timeline'){
+      // Resume tour when returning to timeline (if not user-stopped)
+      if(!_tourUserStopped&&tourStarRef&&tourTlRef){
         setTimeout(async()=>{
           tourPlaying=true;
           document.getElementById('tourBtn').style.color='var(--gold)';
-          await tourSpeak('Let\'s continue.');
+          await tourSpeak('Continuing the tour.');
           await runTourStep2();
-        },200);
+        },300);
       }
     }
   });
