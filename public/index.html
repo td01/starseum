@@ -551,9 +551,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </video>
   <!-- Always-visible YouTube link — shown beneath player or as fallback -->
   <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="display:none;font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.4);padding:.4rem 1rem;border-radius:2px;text-decoration:none;margin-top:.5rem;transition:background .2s;" onmouseover="this.style.background='rgba(201,168,76,.1)'" onmouseout="this.style.background='none'">OPEN ON YOUTUBE ↗</a>
-  <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;">
-    <div style="font-family:var(--display);font-size:1rem;letter-spacing:.15em;color:var(--cream);">VIDEO UNAVAILABLE</div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);max-width:300px;line-height:1.6;">No embeddable video found for this moment.</div>
+  <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="rgba(201,168,76,0.35)" stroke-width="1"/><polygon points="9.5,7 18,12 9.5,17" fill="rgba(201,168,76,0.5)"/></svg>
+    <div style="font-family:var(--display);font-size:.9rem;letter-spacing:.18em;color:var(--cream);">WATCH ON YOUTUBE</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.85rem;color:var(--muted);max-width:380px;line-height:1.65;">Videos cannot be embedded directly.<br>Open on YouTube to watch.</div>
+    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="display:inline-block;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.6);padding:.65rem 2rem;border-radius:2px;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(201,168,76,.12)';this.style.borderColor='var(--gold)'" onmouseout="this.style.background='none';this.style.borderColor='rgba(201,168,76,.6)'">OPEN ON YOUTUBE ↗</a>
   </div>
 </div>
 
@@ -1555,9 +1557,9 @@ function buildTimeline(star,tl,wiki,heroThumb){
         if(cands.length){
           openVideoWithFallback(cands,ev.title);
         }else{
-          // No curated video — open YouTube search for this event
+          // No video ID — show fallback with YouTube search link
           const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
-          openVideoSearch(q,ev.title||ev.videoSearch||star.name);
+          showVideoFallback(q, null, ev.title||star.name);
         }
       },{once:true});
       vWrap.addEventListener('touchend',(e)=>{
@@ -1567,7 +1569,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
           openVideoWithFallback(cands,ev.title);
         }else{
           const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
-          openVideoSearch(q,ev.title||star.name);
+          showVideoFallback(q, null, ev.title||star.name);
         }
       },{passive:false,once:true});
       card.appendChild(vWrap);
@@ -1977,50 +1979,45 @@ async function openVideo(videoId, title){
   return true;
 }
 
-// Open a YouTube search in the video overlay — always works, no embed restrictions
-function openVideoSearch(searchQuery, title){
+// Show a clean video fallback overlay — YouTube embedding is blocked by Netlify's IP
+// Users can open directly on YouTube with one click
+function showVideoFallback(searchQuery, watchUrl, title){
   const overlay=document.getElementById('videoOverlay');
   const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
 
-  overlay.classList.add('on');
-  fallback.style.display='none';
-  meta.textContent=(title||'').substring(0,60).toUpperCase();
-  ytLink.href='https://www.youtube.com/results?search_query='+encodeURIComponent(searchQuery);
-  ytLink.textContent='OPEN ON YOUTUBE ↗';
-  ytLink.style.display='inline-block';
-
+  // Remove any old iframe
   const old=document.getElementById('videoFrame');
   if(old)old.remove();
-  const frame=document.createElement('iframe');
-  frame.id='videoFrame';
-  frame.setAttribute('allowfullscreen','');
-  frame.setAttribute('allow','accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-  frame.setAttribute('frameborder','0');
-  frame.style.cssText='display:block;border:none;';
-  frame.style.width='min(90vw, 1280px)';
-  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
-  overlay.insertBefore(frame,fallback);
 
-  // YouTube search playlist embed — no autoplay, nocookie domain
-  frame.src='https://www.youtube-nocookie.com/embed?listType=search&list='+encodeURIComponent(searchQuery);
-  console.log('Opening video search:', searchQuery);
-  window._videoCloseCleanup=()=>{frame.src='about:blank';};
+  overlay.classList.add('on');
+  fallback.style.display='flex';
+  if(meta)meta.textContent=(title||'').substring(0,60).toUpperCase();
+  if(ytLink){
+    ytLink.href=watchUrl||('https://www.youtube.com/results?search_query='+encodeURIComponent(searchQuery||title));
+    ytLink.textContent= watchUrl&&watchUrl.includes('watch?v=') ? 'WATCH ON YOUTUBE ↗' : 'SEARCH ON YOUTUBE ↗';
+    ytLink.style.display='inline-block';
+  }
+
+  window._videoCloseCleanup=null;
 }
 
 async function openVideoWithFallback(candidates, title){
   const valid=(candidates||[]).filter(c=>c?.videoId&&c.videoId.length===11);
   console.log('openVideoWithFallback:', valid.length, 'candidates for', title);
-
-  if(valid.length){
-    // Try direct embed
-    await openVideo(valid[0].videoId, valid[0].title||title);
-  }else{
-    // No curated ID — use search embed with the event title as query
-    openVideoSearch(title, title);
+  if(!valid.length){
+    showVideoFallback(title, null, title);
+    return;
   }
+  for(const candidate of valid){
+    console.log('Trying candidate:', candidate.videoId, candidate.title);
+    const success=await openVideo(candidate.videoId, candidate.title||title);
+    if(success)return;
+  }
+  // All failed — show clean fallback with watch link for best candidate
+  const best=valid[0];
+  showVideoFallback(title, 'https://www.youtube.com/watch?v='+best.videoId, title);
 }
 
 async function openVideoWithFallback(candidates, title){
