@@ -1,3 +1,7 @@
-[build]
-  publish = "public"
-  functions = "netlify/functions"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Allow YouTube embeds — no-referrer-when-downgrade is required for YouTube iframes on Netlify
+    Referrer-Policy = "no-referrer-when-downgrade"
+    # Allow YouTube, ElevenLabs and Wikimedia to load in frames
+    Content-Security-Policy = "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://commons.wikimedia.org; frame-ancestors 'self';"
