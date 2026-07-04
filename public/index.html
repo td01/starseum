@@ -378,8 +378,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 
 <!-- Onboarding overlays -->
-<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.75);backdrop-filter:blur(4px);">
-  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4rem;pointer-events:none;">
+<div id="onboardMosaic" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(10,8,6,.75);backdrop-filter:blur(4px);pointer-events:auto;">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4rem;">
     <!-- Big drag icon -->
     <svg width="72" height="72" viewBox="0 0 60 60" fill="none"><path d="M30 8v44M8 30h44M18 18l24 24M42 18L18 42" stroke="rgba(201,168,76,0.65)" stroke-width="1.2" stroke-linecap="round"/></svg>
     <!-- Instructions -->
@@ -1303,8 +1303,9 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
 }
 
 function goHome(){
+  killAllSpeech(); // kill everything immediately — before any async can sneak in
   stopTour();
-  closeVideo(); // close any open video overlay
+  closeVideo();
   const fbtn=document.getElementById('tlBackFixed');if(fbtn)fbtn.style.display='none';
   document.getElementById('tlBar').style.display='none';
   // Show mosaic UI
@@ -1598,12 +1599,27 @@ function buildTimeline(star,tl,wiki,heroThumb){
       let _vWrapDrag=false;
       vWrap.addEventListener('mousedown',()=>{_vWrapDrag=false;});
       vWrap.addEventListener('mousemove',()=>{_vWrapDrag=true;});
-      vWrap.addEventListener('click',(e)=>{if(_vWrapDrag)return;openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);});
-      // Touch: whole card plays video
+      vWrap.addEventListener('click',(e)=>{
+        if(vWrap._vWrapDrag)return;
+        const cands=ev.youtubeCandidates||( ev.youtubeId?[{videoId:ev.youtubeId,title:ev.title}]:[]);
+        if(cands.length){
+          openVideoWithFallback(cands,ev.title);
+        }else{
+          // No curated video — open YouTube search for this event
+          const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
+          openVideoSearch(q,ev.title||ev.videoSearch||star.name);
+        }
+      },{once:true});
       vWrap.addEventListener('touchend',(e)=>{
         e.preventDefault();
-        openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);
-      },{passive:false});
+        const cands=ev.youtubeCandidates||(ev.youtubeId?[{videoId:ev.youtubeId,title:ev.title}]:[]);
+        if(cands.length){
+          openVideoWithFallback(cands,ev.title);
+        }else{
+          const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
+          openVideoSearch(q,ev.title||star.name);
+        }
+      },{passive:false,once:true});
       card.appendChild(vWrap);
     }else if(isChildhood){
       // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
@@ -1968,6 +1984,12 @@ function buildMediaPanel(star,tl,wiki){
 //  VIDEO
 // ═══════════════════════════════════════════
 
+// ═══════════════════════════════════════════
+//  VIDEO — YouTube search embed approach
+//  Embeds youtube.com/results which always works (no per-video restrictions)
+//  Users see real search results and can click to watch any video
+// ═══════════════════════════════════════════
+
 async function openVideo(videoId, title){
   if(!videoId||videoId.length!==11)return false;
   const overlay=document.getElementById('videoOverlay');
@@ -1978,7 +2000,6 @@ async function openVideo(videoId, title){
   overlay.classList.add('on');
   fallback.style.display='none';
   meta.textContent=(title||'').substring(0,60).toUpperCase();
-  // Always show the OPEN ON YOUTUBE link — it's the reliable fallback
   ytLink.href='https://www.youtube.com/watch?v='+videoId;
   ytLink.textContent='OPEN ON YOUTUBE ↗';
   ytLink.style.display='inline-block';
@@ -1988,20 +2009,68 @@ async function openVideo(videoId, title){
   if(old)old.remove();
   const frame=document.createElement('iframe');
   frame.id='videoFrame';
+  // Fix 3: full allow attributes YouTube expects for standard players
   frame.setAttribute('allowfullscreen','');
-  frame.setAttribute('allow','autoplay; encrypted-media; fullscreen; picture-in-picture');
+  frame.setAttribute('allow','accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+  frame.setAttribute('frameborder','0');
   frame.style.cssText='display:block;border:none;';
   frame.style.width='min(90vw, 1280px)';
   frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
   overlay.insertBefore(frame,fallback);
 
-  // youtube-nocookie.com is Google's recommended domain for third-party embeds
-  // It bypasses some embed restrictions and improves privacy
-  frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
-  console.log('Playing video:', videoId, title, '→', frame.src);
-
+  // Fix 1: NO autoplay — biggest single bot-detection trigger per YouTube's systems
+  // Fix 2: youtube-nocookie.com — YouTube's privacy-enhanced domain, bypasses some blocks
+  frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+  console.log('Embedding (no autoplay, nocookie):', videoId, title);
   window._videoCloseCleanup=()=>{frame.src='about:blank';};
   return true;
+}
+
+// Open a YouTube search in the video overlay — always works, no embed restrictions
+function openVideoSearch(searchQuery, title){
+  const overlay=document.getElementById('videoOverlay');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+
+  overlay.classList.add('on');
+  fallback.style.display='none';
+  meta.textContent=(title||'').substring(0,60).toUpperCase();
+  ytLink.href='https://www.youtube.com/results?search_query='+encodeURIComponent(searchQuery);
+  ytLink.textContent='OPEN ON YOUTUBE ↗';
+  ytLink.style.display='inline-block';
+
+  const old=document.getElementById('videoFrame');
+  if(old)old.remove();
+  const frame=document.createElement('iframe');
+  frame.id='videoFrame';
+  frame.setAttribute('allowfullscreen','');
+  frame.setAttribute('allow','accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+  frame.setAttribute('frameborder','0');
+  frame.style.cssText='display:block;border:none;';
+  frame.style.width='min(90vw, 1280px)';
+  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
+  overlay.insertBefore(frame,fallback);
+
+  // YouTube search playlist embed — no autoplay, nocookie domain
+  frame.src='https://www.youtube-nocookie.com/embed?listType=search&list='+encodeURIComponent(searchQuery);
+  console.log('Opening video search:', searchQuery);
+  window._videoCloseCleanup=()=>{frame.src='about:blank';};
+}
+
+async function openVideoWithFallback(candidates, title){
+  const valid=(candidates||[]).filter(c=>c?.videoId&&c.videoId.length===11);
+  console.log('openVideoWithFallback:', valid.length, 'candidates for', title);
+
+  if(valid.length){
+    // Try direct embed
+    await openVideo(valid[0].videoId, valid[0].title||title);
+  }else{
+    // No curated ID — use search embed with the event title as query
+    openVideoSearch(title, title);
+  }
 }
 
 async function openVideoWithFallback(candidates, title){
@@ -2189,6 +2258,18 @@ function getPronouns(tl){
   return{he:'they',his:'their',him:'them',they:'they',their:'their',them:'them'};
 }
 function p(tl,key){return getPronouns(tl)[key]||'they';}
+
+// Global abort controller — cancelled whenever we need to kill all speech immediately
+let _speechAbortController = null;
+
+function killAllSpeech(){
+  _tourSpeakGen++;
+  if(_speechAbortController){try{_speechAbortController.abort();}catch(e){}}_speechAbortController=null;
+  if(tourAudio){try{tourAudio.pause();tourAudio.src='';}catch(e){}tourAudio=null;}
+  if(window.speechSynthesis){speechSynthesis.cancel();setTimeout(()=>speechSynthesis.cancel(),100);setTimeout(()=>speechSynthesis.cancel(),400);}
+  if(window._welcomeAudio){try{window._welcomeAudio.pause();}catch(e){}window._welcomeAudio=null;}
+}
+
 // All non-tour speech goes through here so only one voice plays at a time
 function speak(text,rate=0.92){
   if(!window.speechSynthesis||!text)return;
@@ -2311,15 +2392,17 @@ const DEPLOY_VER='2026-06-07';
     const obKey2='st_onboard_v'+DEPLOY_VER;
     const alreadyDismissed=localStorage.getItem(obKey2);
     if(alreadyDismissed){
-      // Returning user — unlock immediately, no tutorial
+      // Returning user — skip tutorial overlay, but still show ENTER button briefly
+      // Unlock tiles and search immediately for returning users (they know the UX)
       const mc2=document.getElementById('mosaicCanvas');
       if(mc2)mc2.style.pointerEvents='auto';
       const sw=document.getElementById('mSearchWrap');
       if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
-      // Still play welcome on returning visit if within window
-      setTimeout(()=>playWelcomeNarration(),800);
+      // Play welcome narration for returning users too
+      setTimeout(()=>playWelcomeNarration(),500);
       return;
     }
+    // First time — show tutorial, keep tiles locked
     if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
     const ob=document.getElementById('onboardMosaic');
     if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
@@ -2477,25 +2560,31 @@ async function tourSpeak(text){
   if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
   if(_subtitlesOn) showVoiceHint(text.substring(0,80)+'…',99999);
-  // Primary: ElevenLabs
+  // Primary: ElevenLabs — with abort controller so goHome can cancel mid-fetch
   try{
+    const controller=new AbortController();
+    _speechAbortController=controller;
     const r=await fetch('/.netlify/functions/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      // Send max 400 chars for faster ElevenLabs response
-      body:JSON.stringify({text:text.substring(0,400)})
+      body:JSON.stringify({text:text.substring(0,400)}),
+      signal:controller.signal
     });
+    _speechAbortController=null;
     if(myGen!==_tourSpeakGen)return;
     if(r.ok){
       const d=await r.json();
       if(d.audio&&myGen===_tourSpeakGen){
         await new Promise(res=>{
           const a=new Audio('data:audio/mpeg;base64,'+d.audio);
-          tourAudio=a;a.onended=res;a.onerror=res;a.play().catch(res);
+          tourAudio=a;
+          // Check gen again before playing
+          if(myGen!==_tourSpeakGen){res();return;}
+          a.onended=res;a.onerror=res;a.play().catch(res);
         });
         return;
       }
     }
-  }catch(e){}
+  }catch(e){if(e.name==='AbortError')return;} // cleanly cancelled
   // Fallback: browser TTS only if ElevenLabs failed
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
   await new Promise(res=>{
@@ -2522,16 +2611,9 @@ function tourListen(ms){
 function stopTour(){
   tourPlaying=false;
   tourStep2=0;
-  _tourSpeakGen++; // invalidate any in-flight tourSpeak chain
-  if(tourAudio){tourAudio.pause();tourAudio.src='';tourAudio=null;}
-  // Cancel speech synthesis multiple times — it can be queued
-  if(window.speechSynthesis){
-    speechSynthesis.cancel();
-    setTimeout(()=>speechSynthesis.cancel(),100);
-    setTimeout(()=>speechSynthesis.cancel(),300);
-  }
+  killAllSpeech();
   document.querySelectorAll('.ev-card.tour-active').forEach(c=>c.classList.remove('tour-active'));
-  const tb=document.getElementById('tourBtn');if(tb)tb.style.color='var(--muted)';
+  const tb=document.getElementById('tourBtn');if(tb){tb.style.color='var(--muted)';tb.style.borderColor='rgba(201,168,76,.2)';}
   const vhEl=document.getElementById('voiceHint');if(vhEl)vhEl.style.display='none';
 }
 
@@ -2674,12 +2756,7 @@ window._welcomeAudio=null;
 
 async function playWelcomeNarration(){
   if(isMobile)return;
-  const lastVisit=localStorage.getItem('st_last_visit');
-  const now=Date.now();
-  // Only play on first visit or after 24h
-  if(lastVisit&&now-parseInt(lastVisit)<86400000)return;
-  localStorage.setItem('st_last_visit',now);
-
+  // Always play when explicitly called (after user presses ENTER THE MUSEUM)
   const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
   try{
     const r=await fetch('/.netlify/functions/tourguide',{
@@ -2692,12 +2769,11 @@ async function playWelcomeNarration(){
         const a=new Audio('data:audio/mpeg;base64,'+d.audio);
         window._welcomeAudio=a;
         a.volume=1;
-        a.play().catch(()=>{}); // plays immediately — mosaic is already visible
+        a.play().catch(()=>{});
         return;
       }
     }
   }catch(e){}
-  // Fallback: browser TTS
   speak(welcome,0.88);
 }
 
