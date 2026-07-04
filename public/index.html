@@ -362,16 +362,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   color:rgba(201,168,76,.6);text-align:right;
   pointer-events:none;
 }
-/* Video frame — centred, subtle border */
-#videoFrame{
-  width:min(92vw,1280px);
-  height:min(72vh,calc(min(92vw,1280px)*9/16));
-  border:none;flex-shrink:0;
-  opacity:0;transition:opacity .5s ease;
-  border-radius:3px;
-  box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.8);
-}
-#videoFrame.visible{opacity:1;}
+/* videoFrame sizing — actual frame is created dynamically with inline styles */
+#videoFrame{width:min(92vw,1280px);height:min(72vh,calc(min(92vw,1280px)*9/16));border:none;flex-shrink:0;}
 /* Audio overlay — rich visual layout */
 #audioOverlayContent{
   display:none;
@@ -2210,21 +2202,18 @@ async function openVideo(videoId, title){
   if(old)old.remove();
   const frame=document.createElement('iframe');
   frame.id='videoFrame';
-  // Fix 3: full allow attributes YouTube expects for standard players
   frame.setAttribute('allowfullscreen','');
   frame.setAttribute('allow','accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
   frame.setAttribute('referrerpolicy','no-referrer-when-downgrade');
   frame.setAttribute('frameborder','0');
-  frame.style.cssText='display:block;border:none;';
-  frame.style.width='min(90vw, 1280px)';
-  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
+  frame.style.cssText=`display:block;border:none;opacity:0;transition:opacity .5s ease;border-radius:3px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.8);width:min(92vw,1280px);height:min(72vh,calc(min(92vw,1280px)*9/16));flex-shrink:0;`;
   overlay.insertBefore(frame,fallback);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('ready')));
 
-  // Fix 1: NO autoplay — biggest single bot-detection trigger per YouTube's systems
-  // Fix 2: youtube-nocookie.com — YouTube's privacy-enhanced domain, bypasses some blocks
   frame.src=`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+  frame.onload=()=>{ setTimeout(()=>{frame.style.opacity='1';},200); };
   console.log('Embedding (no autoplay, nocookie):', videoId, title);
-  window._videoCloseCleanup=()=>{frame.src='about:blank';};
+  window._videoCloseCleanup=()=>{frame.src='about:blank';overlay.classList.remove('ready');};
   return true;
 }
 
@@ -2292,14 +2281,8 @@ async function openVideoWithFallback(candidates, title){
     const success=await openVideo(candidate.videoId, candidate.title||title);
     if(success)return;
   }
-  // All embed-blocked — show last candidate's watch link
-  const last=valid[valid.length-1];
-  const overlay=document.getElementById('videoOverlay');
-  const fallback=document.getElementById('videoFallback');
-  const ytLink=document.getElementById('videoYtLink');
-  overlay.classList.add('on');
-  fallback.style.display='flex';
-  if(ytLink){ytLink.href='https://www.youtube.com/watch?v='+last.videoId;ytLink.textContent='WATCH ON YOUTUBE ↗';}
+  // All failed — show archive search fallback
+  showVideoFallback(title, null, title);
 }
 
 // Open Wikimedia Commons video — uses HTML5 <video> element, always embeddable
@@ -2365,25 +2348,28 @@ function openArchiveVideo(identifier, title){
   if(fallback)fallback.style.display='none';
 
   overlay.classList.add('on');
-  // Cinematic: fade background in after slight delay
   requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('ready')));
   if(meta)meta.textContent=(title||'').substring(0,55).toUpperCase();
 
+  // Remove old frame entirely, create fresh one — avoids stale opacity/display state
   const old=document.getElementById('videoFrame');
-  if(old){old.src='about:blank';old.style.display='none';}
-
+  if(old)old.remove();
+  const frame=document.createElement('iframe');
+  frame.id='videoFrame';
+  frame.setAttribute('allowfullscreen','');
+  frame.setAttribute('frameborder','0');
+  frame.setAttribute('allow','autoplay; fullscreen');
+  frame.style.cssText=`display:block;border:none;opacity:0;transition:opacity .5s ease;border-radius:3px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.8);width:min(92vw,1280px);height:min(72vh,calc(min(92vw,1280px)*9/16));flex-shrink:0;`;
+  overlay.insertBefore(frame, document.getElementById('audioOverlayContent'));
+  
   setTimeout(()=>{
-    const frame=document.getElementById('videoFrame');
-    if(!frame)return;
     frame.src=`https://archive.org/embed/${identifier}`;
-    frame.style.display='block';
-    // Fade frame in after load
-    setTimeout(()=>frame.classList.add('visible'),400);
-  },300);
+    // Fade in after brief delay
+    setTimeout(()=>{frame.style.opacity='1';},400);
+  },100);
 
   window._videoCloseCleanup=()=>{
-    const f=document.getElementById('videoFrame');
-    if(f){f.classList.remove('visible');f.src='about:blank';}
+    frame.src='about:blank';
     overlay.classList.remove('ready');
   };
 }
@@ -2440,14 +2426,15 @@ function closeVideo(){
   setTimeout(()=>{
     overlay.classList.remove('on');
     const frame=document.getElementById('videoFrame');
-    if(frame){frame.src='about:blank';frame.classList.remove('visible');frame.style.display='none';}
+    if(frame){frame.src='about:blank';frame.style.opacity='0';}
     const cf=document.getElementById('commonsFrame');
     if(cf){try{cf.pause();}catch(e){}cf.style.display='none';}
-    document.getElementById('videoFallback').style.display='none';
+    const af=document.getElementById('audioFrame');
+    if(af){af.src='about:blank';}
     const ac=document.getElementById('audioOverlayContent');
     if(ac)ac.style.display='none';
-  },350); // wait for background fade
-  // Resume tour narration
+    document.getElementById('videoFallback').style.display='none';
+  },350);
   if(tourPlaying&&tourStarRef&&tourTlRef&&!_tourUserStopped){
     setTimeout(()=>{ if(tourPlaying)runTourStep2(); },1000);
   }
