@@ -911,6 +911,19 @@ function injectThumb(tile,ph,src){
 //  TRANSITION
 // ═══════════════════════════════════════════
 function enterStar(star,tile){
+  // Fade out welcome narration if still playing
+  if(window._welcomeAudio&&!window._welcomeAudio.paused){
+    const wa=window._welcomeAudio;
+    const fadeSteps=30, fadeMs=1500;
+    const startVol=wa.volume;
+    let step=0;
+    const fadeInterval=setInterval(()=>{
+      step++;
+      wa.volume=Math.max(0,startVol*(1-step/fadeSteps));
+      if(step>=fadeSteps){clearInterval(fadeInterval);wa.pause();wa.volume=startVol;}
+    },fadeMs/fadeSteps);
+    window._welcomeAudio=null;
+  }
   // Hide search when entering a museum
   const sw=document.getElementById('mSearchWrap');
   if(sw){sw.style.opacity='0';setTimeout(()=>{if(sw.style.opacity==='0')sw.style.display='none';},600);}
@@ -2165,8 +2178,9 @@ setTimeout(()=>{
   ds.style.opacity='0';
   setTimeout(()=>{
     ds.style.display='none';
-    // Mosaic tiles stagger in
+    // Mosaic tiles stagger in — but keep locked (pointer-events:none) until ENTER pressed
     mc.classList.remove('intro-hidden');
+    mc.style.pointerEvents='none'; // tiles not selectable until ENTER THE MUSEUM
     const tiles=Array.from(mc.querySelectorAll('.star-tile'));
     tiles.forEach(t=>{
       t.style.opacity='0';t.style.transform='scale(0.94)';t.style.transition='none';
@@ -2176,10 +2190,11 @@ setTimeout(()=>{
         t.style.opacity='1';t.style.transform='scale(1)';
       }, delay);
     });
-    // Fade in search+voice together
+    // Search+mic stay HIDDEN until ENTER THE MUSEUM is pressed
+    // (revealed in dismissOnboard)
     const sw=document.getElementById('mSearchWrap');
-    if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
-    // Show tutorials now that mosaic is visible
+    if(sw){sw.style.display='none';sw.style.opacity='0';}
+    // Show tutorial overlay — welcome narration fires from dismissOnboard after user interacts
     if(window._showTutorialsWhenReady)window._showTutorialsWhenReady();
   }, FADE);
 }, MOSAIC_START);
@@ -2239,6 +2254,18 @@ const DEPLOY_VER='2026-06-07';
   });
   // Show tutorials ONLY after mosaic is fully revealed (hooked into Phase 5 of intro)
   window._showTutorialsWhenReady=function(){
+    const obKey2='st_onboard_v'+DEPLOY_VER;
+    const alreadyDismissed=localStorage.getItem(obKey2);
+    if(alreadyDismissed){
+      // Returning user — unlock immediately, no tutorial
+      const mc2=document.getElementById('mosaicCanvas');
+      if(mc2)mc2.style.pointerEvents='auto';
+      const sw=document.getElementById('mSearchWrap');
+      if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
+      // Still play welcome on returning visit if within window
+      setTimeout(()=>playWelcomeNarration(),800);
+      return;
+    }
     if(mt&&isMobile&&!localStorage.getItem(tutKey)){mt.style.display='flex';}
     const ob=document.getElementById('onboardMosaic');
     if(ob&&!isMobile&&!localStorage.getItem(obKey))ob.style.display='flex';
@@ -2559,8 +2586,27 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
 // ── ONBOARDING ──
 function dismissOnboard(which){
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
-  if(el)el.style.display='none';
+  if(el){
+    el.style.transition='opacity .4s ease';
+    el.style.opacity='0';
+    setTimeout(()=>{el.style.display='none';},400);
+  }
   localStorage.setItem('st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07'),'1');
+
+  if(which==='mosaic'){
+    // Unlock mosaic tiles — now selectable
+    const mc2=document.getElementById('mosaicCanvas');
+    if(mc2)mc2.style.pointerEvents='auto';
+    // Reveal search + mic bar
+    const sw=document.getElementById('mSearchWrap');
+    if(sw){
+      sw.style.display='flex';
+      sw.style.transition='opacity .6s ease';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));
+    }
+    // Fire welcome narration NOW — triggered by user gesture so autoplay works
+    playWelcomeNarration();
+  }
 }
 function showOnboard(which,delayMs){
   const key='st_ob_'+which+'_v'+(typeof DEPLOY_VER!=='undefined'?DEPLOY_VER:'2026-06-07');
@@ -2568,31 +2614,38 @@ function showOnboard(which,delayMs){
   const el=document.getElementById('onboard'+which.charAt(0).toUpperCase()+which.slice(1));
   if(el)setTimeout(()=>el.style.display='block',delayMs||0);
 }
-// Welcome narration on first visit (or after 24h) — uses ElevenLabs narrator voice
-setTimeout(()=>{
+// ── WELCOME NARRATION ──
+// Stored globally so enterStar can fade it out when a star is selected
+window._welcomeAudio=null;
+
+async function playWelcomeNarration(){
+  if(isMobile)return;
   const lastVisit=localStorage.getItem('st_last_visit');
   const now=Date.now();
-  if(!lastVisit||now-parseInt(lastVisit)>86400000){
-    localStorage.setItem('st_last_visit',now);
-    setTimeout(()=>{
-      if(!isMobile){
-        const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
-        // Use ElevenLabs — same voice as the tour narrator
-        fetch('/.netlify/functions/tourguide',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({text:welcome})
-        }).then(r=>r.ok?r.json():null).then(d=>{
-          if(d?.audio){
-            const a=new Audio('data:audio/mpeg;base64,'+d.audio);
-            a.play().catch(()=>{});
-          }else{
-            speak(welcome,0.88); // fallback to browser TTS only if ElevenLabs fails
-          }
-        }).catch(()=>speak(welcome,0.88));
+  // Only play on first visit or after 24h
+  if(lastVisit&&now-parseInt(lastVisit)<86400000)return;
+  localStorage.setItem('st_last_visit',now);
+
+  const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
+  try{
+    const r=await fetch('/.netlify/functions/tourguide',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:welcome})
+    });
+    if(r.ok){
+      const d=await r.json();
+      if(d?.audio){
+        const a=new Audio('data:audio/mpeg;base64,'+d.audio);
+        window._welcomeAudio=a;
+        a.volume=1;
+        a.play().catch(()=>{}); // plays immediately — mosaic is already visible
+        return;
       }
-    },4500);
-  }
-},3500);
+    }
+  }catch(e){}
+  // Fallback: browser TTS
+  speak(welcome,0.88);
+}
 
 // ── TIMELINE ONBOARD ──
 const _origBuildTL=buildTimeline;
