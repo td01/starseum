@@ -330,30 +330,46 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   transition:background .4s ease;
 }
 #videoOverlay.on{display:flex;}
-#videoOverlay.on.ready{background:rgba(0,0,0,.96);}
+#videoOverlay.on.ready{background:#090909;}
+/* Top bar: always visible, gradient over video */
 #videoClose{
-  position:absolute;top:0;left:0;right:0;
+  position:absolute;top:0;left:0;right:0;z-index:10;
   display:flex;align-items:center;justify-content:space-between;
-  padding:1.2rem 1.8rem;
-  background:linear-gradient(to bottom,rgba(0,0,0,.8) 0%,transparent 100%);
-  border:none;cursor:default;
+  padding:1.1rem 1.6rem;
+  background:linear-gradient(to bottom,rgba(0,0,0,.85) 0%,transparent 100%);
+  pointer-events:none;
 }
 #videoCloseBtn{
-  background:none;border:none;cursor:pointer;
-  display:flex;align-items:center;gap:.5rem;
-  color:rgba(255,255,255,.7);font-family:var(--mono);font-size:9px;letter-spacing:.2em;
-  transition:color .2s;padding:.4rem .6rem;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:50px;
+  cursor:pointer;
+  display:flex;align-items:center;gap:.45rem;
+  color:rgba(255,255,255,.85);
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  transition:all .2s;
+  padding:.45rem 1rem;
+  pointer-events:auto;
+  backdrop-filter:blur(8px);
 }
-#videoCloseBtn:hover{color:#fff;}
-#videoCloseBtn svg{transition:transform .2s;}
-#videoCloseBtn:hover svg{transform:scale(1.15);}
-#videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.6);text-align:right;}
+#videoCloseBtn:hover{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.3);
+  color:#fff;
+}
+#videoMeta{
+  font-family:var(--mono);font-size:9px;letter-spacing:.15em;
+  color:rgba(201,168,76,.6);text-align:right;
+  pointer-events:none;
+}
+/* Video frame — centred, subtle border */
 #videoFrame{
   width:min(92vw,1280px);
   height:min(72vh,calc(min(92vw,1280px)*9/16));
   border:none;flex-shrink:0;
   opacity:0;transition:opacity .5s ease;
-  border-radius:2px;
+  border-radius:3px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 80px rgba(0,0,0,.8);
 }
 #videoFrame.visible{opacity:1;}
 /* Audio overlay — rich visual layout */
@@ -615,11 +631,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="videoOverlay">
   <!-- Top bar: close + meta -->
   <div id="videoClose">
+    <div id="videoMeta"></div>
     <button id="videoCloseBtn" onclick="closeVideo()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       CLOSE
     </button>
-    <div id="videoMeta"></div>
   </div>
 
   <!-- Video iframe (archive.org / YouTube) -->
@@ -1021,18 +1037,10 @@ function injectThumb(tile,ph,src){
 // ═══════════════════════════════════════════
 function enterStar(star,tile){
   // Fade out any playing welcome/mosaic narration over 1.5s
-  function fadeOutAudio(audioEl){
-    if(!audioEl||audioEl.paused)return;
-    const steps=30, ms=1500, startVol=audioEl.volume;
-    let step=0;
-    const iv=setInterval(()=>{
-      step++;
-      audioEl.volume=Math.max(0,startVol*(1-step/steps));
-      if(step>=steps){clearInterval(iv);audioEl.pause();audioEl.volume=startVol;}
-    },ms/steps);
-  }
-  fadeOutAudio(window._welcomeAudio); window._welcomeAudio=null;
-  fadeOutAudio(window._loadingNameAudio); window._loadingNameAudio=null;
+  if(window._welcomeAudio&&!window._welcomeAudio.paused)fadeAudio(window._welcomeAudio,1500);
+  window._welcomeAudio=null;
+  if(window._loadingNameAudio&&!window._loadingNameAudio.paused)fadeAudio(window._loadingNameAudio,1500);
+  window._loadingNameAudio=null;
   // Hide search when entering a museum
   const sw=document.getElementById('mSearchWrap');
   if(sw){sw.style.opacity='0';setTimeout(()=>{if(sw.style.opacity==='0')sw.style.display='none';},600);}
@@ -1225,6 +1233,41 @@ const CURATED_VIDEOS = {
   'Marvin_Gaye': [{videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'}],
   'Kurt_Cobain': [{videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'}],
   'Amy_Winehouse': [{videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'}],
+  // ── Expanded archive content ──
+  'Stephen_Hawking': [
+    {archiveId:'IntoTheUniverseWithStephenHawkingTheStoryOfEverything',title:'Into The Universe With Stephen Hawking',year:'2010'},
+    {archiveId:'questioning-the-universe-stephen-hawking',title:'Stephen Hawking — Questioning The Universe TED 2008',year:'2008'},
+    {archiveId:'theory-of-everything',title:'The Theory of Everything — PBS',year:'2014'},
+    {archiveId:'bbcstephenhawkingsuniverseep3cosmicalchemy14sept1997',title:'Stephen Hawking Universe — BBC 1997',year:'1997'},
+  ],
+  'Frank_Sinatra': [
+    {archiveId:'Frank_Sinatra_Tape_1_1940',title:'Frank Sinatra — 1940 Archive Recordings',year:'1940',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Frank_Sinatra_-_1947.jpg/440px-Frank_Sinatra_-_1947.jpg'},
+  ],
+  'Billie_Holiday': [
+    {archiveId:'BillieHolidayLiveRecordings',title:'Billie Holiday Live Recordings Archive',year:'1950',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Billie_Holiday_1949.jpg/440px-Billie_Holiday_1949.jpg'},
+  ],
+  'Miles_Davis': [
+    {archiveId:'miles-davis-interviews',title:'Miles Davis Radio Interview Archive',year:'1970',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Miles_Davis_-_1984.jpg/440px-Miles_Davis_-_1984.jpg'},
+  ],
+  'Steve_Jobs': [
+    {archiveId:'TheSteveJobs1995InterviewUnabridged',title:'Steve Jobs — The Lost Interview 1995',year:'1995'},
+    {archiveId:'AppleArchive',title:'Apple Archive — Steve Jobs Keynotes',year:'2007'},
+  ],
+  'Malcolm_X': [
+    {archiveId:'MalcolmXInterviewAtUCBerkeley',title:'Malcolm X Interview at UC Berkeley 1963',year:'1963'},
+    {archiveId:'malcolm-x-collected-speeches-debates-and-interviews-1960-1965',title:'Malcolm X Speeches 1960–65',year:'1963',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Malcolm_X_NYWTS_2.jpg/440px-Malcolm_X_NYWTS_2.jpg'},
+  ],
+  'Tupac_Shakur': [
+    {archiveId:'tupac-shakur-thug-immortal-vhs',title:'Tupac Shakur — Thug Immortal 1997',year:'1997',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Tupac_Shakur_in_1993.jpg/440px-Tupac_Shakur_in_1993.jpg'},
+  ],
+  'Diego_Maradona': [
+    {archiveId:'AlexPCDiegoMaradonaVideo',title:'Diego Maradona — Football Archive',year:'1986'},
+  ],
 }
 
 // ── VIDEO DATA PIPELINE ──
@@ -1246,20 +1289,27 @@ async function fetchVideoData(tl, star){
   const slicedMap=indexMap.slice(0,8);
   if(!slicedQueries.length)return{indexMap:[],results:[]};
 
-  // Check curated map first
+  // Check curated map first — distribute across ALL video-eligible events
   const curatedForStar=CURATED_VIDEOS[star.slug]||[];
   const results=new Array(slicedQueries.length).fill(null);
 
-  // Assign curated videos — archive.org takes priority, YouTube as fallback
-  curatedForStar.forEach((vid,k)=>{
-    if(k<results.length&&!results[k]){
-      if(vid.archiveId){
-        results[k]={archiveId:vid.archiveId,title:vid.title,source:'archive',type:vid.type||'video',starImg:vid.starImg||null};
-      }else if(vid.videoId){
-        results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
+  if(curatedForStar.length>0){
+    // Distribute curated items across all eligible slots
+    // If more slots than items, repeat/cycle the curated content
+    let curatedIdx=0;
+    results.forEach((_,k)=>{
+      if(curatedIdx<curatedForStar.length||(curatedForStar.length>0)){
+        const vid=curatedForStar[curatedIdx%curatedForStar.length];
+        if(vid.archiveId){
+          results[k]={archiveId:vid.archiveId,title:vid.title,source:'archive',
+                      type:vid.type||'video',starImg:vid.starImg||null};
+        }else if(vid.videoId){
+          results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
+        }
+        curatedIdx++;
       }
-    }
-  });
+    });
+  }
 
   const unfilledCount=results.filter(r=>!r).length;
   console.log(`Curated: ${results.filter(Boolean).length}/${slicedQueries.length} | Unfilled: ${unfilledCount}`);
@@ -1365,6 +1415,9 @@ async function enrichVideos(star,tl){
 //  JOURNEY
 // ═══════════════════════════════════════════
 async function startJourney(star,thumb,clone,clX,clY,clW,clH){
+  // Kill any playing welcome/mosaic narration immediately
+  if(window._welcomeAudio){try{window._welcomeAudio.pause();}catch(e){}window._welcomeAudio=null;}
+  if(window._welcomeAudioPreloaded){try{window._welcomeAudioPreloaded.pause();}catch(e){}window._welcomeAudioPreloaded=null;}
   showLoad(star,thumb,clone,clX,clY,clW,clH);
   // Desktop only: speak star's name via ElevenLabs on loading screen
   if(!isMobile){
@@ -2497,7 +2550,39 @@ function p(tl,key){return getPronouns(tl)[key]||'they';}
 // Global abort controller — cancelled whenever we need to kill all speech immediately
 let _speechAbortController = null;
 
+// Fade any currently playing audio over ms milliseconds, then resolve
+function fadeAudio(audioEl, ms=1500){
+  if(!audioEl||audioEl.paused)return Promise.resolve();
+  return new Promise(res=>{
+    const steps=30, startVol=audioEl.volume;
+    let step=0;
+    const iv=setInterval(()=>{
+      step++;
+      audioEl.volume=Math.max(0,startVol*(1-step/steps));
+      if(step>=steps){
+        clearInterval(iv);
+        try{audioEl.pause();}catch(e){}
+        audioEl.volume=startVol;
+        res();
+      }
+    },ms/steps);
+  });
+}
+
+// Fade all currently playing speech over ms, then kill cleanly
+async function fadeAllSpeech(ms=1500){
+  const fades=[];
+  if(tourAudio&&!tourAudio.paused)fades.push(fadeAudio(tourAudio,ms).then(()=>{tourAudio=null;}));
+  if(window._welcomeAudio&&!window._welcomeAudio.paused)fades.push(fadeAudio(window._welcomeAudio,ms).then(()=>{window._welcomeAudio=null;}));
+  if(window._loadingNameAudio&&!window._loadingNameAudio.paused)fades.push(fadeAudio(window._loadingNameAudio,ms).then(()=>{window._loadingNameAudio=null;}));
+  if(window.speechSynthesis&&speechSynthesis.speaking){
+    speechSynthesis.cancel(); // TTS can't fade — cut immediately
+  }
+  await Promise.all(fades);
+}
+
 function killAllSpeech(){
+  // Instant kill — for goHome, closeVideo, emergencies
   _tourSpeakGen++;
   if(_speechAbortController){try{_speechAbortController.abort();}catch(e){}}_speechAbortController=null;
   if(tourAudio){try{tourAudio.pause();tourAudio.src='';}catch(e){}tourAudio=null;}
@@ -2789,11 +2874,19 @@ async function runTourStep2(){
 async function tourSpeak(text){
   if(!tourPlaying||!text)return;
   const myGen=++_tourSpeakGen;
+  // Fade out any currently playing audio (1.5s) before starting new narration
+  const fadeMs=tourAudio&&!tourAudio.paused?600:0; // quick crossfade if already playing
+  if(tourAudio&&!tourAudio.paused){
+    const old=tourAudio;tourAudio=null;
+    fadeAudio(old,600).catch(()=>{});
+  }
   if(window.speechSynthesis&&speechSynthesis.speaking)speechSynthesis.cancel();
-  if(tourAudio&&!tourAudio.paused){tourAudio.pause();tourAudio=null;}
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
   if(_subtitlesOn) showVoiceHint(text.substring(0,80)+'…',99999);
-  // Primary: ElevenLabs — with abort controller so goHome can cancel mid-fetch
+  // Brief pause to let fade begin before new audio starts
+  if(fadeMs>0)await new Promise(r=>setTimeout(r,300));
+  if(!tourPlaying||myGen!==_tourSpeakGen)return;
+  // Primary: ElevenLabs
   try{
     const controller=new AbortController();
     _speechAbortController=controller;
@@ -2810,15 +2903,14 @@ async function tourSpeak(text){
         await new Promise(res=>{
           const a=new Audio('data:audio/mpeg;base64,'+d.audio);
           tourAudio=a;
-          // Check gen again before playing
           if(myGen!==_tourSpeakGen){res();return;}
           a.onended=res;a.onerror=res;a.play().catch(res);
         });
         return;
       }
     }
-  }catch(e){if(e.name==='AbortError')return;} // cleanly cancelled
-  // Fallback: browser TTS only if ElevenLabs failed
+  }catch(e){if(e.name==='AbortError')return;}
+  // Fallback: browser TTS
   if(!tourPlaying||myGen!==_tourSpeakGen)return;
   await new Promise(res=>{
     if(!window.speechSynthesis){res();return;}
