@@ -2337,19 +2337,27 @@ const DEPLOY_VER='2026-06-07';
   document.getElementById('mtClose')?.addEventListener('click',()=>{
     if(mt)mt.style.display='none';
     localStorage.setItem(tutKey,'1');
+    // Unlock tiles — same as dismissOnboard does for desktop
+    const mc2=document.getElementById('mosaicCanvas');
+    if(mc2)mc2.style.pointerEvents='auto';
+    // Show search+mic bar
+    const sw=document.getElementById('mSearchWrap');
+    if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
   });
   // Show tutorials ONLY after mosaic is fully revealed (hooked into Phase 5 of intro)
   window._showTutorialsWhenReady=function(){
     const obKey2='st_onboard_v'+DEPLOY_VER;
-    const alreadyDismissed=localStorage.getItem(obKey2);
+    // For mobile, check mobile tutorial key; for desktop check onboard key
+    const alreadyDismissed=isMobile
+      ? localStorage.getItem(tutKey)
+      : localStorage.getItem(obKey2);
+
     if(alreadyDismissed){
-      // Returning user — skip tutorial overlay, but still show ENTER button briefly
-      // Unlock tiles and search immediately for returning users (they know the UX)
+      // Returning user — unlock immediately
       const mc2=document.getElementById('mosaicCanvas');
       if(mc2)mc2.style.pointerEvents='auto';
       const sw=document.getElementById('mSearchWrap');
       if(sw){sw.style.display='flex';sw.style.transition='opacity .6s ease';requestAnimationFrame(()=>requestAnimationFrame(()=>{sw.style.opacity='1';}));}
-      // Play welcome narration for returning users too
       setTimeout(()=>playWelcomeNarration(),500);
       return;
     }
