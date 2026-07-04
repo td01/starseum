@@ -323,7 +323,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
 /* Video overlay — cinematic */
 #videoOverlay{
-  position:fixed;inset:0;z-index:300;
+  position:fixed;inset:0;z-index:9000;
   background:rgba(0,0,0,0);
   display:none;flex-direction:column;align-items:center;justify-content:center;
   cursor:default;
@@ -333,7 +333,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #videoOverlay.on.ready{background:#090909;}
 /* Top bar: always visible, gradient over video */
 #videoClose{
-  position:absolute;top:0;left:0;right:0;z-index:10;
+  position:absolute;top:0;left:0;right:0;z-index:9001;
   display:flex;align-items:center;justify-content:space-between;
   padding:1.1rem 1.4rem;
   background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 100%);
@@ -1191,14 +1191,18 @@ const CURATED_VIDEOS = {
   // ── Audio: Archive.org with star image ──
   'David_Bowie': [
     {archiveId:'HUG163CD',title:'David Bowie Berlin Trilogy Interviews 1978–79',year:'1978',type:'audio',
-     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg/440px-David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg'},
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg/400px-David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg'},
   ],
   'Winston_Churchill': [
-    {archiveId:'Winston_Churchill',title:'Winston Churchill Speeches and Wartime Broadcasts',year:'1940',type:'audio',
-     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Sir_Winston_Churchill_-_19086236948.jpg/440px-Sir_Winston_Churchill_-_19086236948.jpg'},
+    {archiveId:'winstonchurchillweshallfightonthebeachesfull',title:'Winston Churchill — We Shall Fight On The Beaches 1940',year:'1940',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Winston_Churchill_-_19086236948.jpg/440px-Winston_Churchill_-_19086236948.jpg'},
+    {archiveId:'WinstonChurchill-TheSinewsOfPeaceakaTheIronCurtainSpeech',title:'Winston Churchill — The Iron Curtain Speech 1946',year:'1946',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Winston_Churchill_-_19086236948.jpg/440px-Winston_Churchill_-_19086236948.jpg'},
+    {archiveId:'ChurchillFirstAddressPM',title:'Churchill First Address As Prime Minister 1940',year:'1940',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Winston_Churchill_-_19086236948.jpg/440px-Winston_Churchill_-_19086236948.jpg'},
   ],
   'Mahatma_Gandhi': [
-    {archiveId:'Mahatma_Gandhi_Speeches',title:'Gandhi Prayer Meeting Speech 1947',year:'1947',type:'audio',
+    {archiveId:'Gandhi_Speeches_And_Writings',title:'Gandhi Speeches Archive',year:'1947',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/440px-Mahatma-Gandhi%2C_studio%2C_1931.jpg'},
   ],
   'Aretha_Franklin': [
@@ -1239,7 +1243,7 @@ const CURATED_VIDEOS = {
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Billie_Holiday_1949.jpg/440px-Billie_Holiday_1949.jpg'},
   ],
   'Miles_Davis': [
-    {archiveId:'miles-davis-1-6',title:'Miles Davis Radio Interview Archive',year:'1970',type:'audio',
+    {archiveId:'78_all-of-you_miles-davis',title:'Miles Davis — All of You (Live Recording)',year:'1956',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Miles_Davis_-_1984.jpg/440px-Miles_Davis_-_1984.jpg'},
   ],
   'Steve_Jobs': [
