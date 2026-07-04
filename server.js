@@ -11,6 +11,11 @@ app.use(express.json());
 
 // Serve static files from public/
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve favicon.svg from repo root
+app.get('/favicon.svg', (req, res) => {
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.sendFile(path.join(__dirname, 'favicon.svg'));
+});
 
 // ── CORS + Referrer headers for YouTube embeds ──
 app.use((req, res, next) => {
