@@ -335,27 +335,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 #videoClose{
   position:absolute;top:0;left:0;right:0;z-index:10;
   display:flex;align-items:center;justify-content:space-between;
-  padding:1.1rem 1.6rem;
-  background:linear-gradient(to bottom,rgba(0,0,0,.85) 0%,transparent 100%);
+  padding:1.1rem 1.4rem;
+  background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 100%);
   pointer-events:none;
 }
 #videoCloseBtn{
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:50px;
+  background:rgba(0,0,0,.5);
+  border:1.5px solid rgba(255,255,255,.2);
+  border-radius:50%;
+  width:38px;height:38px;
   cursor:pointer;
-  display:flex;align-items:center;gap:.45rem;
+  display:flex;align-items:center;justify-content:center;
   color:rgba(255,255,255,.85);
-  font-family:var(--mono);font-size:9px;letter-spacing:.18em;
   transition:all .2s;
-  padding:.45rem 1rem;
   pointer-events:auto;
   backdrop-filter:blur(8px);
+  flex-shrink:0;
 }
 #videoCloseBtn:hover{
-  background:rgba(255,255,255,.14);
-  border-color:rgba(255,255,255,.3);
+  background:rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.5);
   color:#fff;
+  transform:scale(1.08);
 }
 #videoMeta{
   font-family:var(--mono);font-size:9px;letter-spacing:.15em;
@@ -618,22 +619,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <!-- Top bar: close + meta -->
   <div id="videoClose">
     <div id="videoMeta"></div>
-    <button id="videoCloseBtn" onclick="closeVideo()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      CLOSE
+    <button id="videoCloseBtn" onclick="closeVideo()" title="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
-  </div>
-  <!-- Bottom bar: back to media -->
-  <div style="position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1.2rem;pointer-events:auto;">
-    <button onclick="closeVideo();document.querySelector('[data-tab=media]')?.click();"
-      style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:.4rem 1rem;font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .2s;backdrop-filter:blur(8px);">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-      BACK TO MEDIA
-    </button>
-    <div id="videoSwipeHint" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(255,255,255,.2);display:flex;align-items:center;gap:.3rem;">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6,9 12,15 18,9"/></svg>
-      SWIPE TO CLOSE
-    </div>
   </div>
 
   <!-- Video iframe (archive.org / YouTube) -->
@@ -1220,6 +1208,14 @@ const CURATED_VIDEOS = {
   'Malcolm_X_Audio': [
     {archiveId:'malcolm-x-collected-speeches-debates-and-interviews-1960-1965',title:'Malcolm X Collected Speeches 1960–65',year:'1963',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Malcolm_X_NYWTS_2.jpg/440px-Malcolm_X_NYWTS_2.jpg'},
+  ],
+  'John_F._Kennedy': [
+    {archiveId:'jfk-assassination-coverage',title:'JFK Assassination News Coverage 1963',year:'1963'},
+    {archiveId:'kennedyassassination',title:'Kennedy Assassination Archive',year:'1963'},
+  ],
+  'Martin_Luther_King_Jr.': [
+    {archiveId:'i-have-a-dream-video',title:'I Have A Dream — Martin Luther King Jr. 1963',year:'1963'},
+    {archiveId:'bbc-face-to-face-martin-luther-king-jr.-interview-1961',title:'BBC Face To Face Interview 1961',year:'1961'},
   ],
   // ── YouTube fallback for remaining stars ──
   'Janis_Joplin': [{videoId:'6b8BFGG3xWU',title:'Janis Joplin Dick Cavett Show 1970',year:'1970'}],
