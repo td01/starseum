@@ -1027,23 +1027,36 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // Verified YouTube IDs from official channels — guaranteed to embed
 // Key = star slug, value = array of {videoId, title, year, type}
 const CURATED_VIDEOS = {
-  // ── Verified YouTube IDs — tested embeddable ──
-  // Dick Cavett Show official channel
-  'Jimi_Hendrix': [
-    {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show',year:'1969'},
-    {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Dick Cavett Interview',year:'1969'},
-    {videoId:'YmVNh-fwl08',title:'Jimi Hendrix on Life as a Young Musician',year:'1969'},
-    {videoId:'da-969idG7Y',title:'Jimi Hendrix on His Electric Church',year:'1969'},
-  ],
+  // ── Archive.org native embeds — no bot detection, no API, always work ──
   'Muhammad_Ali': [
-    {videoId:'kGuNWh3yTSo',title:'Best of Muhammad Ali on Dick Cavett',year:'1970'},
-    {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War',year:'1970'},
-    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett',year:'1974'},
-    {videoId:'pR3XxV5aL68',title:'Muhammad Ali on Early Retirement',year:'1970'},
+    {archiveId:'rpali',title:'Muhammad Ali Training and Interview 1970s',year:'1970'},
+    {archiveId:'MuhammadAliVsSonnyListon',title:'Muhammad Ali vs Sonny Liston 1965',year:'1965'},
+    {archiveId:'MuhammadAliVersusFloydPatterson',title:'Muhammad Ali vs Floyd Patterson 1972',year:'1972'},
+  ],
+  'Marilyn_Monroe': [
+    {archiveId:'The_Legend_of_Marilyn_Monroe',title:'The Legend of Marilyn Monroe',year:'1966'},
+    {archiveId:'youtube-qHDd_B71zv0',title:'Marilyn Monroe 1958 Film Footage',year:'1958'},
+  ],
+  'Charlie_Chaplin': [
+    {archiveId:'charlie_chaplin_film_fest',title:'Charlie Chaplin Festival 1917',year:'1917'},
+    {archiveId:'CharlieChaplin',title:'Charlie Chaplin Classic Films',year:'1920'},
+  ],
+  'Elvis_Presley': [
+    {archiveId:'ThisIsElvisPresley1956',title:'This Is Elvis Presley 1956',year:'1956'},
+  ],
+  'Jimi_Hendrix': [
+    {archiveId:'jimi-hendrix-1973',title:'Jimi Hendrix Documentary 1973',year:'1973'},
   ],
   'Joe_Frazier': [
-    {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
-    {videoId:'LU8XBaMTX7g',title:'Ali and Frazier Pick Up Dick Cavett',year:'1974'},
+    {archiveId:'MuhammadAliVersusFloydPatterson',title:'Classic Boxing 1972',year:'1972'},
+  ],
+  // YouTube IDs for stars not covered by archive.org
+  'Freddie_Mercury': [
+    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982',year:'1982'},
+    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute — Freddie Mercury',year:'1984'},
+  ],
+  'Bob_Marley': [
+    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way 1979',year:'1979'},
   ],
   'Janis_Joplin': [
     {videoId:'6b8BFGG3xWU',title:'Janis Joplin on Dick Cavett Show 1970',year:'1970'},
@@ -1051,33 +1064,12 @@ const CURATED_VIDEOS = {
   'Jim_Morrison': [
     {videoId:'yGFYOdxcPow',title:'The Doors on Dick Cavett Show 1969',year:'1969'},
   ],
-  // Official Queen YouTube channel
-  'Freddie_Mercury': [
-    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982',year:'1982'},
-    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute — Freddie Mercury',year:'1984'},
-  ],
-  // NZ archive — reliable embed
-  'Bob_Marley': [
-    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way 1979',year:'1979'},
-  ],
-  // Frida Kahlo — biographical documentary (found via search, public YouTube)
-  'Frida_Kahlo': [
-    {videoId:'vEt0f2xzB54',title:'Frida Kahlo — A Life of Pain Documentary',year:'1954'},
-    {videoId:'qciiPUFj0UY',title:'Frida Kahlo Video Documentaries',year:'1950'},
-  ],
-  // Marvin Gaye
   'Marvin_Gaye': [
     {videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'},
   ],
-  // Elvis Presley — official EP channel
-  'Elvis_Presley': [
-    {videoId:'BkUgOqkLqio',title:'Elvis Presley 68 Comeback Special',year:'1968'},
-  ],
-  // Kurt Cobain
   'Kurt_Cobain': [
     {videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'},
   ],
-  // Amy Winehouse
   'Amy_Winehouse': [
     {videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'},
   ],
@@ -1106,10 +1098,14 @@ async function fetchVideoData(tl, star){
   const curatedForStar=CURATED_VIDEOS[star.slug]||[];
   const results=new Array(slicedQueries.length).fill(null);
 
-  // Assign curated videos to the first N events that need video
+  // Assign curated videos — archive.org takes priority, YouTube as fallback
   curatedForStar.forEach((vid,k)=>{
     if(k<results.length&&!results[k]){
-      results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
+      if(vid.archiveId){
+        results[k]={archiveId:vid.archiveId,title:vid.title,source:'archive'};
+      }else if(vid.videoId){
+        results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
+      }
     }
   });
 
@@ -1152,7 +1148,12 @@ function injectVideoData(tl,videoData){
     if(!item)return;
     const i=indexMap[j],ev=events[i];
     if(!ev)return;
-    if(item.source==='commons'){
+    if(item.source==='archive'||item.archiveId){
+      ev.archiveVideo=item;
+      ev._ytThumb=null;
+      injected++;
+      console.log(`Archive injected event[${i}] "${ev.title}" → ${item.archiveId}`);
+    }else if(item.source==='commons'){
       // Wikimedia Commons video
       ev.commonsVideo=item; // {fileUrl, thumbUrl, title, pageUrl}
       ev._ytThumb=item.thumbUrl;
@@ -1180,9 +1181,10 @@ function injectVideoData(tl,videoData){
 async function enrichVideos(star,tl){
   const events=tl.events||[];
   events.forEach((ev,i)=>{
+    const hasArchive=!!ev.archiveVideo;
     const hasCommons=!!ev.commonsVideo;
     const hasYT=!!(ev.youtubeCandidates?.length||ev.youtubeId);
-    if(!hasCommons&&!hasYT)return;
+    if(!hasArchive&&!hasCommons&&!hasYT)return;
     const vWrap=document.querySelector(`.ev-video-wrap[data-ev-idx="${i}"]`);
     if(!vWrap)return;
     const thumb=vWrap.querySelector('.ev-img');
@@ -1190,7 +1192,8 @@ async function enrichVideos(star,tl){
     if(thumb&&thumbSrc)thumb.src=thumbSrc;
     vWrap.onclick=null;
     const playFn=()=>{
-      if(hasCommons)openCommonsVideo(ev.commonsVideo,ev.title);
+      if(hasArchive)openArchiveVideo(ev.archiveVideo.archiveId,ev.archiveVideo.title||ev.title);
+      else if(hasCommons)openCommonsVideo(ev.commonsVideo,ev.title);
       else openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);
     };
     vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;playFn();},{once:true});
@@ -2109,6 +2112,38 @@ function openCommonsVideo(commonsItem, title){
     commonsFrame.src='';
     commonsSource.src='';
   };
+}
+
+// Open archive.org video — native embed, always works, no bot detection, no API key
+function openArchiveVideo(identifier, title){
+  const overlay=document.getElementById('videoOverlay');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+  const ytLink=document.getElementById('videoYtLink');
+
+  overlay.classList.add('on');
+  fallback.style.display='none';
+  meta.textContent=(title||'').substring(0,60).toUpperCase();
+  if(ytLink){
+    ytLink.href='https://archive.org/details/'+identifier;
+    ytLink.textContent='VIEW ON ARCHIVE.ORG ↗';
+    ytLink.style.display='inline-block';
+  }
+
+  const old=document.getElementById('videoFrame');
+  if(old)old.remove();
+  const frame=document.createElement('iframe');
+  frame.id='videoFrame';
+  frame.setAttribute('allowfullscreen','');
+  frame.setAttribute('frameborder','0');
+  frame.style.cssText='display:block;border:none;';
+  frame.style.width='min(90vw, 1280px)';
+  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
+  overlay.insertBefore(frame,fallback);
+
+  frame.src=`https://archive.org/embed/${identifier}`;
+  console.log('Playing archive.org embed:', identifier);
+  window._videoCloseCleanup=()=>{frame.src='about:blank';};
 }
 
 function closeVideo(){
