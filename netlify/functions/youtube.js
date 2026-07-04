@@ -1,4 +1,4 @@
-// YouTube Data API v3 — Starseum v5 (2026-06-08)
+// YouTube Data API v3 — Starseum v6 (2026-07-03)
 // Removed videoEmbeddable filter — was silently returning 0 results
 exports.handler = async function(event, context) {
   const headers = {
@@ -120,6 +120,6 @@ exports.handler = async function(event, context) {
     queries.slice(0, 8).map(q => findVideos(q, 5))
   );
 
-  console.log('youtube.js v5 returning', allResults.length, 'result arrays, counts:', allResults.map(r=>r.length));
-  return { statusCode: 200, headers, body: JSON.stringify({ results: allResults, version: 5 }) };
+  console.log('youtube.js v6 returning', allResults.length, 'result arrays, counts:', allResults.map(r=>r.length));
+  return { statusCode: 200, headers, body: JSON.stringify({ results: allResults, version: 6 }) };
 };

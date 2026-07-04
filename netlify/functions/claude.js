@@ -49,6 +49,7 @@ Return ONLY valid JSON, no markdown, no explanation:
   "born": "YYYY-MM-DD or YYYY",
   "died": "YYYY-MM-DD or YYYY",
   "nationality": "nationality",
+  "gender": "male or female",
   "fields": ["field1","field2"],
   "tagline": "one evocative sentence max 10 words",
   "wikipediaSlug": "Wikipedia_Article_Slug",
