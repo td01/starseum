@@ -1121,7 +1121,7 @@ async function fetchVideoData(tl, star){
     const ytQueries=[],ytMap=[];
     results.forEach((r,j)=>{if(!r){ytQueries.push(slicedQueries[j]);ytMap.push(j);}});
     try{
-      const r=await fetch('/.netlify/functions/youtube',{
+      const r=await fetch('/api/youtube',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({queries:ytQueries.slice(0,5)})
       });
@@ -1212,7 +1212,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     const nameText=star.name+yearsSpoken+'.';
     (async()=>{
       try{
-        const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:nameText})});
+        const r=await fetch('/api/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:nameText})});
         if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
       }catch(e){}
       if(!_nameSpeakDone)speak(nameText, 0.82);
@@ -1224,7 +1224,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     // Pre-fetch welcome narration NOW — runs in parallel with images+video load
     // By the time the timeline is built, audio should be ready to play instantly
     const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+(tl.tagline||'')+'. Born in '+(tl.born||'unknown')+', '+p(tl,'they')+' left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through '+p(tl,'their')+' life together.';
-    fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,400)})})
+    fetch('/api/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,400)})})
       .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
     setLoad(45,'SOURCING IMAGES & VIDEO');
     // Fetch images and videos in parallel — both are needed before building
@@ -1279,7 +1279,7 @@ document.getElementById('tlBack').addEventListener('click',()=>{ stopTour(); goH
 // ═══════════════════════════════════════════
 async function fetchTimeline(name, attempt=0){
   try{
-    const r=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Error ${r.status}`);}
     const data=await r.json();
     if(data.error)throw new Error(data.error.message||data.error);
@@ -2533,7 +2533,7 @@ async function tourSpeak(text){
   try{
     const controller=new AbortController();
     _speechAbortController=controller;
-    const r=await fetch('/.netlify/functions/tourguide',{
+    const r=await fetch('/api/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:text.substring(0,400)}),
       signal:controller.signal
@@ -2615,7 +2615,7 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
     ans.style.display='block';
     ans.textContent=text;
     try{
-      const r=await fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,600)})});
+      const r=await fetch('/api/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.substring(0,600)})});
       if(r.ok){const d=await r.json();if(d.audio){const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
     }catch(e){}
     speak(text.substring(0,400),0.9);
@@ -2631,7 +2631,7 @@ document.getElementById('tourBtn')?.addEventListener('click',()=>{
         fields:tourTlRef.fields,nationality:tourTlRef.nationality,
         events:(tourTlRef.events||[]).map(e=>({year:e.year,title:e.title,text:e.text}))
       });
-      const r=await fetch('/.netlify/functions/claude',{
+      const r=await fetch('/api/claude',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({name:'__qa__',context,question})
       });
@@ -2736,7 +2736,7 @@ async function playWelcomeNarration(){
     return;
   }
   try{
-    const r=await fetch('/.netlify/functions/tourguide',{
+    const r=await fetch('/api/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:welcome})
     });
@@ -2759,7 +2759,7 @@ async function prefetchWelcomeAudio(){
   if(isMobile)return;
   const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
   try{
-    const r=await fetch('/.netlify/functions/tourguide',{
+    const r=await fetch('/api/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:welcome})
     });
