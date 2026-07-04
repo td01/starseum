@@ -5,7 +5,7 @@
 <meta name="referrer" content="no-referrer-when-downgrade">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Starseum — A Museum of Extraordinary Lives</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A0806'/><text x='50%' y='58%' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23C9A84C' font-family='serif'>S</text></svg>">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -320,14 +320,62 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   margin-top:.3rem;
 }
 
-/* Video overlay */
-#videoOverlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;cursor:default;}
+/* Video overlay — cinematic */
+#videoOverlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,0);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  cursor:default;
+  transition:background .4s ease;
+}
 #videoOverlay.on{display:flex;}
-#videoFrame{width:min(90vw,1280px);height:min(75vh,calc(min(90vw,1280px)*9/16));border:none;flex-shrink:0;}
-#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;text-align:center;}
-#videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.5);margin-bottom:.5rem;}
-#videoClose{position:absolute;top:1.2rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:var(--mono);font-size:8px;letter-spacing:.15em;padding:.35rem .8rem;cursor:pointer;transition:all .2s;border-radius:2px;}
-#videoClose:hover{color:#fff;border-color:rgba(255,255,255,.5);}
+#videoOverlay.on.ready{background:rgba(0,0,0,.96);}
+#videoClose{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.2rem 1.8rem;
+  background:linear-gradient(to bottom,rgba(0,0,0,.8) 0%,transparent 100%);
+  border:none;cursor:default;
+}
+#videoCloseBtn{
+  background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:.5rem;
+  color:rgba(255,255,255,.7);font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+  transition:color .2s;padding:.4rem .6rem;
+}
+#videoCloseBtn:hover{color:#fff;}
+#videoCloseBtn svg{transition:transform .2s;}
+#videoCloseBtn:hover svg{transform:scale(1.15);}
+#videoMeta{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:rgba(201,168,76,.6);text-align:right;}
+#videoFrame{
+  width:min(92vw,1280px);
+  height:min(72vh,calc(min(92vw,1280px)*9/16));
+  border:none;flex-shrink:0;
+  opacity:0;transition:opacity .5s ease;
+  border-radius:2px;
+}
+#videoFrame.visible{opacity:1;}
+/* Audio player layout — image beside waveform */
+#audioOverlayContent{
+  display:none;flex-direction:row;align-items:center;gap:2.5rem;
+  width:min(92vw,900px);
+}
+#audioStarImg{
+  width:260px;height:340px;object-fit:cover;object-position:top;
+  flex-shrink:0;border-radius:2px;
+  filter:sepia(30%) brightness(0.85);
+  border:1px solid rgba(201,168,76,.2);
+}
+#audioFrame{flex:1;border:none;height:140px;background:transparent;}
+#audioInfo{margin-top:1rem;font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);text-align:center;}
+#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;}
+/* Swipe down hint */
+#videoSwipeHint{
+  position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(255,255,255,.25);
+  display:flex;align-items:center;gap:.4rem;pointer-events:none;
+}
+#commonsFrame{display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;}
 </style>
 </head>
 <body>
@@ -542,20 +590,55 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   </div>
 </div>
 
-<div id="videoOverlay" id="videoOverlay">
-  <button id="videoClose">✕ CLOSE</button>
-  <div id="videoMeta"></div>
-  <iframe id="videoFrame" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="display:none;"></iframe>
-  <video id="commonsFrame" controls autoplay style="display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;" preload="metadata">
+<div id="videoOverlay">
+  <!-- Top bar: close + meta -->
+  <div id="videoClose">
+    <button id="videoCloseBtn" onclick="closeVideo()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      CLOSE
+    </button>
+    <div id="videoMeta"></div>
+  </div>
+
+  <!-- Video iframe (archive.org / YouTube) -->
+  <iframe id="videoFrame" title="Video player" frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="display:none;"></iframe>
+
+  <!-- Audio player layout: star image + archive.org waveform -->
+  <div id="audioOverlayContent">
+    <img id="audioStarImg" src="" alt="">
+    <div style="flex:1;display:flex;flex-direction:column;gap:1rem;">
+      <div style="font-family:var(--display);font-size:1.1rem;letter-spacing:.15em;color:var(--cream);" id="audioTitle"></div>
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);" id="audioYear"></div>
+      <iframe id="audioFrame" src="" frameborder="0" allowfullscreen
+        style="width:100%;height:140px;border:none;background:transparent;"></iframe>
+      <a id="audioArchiveLink" href="#" target="_blank" rel="noopener"
+        style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(201,168,76,.5);text-decoration:none;">
+        VIEW ON ARCHIVE.ORG ↗
+      </a>
+    </div>
+  </div>
+
+  <!-- Commons video -->
+  <video id="commonsFrame" controls autoplay preload="metadata">
     <source id="commonsSource" src="" type="video/webm">
   </video>
-  <!-- Always-visible YouTube link — shown beneath player or as fallback -->
 
-  <div id="videoFallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;">
+  <!-- Fallback -->
+  <div id="videoFallback">
     <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="rgba(201,168,76,0.35)" stroke-width="1"/><polygon points="9.5,7 18,12 9.5,17" fill="rgba(201,168,76,0.5)"/></svg>
     <div style="font-family:var(--display);font-size:.9rem;letter-spacing:.18em;color:var(--cream);">WATCH ON YOUTUBE</div>
     <div style="font-family:var(--serif);font-style:italic;font-size:.85rem;color:var(--muted);max-width:380px;line-height:1.65;">Videos cannot be embedded directly.<br>Open on YouTube to watch.</div>
-    <a id="videoYtLink" href="#" target="_blank" rel="noopener" style="display:inline-block;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.6);padding:.65rem 2rem;border-radius:2px;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(201,168,76,.12)';this.style.borderColor='var(--gold)'" onmouseout="this.style.background='none';this.style.borderColor='rgba(201,168,76,.6)'">OPEN ON YOUTUBE ↗</a>
+    <a id="videoYtLink" href="#" target="_blank" rel="noopener"
+      style="display:inline-block;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.6);padding:.65rem 2rem;border-radius:2px;text-decoration:none;transition:all .2s;"
+      onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='none'">OPEN ON YOUTUBE ↗</a>
+  </div>
+
+  <!-- Swipe hint -->
+  <div id="videoSwipeHint">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6,9 12,15 18,9"/></svg>
+    SWIPE DOWN TO CLOSE
   </div>
 </div>
 
@@ -1027,14 +1110,14 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // Verified YouTube IDs from official channels — guaranteed to embed
 // Key = star slug, value = array of {videoId, title, year, type}
 const CURATED_VIDEOS = {
-  // ── Archive.org native embeds — no bot detection, no API, always work ──
+  // ── Video: Archive.org native embeds ──
   'Muhammad_Ali': [
     {archiveId:'rpali',title:'Muhammad Ali Training and Interview 1970s',year:'1970'},
     {archiveId:'MuhammadAliVsSonnyListon',title:'Muhammad Ali vs Sonny Liston 1965',year:'1965'},
     {archiveId:'MuhammadAliVersusFloydPatterson',title:'Muhammad Ali vs Floyd Patterson 1972',year:'1972'},
   ],
   'Marilyn_Monroe': [
-    {archiveId:'The_Legend_of_Marilyn_Monroe',title:'The Legend of Marilyn Monroe',year:'1966'},
+    {archiveId:'The_Legend_of_Marilyn_Monroe',title:'The Legend of Marilyn Monroe Documentary',year:'1966'},
     {archiveId:'youtube-qHDd_B71zv0',title:'Marilyn Monroe 1958 Film Footage',year:'1958'},
   ],
   'Charlie_Chaplin': [
@@ -1048,32 +1131,75 @@ const CURATED_VIDEOS = {
     {archiveId:'jimi-hendrix-1973',title:'Jimi Hendrix Documentary 1973',year:'1973'},
   ],
   'Joe_Frazier': [
-    {archiveId:'MuhammadAliVersusFloydPatterson',title:'Classic Boxing 1972',year:'1972'},
+    {archiveId:'MuhammadAliVersusFloydPatterson',title:'Classic Boxing Archive 1972',year:'1972'},
   ],
-  // YouTube IDs for stars not covered by archive.org
-  'Freddie_Mercury': [
-    {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982',year:'1982'},
-    {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute — Freddie Mercury',year:'1984'},
+  'Bruce_Lee': [
+    {archiveId:'BruceLeeTheLostInterviewthePierreBertonShow1971',title:'Bruce Lee — The Lost Interview 1971',year:'1971'},
+  ],
+  'Martin_Luther_King_Jr.': [
+    {archiveId:'i-have-a-dream-video',title:'I Have A Dream — Martin Luther King Jr. 1963',year:'1963'},
+    {archiveId:'bbc-face-to-face-martin-luther-king-jr.-interview-1961',title:'BBC Face To Face Interview 1961',year:'1961'},
+  ],
+  'John_Lennon': [
+    {archiveId:'JohnLennonRemembered1985',title:'John Lennon Remembered 1985',year:'1985'},
+    {archiveId:'john-lennon-remembered',title:'In My Life: John Lennon BBC Documentary',year:'1980'},
   ],
   'Bob_Marley': [
-    {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way 1979',year:'1979'},
+    {archiveId:'behind-the-smile-the-real-life-of-bob-marley',title:'Behind The Smile — The Real Life of Bob Marley',year:'1981'},
+    {archiveId:'bob-marley-and-the-wailers-concert-in-dortmund-1980',title:'Bob Marley Live Dortmund 1980',year:'1980'},
   ],
-  'Janis_Joplin': [
-    {videoId:'6b8BFGG3xWU',title:'Janis Joplin on Dick Cavett Show 1970',year:'1970'},
+  'Nelson_Mandela': [
+    {archiveId:'NelsonMandelaVideos',title:'Nelson Mandela Video Archive',year:'1990'},
+    {archiveId:'5669747-Nelson-Mandela-1990',title:'Nelson Mandela 1990',year:'1990'},
   ],
-  'Jim_Morrison': [
-    {videoId:'yGFYOdxcPow',title:'The Doors on Dick Cavett Show 1969',year:'1969'},
+  'Freddie_Mercury': [
+    {archiveId:'freddie-mercury-tribute-concert',title:'Freddie Mercury Tribute Concert 1992',year:'1992'},
   ],
-  'Marvin_Gaye': [
-    {videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'},
+  'Malcolm_X': [
+    {archiveId:'MalcolmXInterviewAtUCBerkeley',title:'Malcolm X Interview at UC Berkeley 1963',year:'1963'},
   ],
-  'Kurt_Cobain': [
-    {videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'},
+  'Tupac_Shakur': [
+    {archiveId:'tupac-shakur-thug-angel-2002-vhs',title:'Tupac Shakur — Thug Angel Documentary',year:'2002'},
+    {archiveId:'tupac-shakur-thug-immortal-vhs',title:'Tupac Shakur — Thug Immortal 1997',year:'1997'},
   ],
-  'Amy_Winehouse': [
-    {videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'},
+  'Steve_Jobs': [
+    {archiveId:'TheSteveJobs1995InterviewUnabridged',title:'Steve Jobs — Unabridged 1995 Interview',year:'1995'},
+    {archiveId:'AppleArchive',title:'Apple Archive — Steve Jobs Keynotes',year:'2007'},
   ],
-};
+  'Diego_Maradona': [
+    {archiveId:'AlexPCDiegoMaradonaVideo',title:'Diego Maradona — Football Archive',year:'1986'},
+  ],
+  'Ayrton_Senna': [
+    {archiveId:'namadara-gp-ayrton-senna',title:'Ayrton Senna Japanese TV Interview',year:'1993'},
+  ],
+  // ── Audio: Archive.org with star image ──
+  'David_Bowie': [
+    {archiveId:'HUG163CD',title:'David Bowie Berlin Trilogy Interviews 1978–79',year:'1978',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg/440px-David-Bowie_Chicago_2002-08-08_photoby_Adam-Bielawski.jpg'},
+  ],
+  'Winston_Churchill': [
+    {archiveId:'Winston_Churchill',title:'Winston Churchill Speeches and Wartime Broadcasts',year:'1940',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Sir_Winston_Churchill_-_19086236948.jpg/440px-Sir_Winston_Churchill_-_19086236948.jpg'},
+  ],
+  'Mahatma_Gandhi': [
+    {archiveId:'Swaraj-Gandhi-1947-05-31',title:'Gandhi Prayer Meeting Speech 1947',year:'1947',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/440px-Mahatma-Gandhi%2C_studio%2C_1931.jpg'},
+  ],
+  'Aretha_Franklin': [
+    {archiveId:'interview-with-aretha-franklin-james-brown',title:'Aretha Franklin Interview',year:'1970',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Aretha_Franklin_1968.jpg/440px-Aretha_Franklin_1968.jpg'},
+  ],
+  'Malcolm_X_Audio': [
+    {archiveId:'malcolm-x-collected-speeches-debates-and-interviews-1960-1965',title:'Malcolm X Collected Speeches 1960–65',year:'1963',type:'audio',
+     starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Malcolm_X_NYWTS_2.jpg/440px-Malcolm_X_NYWTS_2.jpg'},
+  ],
+  // ── YouTube fallback for remaining stars ──
+  'Janis_Joplin': [{videoId:'6b8BFGG3xWU',title:'Janis Joplin Dick Cavett Show 1970',year:'1970'}],
+  'Jim_Morrison': [{videoId:'yGFYOdxcPow',title:'The Doors Dick Cavett Show 1969',year:'1969'}],
+  'Marvin_Gaye': [{videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'}],
+  'Kurt_Cobain': [{videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'}],
+  'Amy_Winehouse': [{videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'}],
+}
 
 // ── VIDEO DATA PIPELINE ──
 // Step 1: Use curated map for known stars
@@ -1102,7 +1228,7 @@ async function fetchVideoData(tl, star){
   curatedForStar.forEach((vid,k)=>{
     if(k<results.length&&!results[k]){
       if(vid.archiveId){
-        results[k]={archiveId:vid.archiveId,title:vid.title,source:'archive'};
+        results[k]={archiveId:vid.archiveId,title:vid.title,source:'archive',type:vid.type||'video',starImg:vid.starImg||null};
       }else if(vid.videoId){
         results[k]=[{videoId:vid.videoId,title:vid.title,thumb:null,score:100}];
       }
@@ -1192,12 +1318,19 @@ async function enrichVideos(star,tl){
     if(thumb&&thumbSrc)thumb.src=thumbSrc;
     vWrap.onclick=null;
     const playFn=()=>{
-      if(hasArchive)openArchiveVideo(ev.archiveVideo.archiveId,ev.archiveVideo.title||ev.title);
+      if(hasArchive){
+        const av=ev.archiveVideo;
+        if(av.type==='audio'){
+          openArchiveAudio(av.archiveId,av.title||ev.title,ev.year,av.starImg||null);
+        }else{
+          openArchiveVideo(av.archiveId,av.title||ev.title);
+        }
+      }
       else if(hasCommons)openCommonsVideo(ev.commonsVideo,ev.title);
       else openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title);
     };
-    vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;playFn();},{once:true});
-    vWrap.addEventListener('touchend',(e)=>{e.preventDefault();playFn();},{passive:false,once:true});
+    vWrap.addEventListener('click',(e)=>{if(vWrap._vWrapDrag)return;playFn();});
+    vWrap.addEventListener('touchend',(e)=>{e.preventDefault();playFn();},{passive:false});
   });
   if(tourStarRef&&tourTlRef)buildMediaPanel(tourStarRef,tourTlRef,{thumb:null,images:[]});
 }
@@ -1566,14 +1699,18 @@ function buildTimeline(star,tl,wiki,heroThumb){
       vWrap.addEventListener('click',(e)=>{
         if(vWrap._vWrapDrag)return;
         const cands=ev.youtubeCandidates||( ev.youtubeId?[{videoId:ev.youtubeId,title:ev.title}]:[]);
-        if(cands.length){
+        if(ev.archiveVideo){
+          const av=ev.archiveVideo;
+          if(av.type==='audio')openArchiveAudio(av.archiveId,av.title||ev.title,ev.year,av.starImg||null);
+          else openArchiveVideo(av.archiveId,av.title||ev.title);
+        }else if(cands.length){
           openVideoWithFallback(cands,ev.title);
         }else{
           // No video ID — show fallback with YouTube search link
           const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
           showVideoFallback(q, null, ev.title||star.name);
         }
-      },{once:true});
+      });
       vWrap.addEventListener('touchend',(e)=>{
         e.preventDefault();
         const cands=ev.youtubeCandidates||(ev.youtubeId?[{videoId:ev.youtubeId,title:ev.title}]:[]);
@@ -1583,7 +1720,7 @@ function buildTimeline(star,tl,wiki,heroThumb){
           const q=(ev.videoSearch||((ev.title||'')+' '+(tl.fullName||star.name))).substring(0,100);
           showVideoFallback(q, null, ev.title||star.name);
         }
-      },{passive:false,once:true});
+      },{passive:false});
       card.appendChild(vWrap);
     }else if(isChildhood){
       // Childhood event — show sepia-tinted image with 'EARLY LIFE' badge
@@ -1919,28 +2056,39 @@ function buildBioPanel(star,tl,heroThumb){
 function buildMediaPanel(star,tl,wiki){
   const panel=document.getElementById('mediaPanel');
   if(!panel)return;
-  const events=(tl.events||[]).filter(e=>(e.youtubeId&&e.youtubeId.length===11)||e.commonsVideo);
+  // Include archive, YouTube and commons videos
+  const events=(tl.events||[]).filter(e=>
+    e.archiveVideo||
+    (e.youtubeId&&e.youtubeId.length===11)||
+    e.commonsVideo
+  );
   panel.innerHTML='<div class="media-grid" id="mediaGrid"></div>';
   const grid=document.getElementById('mediaGrid');
   if(!grid)return;
   events.forEach(ev=>{
     const item=document.createElement('div');item.className='media-item';
     const thumbSrc=ev._ytThumb||'';
+    const sourceLabel=ev.archiveVideo?'ARCHIVE · VIDEO':ev.commonsVideo?'COMMONS · VIDEO':'VIDEO';
     item.innerHTML=`
       ${thumbSrc
         ?`<img class="media-item-thumb" src="${thumbSrc}" alt="${ev.title||''}" loading="lazy">`
         :`<div class="media-item-thumb-ph"><svg width="36" height="36" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/><path d="M32 26l24 14-24 14V26z" fill="rgba(201,168,76,0.5)"/></svg></div>`}
       <div class="media-item-label">${ev.title||''}</div>
-      <div class="media-item-sub">${ev.year||''} · VIDEO</div>
+      <div class="media-item-sub">${ev.year||''} · ${sourceLabel}</div>
     `;
     item.addEventListener('click',()=>{
-      if(ev.commonsVideo)openCommonsVideo(ev.commonsVideo,ev.title||star.name);
+      if(ev.archiveVideo){
+        const av=ev.archiveVideo;
+        if(av.type==='audio')openArchiveAudio(av.archiveId,av.title||ev.title,ev.year,av.starImg||null);
+        else openArchiveVideo(av.archiveId,av.title||ev.title||star.name);
+      }
+      else if(ev.commonsVideo)openCommonsVideo(ev.commonsVideo,ev.title||star.name);
       else openVideoWithFallback(ev.youtubeCandidates||[{videoId:ev.youtubeId,title:ev.title}],ev.title||star.name);
     });
     grid.appendChild(item);
   });
   if(events.length===0){
-    grid.innerHTML='<div style="grid-column:1/-1;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);padding:2rem;text-align:center;">Loading video content…</div>';
+    grid.innerHTML='<div style="grid-column:1/-1;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);padding:2rem;text-align:center;">No video content available yet.</div>';
   }
 }
 
@@ -1956,6 +2104,7 @@ function buildMediaPanel(star,tl,wiki){
 
 async function openVideo(videoId, title){
   if(!videoId||videoId.length!==11)return false;
+  killAllSpeech(); // stop narration immediately
   const overlay=document.getElementById('videoOverlay');
   const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
@@ -2114,51 +2263,116 @@ function openCommonsVideo(commonsItem, title){
   };
 }
 
-// Open archive.org video — native embed, always works, no bot detection, no API key
+// Open archive.org video — cinematic fade-in, no bot detection
 function openArchiveVideo(identifier, title){
+  killAllSpeech();
   const overlay=document.getElementById('videoOverlay');
-  const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
-  const ytLink=document.getElementById('videoYtLink');
+  const audioContent=document.getElementById('audioOverlayContent');
+  const fallback=document.getElementById('videoFallback');
+
+  // Hide audio/fallback panels
+  if(audioContent)audioContent.style.display='none';
+  if(fallback)fallback.style.display='none';
 
   overlay.classList.add('on');
-  fallback.style.display='none';
-  meta.textContent=(title||'').substring(0,60).toUpperCase();
-  if(ytLink){
-    ytLink.href='https://archive.org/details/'+identifier;
-    ytLink.textContent='VIEW ON ARCHIVE.ORG ↗';
-    ytLink.style.display='inline-block';
-  }
+  // Cinematic: fade background in after slight delay
+  requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('ready')));
+  if(meta)meta.textContent=(title||'').substring(0,55).toUpperCase();
 
   const old=document.getElementById('videoFrame');
-  if(old)old.remove();
-  const frame=document.createElement('iframe');
-  frame.id='videoFrame';
-  frame.setAttribute('allowfullscreen','');
-  frame.setAttribute('frameborder','0');
-  frame.style.cssText='display:block;border:none;';
-  frame.style.width='min(90vw, 1280px)';
-  frame.style.height='min(70vh, calc(min(90vw, 1280px) * 9/16))';
-  overlay.insertBefore(frame,fallback);
+  if(old){old.src='about:blank';old.style.display='none';}
 
-  frame.src=`https://archive.org/embed/${identifier}`;
-  console.log('Playing archive.org embed:', identifier);
-  window._videoCloseCleanup=()=>{frame.src='about:blank';};
+  setTimeout(()=>{
+    const frame=document.getElementById('videoFrame');
+    if(!frame)return;
+    frame.src=`https://archive.org/embed/${identifier}`;
+    frame.style.display='block';
+    // Fade frame in after load
+    setTimeout(()=>frame.classList.add('visible'),400);
+  },300);
+
+  window._videoCloseCleanup=()=>{
+    const f=document.getElementById('videoFrame');
+    if(f){f.classList.remove('visible');f.src='about:blank';}
+    overlay.classList.remove('ready');
+  };
+}
+
+// Open archive.org AUDIO with star image alongside — for interviews, radio etc.
+function openArchiveAudio(identifier, title, year, starImgUrl){
+  killAllSpeech();
+  const overlay=document.getElementById('videoOverlay');
+  const audioContent=document.getElementById('audioOverlayContent');
+  const audioFrame=document.getElementById('audioFrame');
+  const audioStarImg=document.getElementById('audioStarImg');
+  const audioTitle=document.getElementById('audioTitle');
+  const audioYear=document.getElementById('audioYear');
+  const audioLink=document.getElementById('audioArchiveLink');
+  const videoFrame=document.getElementById('videoFrame');
+  const fallback=document.getElementById('videoFallback');
+  const meta=document.getElementById('videoMeta');
+
+  if(videoFrame){videoFrame.src='about:blank';videoFrame.style.display='none';}
+  if(fallback)fallback.style.display='none';
+
+  overlay.classList.add('on');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('ready')));
+  if(meta)meta.textContent='AUDIO INTERVIEW';
+
+  // Populate audio panel
+  if(audioTitle)audioTitle.textContent=title||'';
+  if(audioYear)audioYear.textContent=year||'';
+  if(audioStarImg){
+    audioStarImg.src=starImgUrl||'';
+    audioStarImg.style.display=starImgUrl?'block':'none';
+  }
+  if(audioLink){
+    audioLink.href='https://archive.org/details/'+identifier;
+  }
+  if(audioFrame){
+    audioFrame.src=`https://archive.org/embed/${identifier}`;
+  }
+  if(audioContent)audioContent.style.display='flex';
+
+  window._videoCloseCleanup=()=>{
+    if(audioFrame)audioFrame.src='about:blank';
+    if(audioContent)audioContent.style.display='none';
+    overlay.classList.remove('ready');
+  };
 }
 
 function closeVideo(){
   if(window._videoCloseCleanup){window._videoCloseCleanup();window._videoCloseCleanup=null;}
-  document.getElementById('videoOverlay').classList.remove('on');
-  const frame=document.getElementById('videoFrame');
-  if(frame){frame.src='about:blank';setTimeout(()=>{frame.src='';frame.style.display='none';},100);}
-  const cf=document.getElementById('commonsFrame');
-  if(cf){try{cf.pause();}catch(e){}cf.style.display='none';}
-  document.getElementById('videoFallback').style.display='none';
+  const overlay=document.getElementById('videoOverlay');
+  overlay.classList.remove('ready');
+  setTimeout(()=>{
+    overlay.classList.remove('on');
+    const frame=document.getElementById('videoFrame');
+    if(frame){frame.src='about:blank';frame.classList.remove('visible');frame.style.display='none';}
+    const cf=document.getElementById('commonsFrame');
+    if(cf){try{cf.pause();}catch(e){}cf.style.display='none';}
+    document.getElementById('videoFallback').style.display='none';
+    const ac=document.getElementById('audioOverlayContent');
+    if(ac)ac.style.display='none';
+  },350); // wait for background fade
+  // Resume tour narration
+  if(tourPlaying&&tourStarRef&&tourTlRef&&!_tourUserStopped){
+    setTimeout(()=>{ if(tourPlaying)runTourStep2(); },1000);
+  }
 }
-document.getElementById('videoClose').addEventListener('click',closeVideo);
 document.getElementById('videoOverlay').addEventListener('click',e=>{
-  if(e.target===e.currentTarget)closeVideo();
+  if(e.target===e.currentTarget||e.target.id==='videoClose')closeVideo();
 });
+// Swipe down to close
+(()=>{
+  let sy=0;
+  const ov=document.getElementById('videoOverlay');
+  ov.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;},{passive:true});
+  ov.addEventListener('touchend',e=>{
+    if(e.changedTouches[0].clientY-sy>80)closeVideo();
+  },{passive:true});
+})();
 
 // ── TAB SWITCHING ──
 // Bio/Media overlay the timeline; tlScroll is never hidden so tour continues uninterrupted
