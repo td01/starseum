@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Starseum — A Museum of Extraordinary Lives</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230A0806' rx='12'/><polygon points='50,10 61,35 88,38 68,57 74,84 50,70 26,84 32,57 12,38 39,35' fill='%23C9A84C'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -368,7 +369,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 }
 #audioFrame{flex:1;border:none;height:140px;background:transparent;}
 #audioInfo{margin-top:1rem;font-family:var(--serif);font-style:italic;font-size:.9rem;color:var(--muted);text-align:center;}
-#videoFallback{display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;text-align:center;padding:2rem;}
+#videoFallback{
+  display:none;position:absolute;inset:0;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:1.4rem;text-align:center;padding:2rem;
+  background:rgba(0,0,0,.5);
+}
 /* Swipe down hint */
 #videoSwipeHint{
   position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);
@@ -557,7 +563,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 
     <div class="legal-section">
       <h3>IMAGES &amp; MEDIA</h3>
-      <p>Photographs are sourced from <strong>Wikimedia Commons</strong> under Creative Commons licences (CC-BY-SA and public domain). Video content links to <strong>YouTube</strong> and is subject to YouTube's Terms of Service. Starseum does not host or own any video content.</p>
+      <p>Photographs are sourced from <strong>Wikimedia Commons</strong> under Creative Commons licences (CC-BY-SA and public domain). Video and audio content is embedded from <strong>Internet Archive (archive.org)</strong> and is subject to its open access terms. Starseum does not host or own any media content.</p>
     </div>
 
     <div class="legal-divider"></div>
@@ -628,11 +634,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   <!-- Fallback -->
   <div id="videoFallback">
     <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="rgba(201,168,76,0.35)" stroke-width="1"/><polygon points="9.5,7 18,12 9.5,17" fill="rgba(201,168,76,0.5)"/></svg>
-    <div style="font-family:var(--display);font-size:.9rem;letter-spacing:.18em;color:var(--cream);">WATCH ON YOUTUBE</div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:.85rem;color:var(--muted);max-width:380px;line-height:1.65;">Videos cannot be embedded directly.<br>Open on YouTube to watch.</div>
+    <div style="font-family:var(--display);font-size:.9rem;letter-spacing:.18em;color:var(--cream);">MEDIA UNAVAILABLE</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:.85rem;color:var(--muted);max-width:380px;line-height:1.65;">No archive media found for this moment.</div>
     <a id="videoYtLink" href="#" target="_blank" rel="noopener"
       style="display:inline-block;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--gold);border:1px solid rgba(201,168,76,.6);padding:.65rem 2rem;border-radius:2px;text-decoration:none;transition:all .2s;"
-      onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='none'">OPEN ON YOUTUBE ↗</a>
+      onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='none'">VIEW ON ARCHIVE.ORG ↗</a>
   </div>
 
   <!-- Swipe hint -->
@@ -997,19 +1003,19 @@ function injectThumb(tile,ph,src){
 //  TRANSITION
 // ═══════════════════════════════════════════
 function enterStar(star,tile){
-  // Fade out welcome narration if still playing
-  if(window._welcomeAudio&&!window._welcomeAudio.paused){
-    const wa=window._welcomeAudio;
-    const fadeSteps=30, fadeMs=1500;
-    const startVol=wa.volume;
+  // Fade out any playing welcome/mosaic narration over 1.5s
+  function fadeOutAudio(audioEl){
+    if(!audioEl||audioEl.paused)return;
+    const steps=30, ms=1500, startVol=audioEl.volume;
     let step=0;
-    const fadeInterval=setInterval(()=>{
+    const iv=setInterval(()=>{
       step++;
-      wa.volume=Math.max(0,startVol*(1-step/fadeSteps));
-      if(step>=fadeSteps){clearInterval(fadeInterval);wa.pause();wa.volume=startVol;}
-    },fadeMs/fadeSteps);
-    window._welcomeAudio=null;
+      audioEl.volume=Math.max(0,startVol*(1-step/steps));
+      if(step>=steps){clearInterval(iv);audioEl.pause();audioEl.volume=startVol;}
+    },ms/steps);
   }
+  fadeOutAudio(window._welcomeAudio); window._welcomeAudio=null;
+  fadeOutAudio(window._loadingNameAudio); window._loadingNameAudio=null;
   // Hide search when entering a museum
   const sw=document.getElementById('mSearchWrap');
   if(sw){sw.style.opacity='0';setTimeout(()=>{if(sw.style.opacity==='0')sw.style.display='none';},600);}
@@ -1343,13 +1349,20 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
   // Desktop only: speak star's name via ElevenLabs on loading screen
   if(!isMobile){
     let _nameSpeakDone=false;
-    // Format years from star.years e.g. "1945–1981" → "1945 to 1981"
     const yearsSpoken=star.years?', '+star.years.replace(/[–—-]/,' to '):'';
     const nameText=star.name+yearsSpoken+'.';
     (async()=>{
       try{
         const r=await fetch('/api/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:nameText})});
-        if(r.ok){const d=await r.json();if(d.audio){_nameSpeakDone=true;const a=new Audio('data:audio/mpeg;base64,'+d.audio);a.play().catch(()=>{});return;}}
+        if(r.ok){const d=await r.json();if(d.audio){
+          _nameSpeakDone=true;
+          const a=new Audio('data:audio/mpeg;base64,'+d.audio);
+          // Track it so killAllSpeech / welcome fade can stop it
+          window._loadingNameAudio=a;
+          a.onended=()=>{window._loadingNameAudio=null;};
+          a.play().catch(()=>{});
+          return;
+        }}
       }catch(e){}
       if(!_nameSpeakDone)speak(nameText, 0.82);
     })();
@@ -2157,7 +2170,7 @@ function showVideoFallback(searchQuery, watchUrl, title){
   if(meta)meta.textContent=(title||'').substring(0,60).toUpperCase();
   if(ytLink){
     ytLink.href=watchUrl||('https://www.youtube.com/results?search_query='+encodeURIComponent(searchQuery||title));
-    ytLink.textContent= watchUrl&&watchUrl.includes('watch?v=') ? 'WATCH ON YOUTUBE ↗' : 'SEARCH ON YOUTUBE ↗';
+    ytLink.textContent='VIEW ON ARCHIVE.ORG ↗';
     ytLink.style.display='inline-block';
   }
 
@@ -2473,6 +2486,7 @@ function killAllSpeech(){
   if(tourAudio){try{tourAudio.pause();tourAudio.src='';}catch(e){}tourAudio=null;}
   if(window.speechSynthesis){speechSynthesis.cancel();setTimeout(()=>speechSynthesis.cancel(),100);setTimeout(()=>speechSynthesis.cancel(),400);}
   if(window._welcomeAudio){try{window._welcomeAudio.pause();}catch(e){}window._welcomeAudio=null;}
+  if(window._loadingNameAudio){try{window._loadingNameAudio.pause();}catch(e){}window._loadingNameAudio=null;}
 }
 
 // All non-tour speech goes through here so only one voice plays at a time
