@@ -119,22 +119,39 @@ app.post('/api/tourguide', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'text required' });
 
-  const VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam — warm, documentary narrator
+  const VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
   const payload = JSON.stringify({ text: text.substring(0, 400), model_id: 'eleven_turbo_v2', voice_settings: { stability: 0.45, similarity_boost: 0.75 } });
 
-  const result = await httpsPost({
-    hostname: 'api.elevenlabs.io', port: 443,
-    path: `/v1/text-to-speech/${VOICE_ID}`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'xi-api-key': apiKey, 'Accept': 'audio/mpeg' }
-  }, payload);
-
-  if (result.status === 200) {
-    // Convert binary to base64 for client
-    const audioBase64 = Buffer.from(result.body, 'binary').toString('base64');
-    return res.json({ audio: audioBase64 });
-  }
-  res.status(result.status).json({ error: 'ElevenLabs error' });
+  // Must collect binary response as Buffer chunks, not string
+  return new Promise((resolve) => {
+    const reqEl = https.request({
+      hostname: 'api.elevenlabs.io', port: 443,
+      path: `/v1/text-to-speech/${VOICE_ID}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'xi-api-key': apiKey,
+        'Accept': 'audio/mpeg'
+      }
+    }, (elRes) => {
+      const chunks = [];
+      elRes.on('data', chunk => chunks.push(chunk));
+      elRes.on('end', () => {
+        if (elRes.statusCode === 200) {
+          const audioBase64 = Buffer.concat(chunks).toString('base64');
+          res.json({ audio: audioBase64 });
+        } else {
+          res.status(elRes.statusCode).json({ error: 'ElevenLabs error', status: elRes.statusCode });
+        }
+        resolve();
+      });
+    });
+    reqEl.on('error', e => { res.status(502).json({ error: e.message }); resolve(); });
+    reqEl.setTimeout(15000, () => { reqEl.destroy(); res.status(504).json({ error: 'Timeout' }); resolve(); });
+    reqEl.write(payload);
+    reqEl.end();
+  });
 });
 
 // ── /api/youtube ──
