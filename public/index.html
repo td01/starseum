@@ -1081,6 +1081,53 @@ const CURATED_VIDEOS = {
   'Elvis_Presley': [
     {videoId:'BkUgOqkLqio',title:'Elvis Presley 68 Comeback Special',year:'1968'},
   ],
+  // Ernest Hemingway — CBS/documentary archive
+  'Ernest_Hemingway': [
+    {videoId:'_nMBVGydMbQ',title:'Ernest Hemingway CBS Interview 1954',year:'1954'},
+    {videoId:'vf_1_pLMhj8',title:'Ernest Hemingway Documentary Archive Film',year:'1961'},
+  ],
+  // Pablo Picasso
+  'Pablo_Picasso': [
+    {videoId:'4dDEedRSWyI',title:'The Mystery of Picasso Documentary 1956',year:'1956'},
+    {videoId:'dGhzRDFQhFE',title:'Pablo Picasso Rare Footage Documentary',year:'1960'},
+  ],
+  // Princess Diana
+  'Princess_Diana': [
+    {videoId:'ao-GK84c5b4',title:'Princess Diana Walks Through Angola Minefield',year:'1997'},
+    {videoId:'jm6y8AKr3vs',title:'Princess Diana Red Cross Work',year:'1997'},
+  ],
+  // Marilyn Monroe
+  'Marilyn_Monroe': [
+    {videoId:'9vhzpFBMZIM',title:'Marilyn Monroe Press Conference Interview',year:'1955'},
+    {videoId:'v7SdlQGaRNc',title:'Marilyn Monroe Rare Interview Footage',year:'1960'},
+  ],
+  // Audrey Hepburn
+  'Audrey_Hepburn': [
+    {videoId:'mXjQCFmFiGk',title:'Audrey Hepburn Interview 1989',year:'1989'},
+    {videoId:'Xz0tJsJOBpg',title:'Audrey Hepburn Rare Archive Interview',year:'1992'},
+  ],
+  // James Dean — rare archive footage
+  'James_Dean': [
+    {videoId:'_bRgjMbP1bc',title:'James Dean Screen Test and Archive Footage',year:'1954'},
+  ],
+  // Marlon Brando
+  'Marlon_Brando': [
+    {videoId:'p7q8OEjbSmQ',title:'Marlon Brando Dick Cavett Interview',year:'1973'},
+    {videoId:'HXzQ3wP1vJM',title:'Marlon Brando Larry King Interview',year:'1994'},
+  ],
+  // Kurt Cobain — archive interviews
+  'Kurt_Cobain': [
+    {videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'},
+    {videoId:'8-2bpOHCCsI',title:'Nirvana Kurt Cobain Interview 1992',year:'1992'},
+  ],
+  // Amy Winehouse
+  'Amy_Winehouse': [
+    {videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'},
+  ],
+  // John F Kennedy
+  'John_F._Kennedy': [
+    {videoId:'ECqI7QbFI-c',title:'JFK Press Conference Archive',year:'1962'},
+  ],
 };
 
 // ── VIDEO DATA PIPELINE ──
@@ -1223,7 +1270,7 @@ async function startJourney(star,thumb,clone,clX,clY,clW,clH){
     const tl=await fetchTimeline(star.name);
     // Pre-fetch welcome narration NOW — runs in parallel with images+video load
     // By the time the timeline is built, audio should be ready to play instantly
-    const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+(tl.tagline||'')+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+    const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+(tl.tagline||'')+'. Born in '+(tl.born||'unknown')+', '+p(tl,'they')+' left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through '+p(tl,'their')+' life together.';
     fetch('/.netlify/functions/tourguide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:welcomeText.substring(0,400)})})
       .then(r=>r.ok?r.json():null).then(d=>{if(d?.audio)tl._welcomeAudio=d.audio;}).catch(()=>{});
     setLoad(45,'SOURCING IMAGES & VIDEO');
@@ -2068,7 +2115,7 @@ document.querySelectorAll('.tl-tab').forEach(btn=>{
     if(tourAudio){tourAudio.pause();tourAudio=null;}
     // Narrate the new section via ElevenLabs
     if(tab==='bio'&&tourTlRef){
-      const bioText=tourTlRef.fullName+'. '+tourTlRef.tagline+'. Born '+tourTlRef.born+' in '+tourTlRef.birthCity+', '+(tourTlRef.fields||[]).join(' and ')+'. '+tourTlRef.nationality+'.';
+      const bioText=tourTlRef.fullName+'. '+tourTlRef.tagline+'. Born '+tourTlRef.born+' in '+tourTlRef.birthCity+', '+(tourTlRef.fields||[]).join(' and ')+'. '+p(tourTlRef,'they').charAt(0).toUpperCase()+p(tourTlRef,'they').slice(1)+' '+tourTlRef.nationality+'.';
       setTimeout(()=>{
         if(!tourPlaying){tourPlaying=true;}
         tourSpeak(bioText);
@@ -2134,7 +2181,14 @@ document.getElementById('legalModal').addEventListener('click',e=>{if(e.target==
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-// ── SINGLE SPEECH CHANNEL ──
+// ── PRONOUN HELPERS ──
+function getPronouns(tl){
+  const g=(tl?.gender||'').toLowerCase();
+  if(g==='female')return{he:'she',his:'her',him:'her',they:'she',their:'her',them:'her'};
+  if(g==='male')return{he:'he',his:'his',him:'him',they:'he',their:'his',them:'him'};
+  return{he:'they',his:'their',him:'them',they:'they',their:'their',them:'them'};
+}
+function p(tl,key){return getPronouns(tl)[key]||'they';}
 // All non-tour speech goes through here so only one voice plays at a time
 function speak(text,rate=0.92){
   if(!window.speechSynthesis||!text)return;
@@ -2362,7 +2416,7 @@ async function startTour(star,tl){
   tourPlaying=true;tourStep2=0;tourStarRef=star;tourTlRef=tl;
   tourEvts=(tl.events||[]).sort((a,b)=>parseInt(a.year)-parseInt(b.year));
   document.getElementById('tourBtn').style.color='var(--gold)';
-  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', they left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through their life together.';
+  const welcomeText='Welcome to the '+tl.fullName+' exhibition. '+tl.tagline+'. Born in '+(tl.born||'unknown')+', '+p(tl,'they')+' left an indelible mark on '+(tl.fields||[]).join(' and ')+'. Let us walk through '+p(tl,'their')+' life together.';
   // Use pre-fetched audio if available, else fetch now
   if(tl._welcomeAudio){
     showVoiceHint(welcomeText.substring(0,55)+'…',99999);
@@ -2378,7 +2432,7 @@ async function startTour(star,tl){
 async function runTourStep2(){
   if(!tourPlaying)return;
   if(tourStep2>=tourEvts.length){
-    await tourSpeak('And so ends our journey through their extraordinary life. Would you like to visit another museum? Return to the mosaic to explore more remarkable people.');
+    await tourSpeak('And so ends our journey through '+p(tourTlRef,'their')+' extraordinary life. Would you like to visit another museum? Return to the mosaic to explore more remarkable people.');
     stopTour();
     return;
   }
