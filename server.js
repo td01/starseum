@@ -119,8 +119,8 @@ app.post('/api/tourguide', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'text required' });
 
-  const VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
-  const payload = JSON.stringify({ text: text.substring(0, 400), model_id: 'eleven_turbo_v2', voice_settings: { stability: 0.45, similarity_boost: 0.75 } });
+  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+  const payload = JSON.stringify({ text: text.substring(0, 400), model_id: 'eleven_monolingual_v1', voice_settings: { stability: 0.45, similarity_boost: 0.75 } });
 
   // Must collect binary response as Buffer chunks, not string
   return new Promise((resolve) => {
