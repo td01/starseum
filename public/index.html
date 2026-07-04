@@ -545,7 +545,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 <div id="videoOverlay" id="videoOverlay">
   <button id="videoClose">✕ CLOSE</button>
   <div id="videoMeta"></div>
-  <iframe id="videoFrame" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="display:none;"></iframe>
+  <iframe id="videoFrame" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="display:none;"></iframe>
   <video id="commonsFrame" controls autoplay style="display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;" preload="metadata">
     <source id="commonsSource" src="" type="video/webm">
   </video>
@@ -1964,7 +1964,7 @@ async function openVideo(videoId, title){
   // Fix 3: full allow attributes YouTube expects for standard players
   frame.setAttribute('allowfullscreen','');
   frame.setAttribute('allow','accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+  frame.setAttribute('referrerpolicy','no-referrer-when-downgrade');
   frame.setAttribute('frameborder','0');
   frame.style.cssText='display:block;border:none;';
   frame.style.width='min(90vw, 1280px)';
