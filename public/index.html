@@ -593,9 +593,10 @@ const STARS=[
   {name:"Kurt Cobain",slug:"Kurt_Cobain",years:"1967–1994"},
   {name:"Tupac Shakur",slug:"Tupac_Shakur",years:"1971–1996"},
   {name:"River Phoenix",slug:"River_Phoenix",years:"1970–1993"},
-  {name:"Philip Seymour Hoffman",slug:"Philip_Seymour_Hoffman",years:"1967–2014"},
+  {name:"George Michael",slug:"George_Michael",years:"1963–2016"},
+  {name:"Stephen Hawking",slug:"Stephen_Hawking",years:"1942–2018"},
   {name:"Amy Winehouse",slug:"Amy_Winehouse",years:"1983–2011"},
-  {name:"Whitney Houston",slug:"Whitney_Houston",years:"1963–2012"},
+  {name:"Whitney Houston",slug:"Whitney_Houston",years:"1963–2012",thumb:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Whitney_Houston_Welcome_Home_Heroes_1991.jpg/440px-Whitney_Houston_Welcome_Home_Heroes_1991.jpg"},
   {name:"Robin Williams",slug:"Robin_Williams",years:"1951–2014"},
   {name:"David Bowie",slug:"David_Bowie",years:"1947–2016"},
   {name:"Prince",slug:"Prince_(musician)",years:"1958–2016"},
@@ -618,7 +619,7 @@ const STARS=[
   {name:"Maya Angelou",slug:"Maya_Angelou",years:"1928–2014"},
   {name:"Martin Luther King Jr.",slug:"Martin_Luther_King_Jr.",years:"1929–1968"},
   {name:"John F. Kennedy",slug:"John_F._Kennedy",years:"1917–1963"},
-  {name:"Albert Einstein",slug:"Albert_Einstein",years:"1879–1955"},
+  {name:"Albert Einstein",slug:"Albert_Einstein",years:"1879–1955",thumb:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/440px-Albert_Einstein_Head.jpg"},
   {name:"Marie Curie",slug:"Marie_Curie",years:"1867–1934"},
   {name:"Nikola Tesla",slug:"Nikola_Tesla",years:"1856–1943"},
   {name:"Steve Jobs",slug:"Steve_Jobs",years:"1955–2011"},
@@ -1298,10 +1299,18 @@ async function fetchTimeline(name, attempt=0){
 async function fetchWikiImages(slug){
   const s=slug.replace(/ /g,'_');
   const out={thumb:null,images:[],earlyImages:[]};
+  // Check for hardcoded thumb override (for stars with no Wikipedia thumbnail)
+  const THUMB_OVERRIDES={
+    'Whitney_Houston':'https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Whitney_Houston_Welcome_Home_Heroes_1991.jpg/440px-Whitney_Houston_Welcome_Home_Heroes_1991.jpg',
+    'Albert_Einstein':'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Albert_Einstein_Head.jpg/440px-Albert_Einstein_Head.jpg',
+    'George_Michael':'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/George_Michael_1985.jpg/440px-George_Michael_1985.jpg',
+    'Stephen_Hawking':'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Stephen_Hawking.StarChild.jpg/440px-Stephen_Hawking.StarChild.jpg',
+  };
   try{
     const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(s)}`);
-    if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||null;}
-  }catch(e){}
+    if(r.ok){const d=await r.json();out.thumb=d.thumbnail?.source||THUMB_OVERRIDES[s]||null;}
+    else{out.thumb=THUMB_OVERRIDES[s]||null;}
+  }catch(e){out.thumb=THUMB_OVERRIDES[s]||null;}
   try{
     // Step 1: get image list
     const r=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(s)}&prop=images&imlimit=30&format=json&origin=*`);
