@@ -83,7 +83,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   position:fixed;inset:0;z-index:1000;
   background:var(--dark);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  pointer-events:none;
+  pointer-events:auto;
   opacity:1;
   transition:opacity .7s ease;
 }
@@ -362,7 +362,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
 </div>
 
 <!-- Prototype disclaimer screen — shown after logo, before mosaic -->
-<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:none;">
+<div id="disclaimerScreen" style="display:none;opacity:0;position:fixed;inset:0;z-index:800;background:var(--dark);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity .7s ease;pointer-events:auto;">
   <div style="max-width:min(920px,92vw);width:100%;margin:0 auto;">
     <div style="font-family:var(--display);font-size:clamp(.5rem,.9vw,.65rem);letter-spacing:.4em;color:var(--gold);opacity:.5;margin-bottom:clamp(1.2rem,3vw,2.4rem);">STARSEUM — PROTOTYPE</div>
     <div style="font-family:var(--serif);font-size:clamp(1rem,2.8vw,2.1rem);color:var(--cream);line-height:1.65;margin-bottom:clamp(1.2rem,3vw,2.2rem);font-weight:300;text-align:center;max-width:800px;margin-left:auto;margin-right:auto;">
@@ -1024,109 +1024,59 @@ function hideLoad(){document.getElementById('loadScreen').classList.remove('on')
 // Verified YouTube IDs from official channels — guaranteed to embed
 // Key = star slug, value = array of {videoId, title, year, type}
 const CURATED_VIDEOS = {
-  // ── Verified YouTube IDs ──
-  // Dick Cavett Show (official channel — reliable embeds)
+  // ── Verified YouTube IDs — tested embeddable ──
+  // Dick Cavett Show official channel
   'Jimi_Hendrix': [
     {videoId:'swPpPnxoTaI',title:'Jimi Hendrix on The Dick Cavett Show',year:'1969'},
     {videoId:'VGf9PTYyJ4A',title:'Jimi Hendrix Final Dick Cavett Interview',year:'1969'},
     {videoId:'YmVNh-fwl08',title:'Jimi Hendrix on Life as a Young Musician',year:'1969'},
     {videoId:'da-969idG7Y',title:'Jimi Hendrix on His Electric Church',year:'1969'},
-    {videoId:'keYcGzRkhzY',title:'Jimi Hendrix on Stage Destruction',year:'1969'},
   ],
   'Muhammad_Ali': [
     {videoId:'kGuNWh3yTSo',title:'Best of Muhammad Ali on Dick Cavett',year:'1970'},
     {videoId:'hxuqSzE2mB0',title:'Muhammad Ali on Vietnam War',year:'1970'},
     {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett',year:'1974'},
     {videoId:'pR3XxV5aL68',title:'Muhammad Ali on Early Retirement',year:'1970'},
-    {videoId:'Oqsji_F7cKU',title:'Muhammad Ali on Computerised Fights',year:'1970'},
   ],
   'Joe_Frazier': [
     {videoId:'C6A5buJhEPg',title:'Ali and Frazier on Dick Cavett 1974',year:'1974'},
     {videoId:'LU8XBaMTX7g',title:'Ali and Frazier Pick Up Dick Cavett',year:'1974'},
-    {videoId:'QpGk3pn3BFo',title:'Ali and Frazier Cavett 1974',year:'1974'},
+  ],
+  'Janis_Joplin': [
+    {videoId:'6b8BFGG3xWU',title:'Janis Joplin on Dick Cavett Show 1970',year:'1970'},
+  ],
+  'Jim_Morrison': [
+    {videoId:'yGFYOdxcPow',title:'The Doors on Dick Cavett Show 1969',year:'1969'},
   ],
   // Official Queen YouTube channel
   'Freddie_Mercury': [
     {videoId:'azfHrtgaLgc',title:'Freddie Mercury Interview 1982',year:'1982'},
     {videoId:'RV1kIO6u1mM',title:'A Musical Prostitute — Freddie Mercury',year:'1984'},
-    {videoId:'ywyzFJYGOig',title:'Freddie Mercury ET Interview 1982',year:'1982'},
   ],
-  // NZ archive documentary — embeds reliably
+  // NZ archive — reliable embed
   'Bob_Marley': [
     {videoId:'4_cwupn6kqo',title:'Bob Marley Come A Long Way 1979',year:'1979'},
   ],
-  // Janis Joplin — Dick Cavett
-  'Janis_Joplin': [
-    {videoId:'6b8BFGG3xWU',title:'Janis Joplin on Dick Cavett Show 1970',year:'1970'},
-    {videoId:'5DrFqCmDkHY',title:'Janis Joplin Dick Cavett Interview',year:'1970'},
+  // Frida Kahlo — biographical documentary (found via search, public YouTube)
+  'Frida_Kahlo': [
+    {videoId:'vEt0f2xzB54',title:'Frida Kahlo — A Life of Pain Documentary',year:'1954'},
+    {videoId:'qciiPUFj0UY',title:'Frida Kahlo Video Documentaries',year:'1950'},
   ],
-  // Jim Morrison — Dick Cavett
-  'Jim_Morrison': [
-    {videoId:'yGFYOdxcPow',title:'The Doors on Dick Cavett Show 1969',year:'1969'},
-  ],
-  // Sly Stone — Dick Cavett
+  // Marvin Gaye
   'Marvin_Gaye': [
     {videoId:'TBiFSNQBSGk',title:'Marvin Gaye Interview Soul Train 1976',year:'1976'},
-  ],
-  // David Bowie — reliable archive channel
-  'David_Bowie': [
-    {videoId:'5aSXSGzMvvA',title:'David Bowie Ziggy Stardust Era Interview 1973',year:'1973'},
-    {videoId:'5DrFqCmDkHY',title:'David Bowie Dick Cavett Interview 1974',year:'1974'},
-  ],
-  // John Lennon — archive
-  'John_Lennon': [
-    {videoId:'dqv7-hQJFNs',title:'John Lennon Working Class Hero Documentary',year:'1971'},
   ],
   // Elvis Presley — official EP channel
   'Elvis_Presley': [
     {videoId:'BkUgOqkLqio',title:'Elvis Presley 68 Comeback Special',year:'1968'},
   ],
-  // Ernest Hemingway — CBS/documentary archive
-  'Ernest_Hemingway': [
-    {videoId:'_nMBVGydMbQ',title:'Ernest Hemingway CBS Interview 1954',year:'1954'},
-    {videoId:'vf_1_pLMhj8',title:'Ernest Hemingway Documentary Archive Film',year:'1961'},
-  ],
-  // Pablo Picasso
-  'Pablo_Picasso': [
-    {videoId:'4dDEedRSWyI',title:'The Mystery of Picasso Documentary 1956',year:'1956'},
-    {videoId:'dGhzRDFQhFE',title:'Pablo Picasso Rare Footage Documentary',year:'1960'},
-  ],
-  // Princess Diana
-  'Princess_Diana': [
-    {videoId:'ao-GK84c5b4',title:'Princess Diana Walks Through Angola Minefield',year:'1997'},
-    {videoId:'jm6y8AKr3vs',title:'Princess Diana Red Cross Work',year:'1997'},
-  ],
-  // Marilyn Monroe
-  'Marilyn_Monroe': [
-    {videoId:'9vhzpFBMZIM',title:'Marilyn Monroe Press Conference Interview',year:'1955'},
-    {videoId:'v7SdlQGaRNc',title:'Marilyn Monroe Rare Interview Footage',year:'1960'},
-  ],
-  // Audrey Hepburn
-  'Audrey_Hepburn': [
-    {videoId:'mXjQCFmFiGk',title:'Audrey Hepburn Interview 1989',year:'1989'},
-    {videoId:'Xz0tJsJOBpg',title:'Audrey Hepburn Rare Archive Interview',year:'1992'},
-  ],
-  // James Dean — rare archive footage
-  'James_Dean': [
-    {videoId:'_bRgjMbP1bc',title:'James Dean Screen Test and Archive Footage',year:'1954'},
-  ],
-  // Marlon Brando
-  'Marlon_Brando': [
-    {videoId:'p7q8OEjbSmQ',title:'Marlon Brando Dick Cavett Interview',year:'1973'},
-    {videoId:'HXzQ3wP1vJM',title:'Marlon Brando Larry King Interview',year:'1994'},
-  ],
-  // Kurt Cobain — archive interviews
+  // Kurt Cobain
   'Kurt_Cobain': [
     {videoId:'2NOO0PqBj1A',title:'Kurt Cobain MTV Interview 1993',year:'1993'},
-    {videoId:'8-2bpOHCCsI',title:'Nirvana Kurt Cobain Interview 1992',year:'1992'},
   ],
   // Amy Winehouse
   'Amy_Winehouse': [
     {videoId:'fWZqBaAhFb0',title:'Amy Winehouse Interview 2007',year:'2007'},
-  ],
-  // John F Kennedy
-  'John_F._Kennedy': [
-    {videoId:'ECqI7QbFI-c',title:'JFK Press Conference Archive',year:'1962'},
   ],
 };
 
@@ -2290,6 +2240,8 @@ const FADE         = 650;  // all crossfades use this duration
 const DISC_HOLD    = 3500; // disclaimer hold time
 
 mc.classList.add('intro-hidden');
+// Immediately lock tiles — cannot be selected until ENTER THE MUSEUM is pressed
+mc.style.pointerEvents='none';
 
 // Phase 1 → 2: Logo fades out, then disclaimer fades in
 setTimeout(()=>{
@@ -2329,8 +2281,10 @@ setTimeout(()=>{
     // (revealed in dismissOnboard)
     const sw=document.getElementById('mSearchWrap');
     if(sw){sw.style.display='none';sw.style.opacity='0';}
-    // Show tutorial overlay — welcome narration fires from dismissOnboard after user interacts
+    // Show tutorial overlay — start pre-fetching welcome audio immediately
     if(window._showTutorialsWhenReady)window._showTutorialsWhenReady();
+    // Pre-fetch welcome audio while user reads tutorial (~3-5s) so it's instant on ENTER
+    prefetchWelcomeAudio();
   }, FADE);
 }, MOSAIC_START);
 
@@ -2530,7 +2484,8 @@ async function runTourStep2(){
     const activeCard=activeCol.querySelector('.ev-card');
     if(activeCard)activeCard.classList.add('tour-active');
   }
-  const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' They once said: '+ev.quote:'');
+  const pronoun=p(tourTlRef,'they').charAt(0).toUpperCase()+p(tourTlRef,'they').slice(1);
+  const txt=ev.year+'. '+ev.title+'. '+(ev.text||'')+(ev.quote?' '+pronoun+' once said: '+ev.quote:'');
   await tourSpeak(txt);
   if(!tourPlaying)return;
   if(ev.youtubeId||ev.videoSearch){
@@ -2758,6 +2713,14 @@ async function playWelcomeNarration(){
   if(isMobile)return;
   // Always play when explicitly called (after user presses ENTER THE MUSEUM)
   const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
+  // Use pre-fetched audio if available (fetched while tutorial was showing)
+  if(window._welcomeAudioPreloaded){
+    const a=window._welcomeAudioPreloaded;
+    window._welcomeAudioPreloaded=null;
+    window._welcomeAudio=a;
+    a.play().catch(()=>speak(welcome,0.88));
+    return;
+  }
   try{
     const r=await fetch('/.netlify/functions/tourguide',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -2775,6 +2738,28 @@ async function playWelcomeNarration(){
     }
   }catch(e){}
   speak(welcome,0.88);
+}
+
+// Pre-fetch welcome audio in background so it's ready to play instantly
+async function prefetchWelcomeAudio(){
+  if(isMobile)return;
+  const welcome='Welcome to Starseum. A museum of extraordinary lives. Select any face to enter their museum.';
+  try{
+    const r=await fetch('/.netlify/functions/tourguide',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:welcome})
+    });
+    if(r.ok){
+      const d=await r.json();
+      if(d?.audio){
+        window._welcomeAudioPreloaded=new Audio('data:audio/mpeg;base64,'+d.audio);
+        window._welcomeAudioPreloaded.volume=1;
+        // Preload but don't play yet
+        window._welcomeAudioPreloaded.load();
+        console.log('Welcome audio pre-fetched and ready');
+      }
+    }
+  }catch(e){}
 }
 
 // ── TIMELINE ONBOARD ──
