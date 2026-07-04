@@ -1488,7 +1488,7 @@ async function fetchWikiImages(slug){
     const pg=Object.values(d.query?.pages||{})[0];
     const allFiles=(pg?.images||[])
       .filter(i=>/\.(jpg|jpeg|png)$/i.test(i.title))
-      .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|coat|crest|wikimedia/i.test(i.title));
+      .filter(i=>!/icon|logo|flag|map|signature|commons|arrow|button|blank|edit|grey|gray|lock|ribbon|seal|stub|coat|crest|wikimedia|plaque|memorial|grave|tomb|poster|album|cover|discography|bibliography|award|trophy|statue|mural|painting|family|son|daughter|mother|father|brother|sister|wife|husband|spouse|child|julian|yoko|cynthia|sean|ono/i.test(i.title));
     const names=allFiles.slice(0,18).map(i=>i.title.replace('File:',''));
     if(!names.length)return out;
 
@@ -2175,22 +2175,23 @@ async function openVideo(videoId, title){
 
 // Show a clean video fallback overlay — YouTube embedding is blocked by Netlify's IP
 // Users can open directly on YouTube with one click
-function showVideoFallback(searchQuery, watchUrl, title){
+function showVideoFallback(searchQuery, archiveUrl, title){
   const overlay=document.getElementById('videoOverlay');
   const fallback=document.getElementById('videoFallback');
   const meta=document.getElementById('videoMeta');
   const ytLink=document.getElementById('videoYtLink');
 
-  // Remove any old iframe
   const old=document.getElementById('videoFrame');
   if(old)old.remove();
 
   overlay.classList.add('on');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('ready')));
   fallback.style.display='flex';
   if(meta)meta.textContent=(title||'').substring(0,60).toUpperCase();
   if(ytLink){
-    ytLink.href=watchUrl||('https://www.youtube.com/results?search_query='+encodeURIComponent(searchQuery||title));
-    ytLink.textContent='VIEW ON ARCHIVE.ORG ↗';
+    // Always link to archive.org search — never YouTube
+    ytLink.href=archiveUrl||('https://archive.org/search?query='+encodeURIComponent(searchQuery||title));
+    ytLink.textContent='SEARCH ON ARCHIVE.ORG ↗';
     ytLink.style.display='inline-block';
   }
 
@@ -2203,15 +2204,13 @@ async function openVideoWithFallback(candidates, title){
   if(!valid.length){
     showVideoFallback(title, null, title);
     return;
-  }
-  for(const candidate of valid){
+  }  for(const candidate of valid){
     console.log('Trying candidate:', candidate.videoId, candidate.title);
     const success=await openVideo(candidate.videoId, candidate.title||title);
     if(success)return;
   }
-  // All failed — show clean fallback with watch link for best candidate
-  const best=valid[0];
-  showVideoFallback(title, 'https://www.youtube.com/watch?v='+best.videoId, title);
+  // All failed — show archive search fallback
+  showVideoFallback(title, null, title);
 }
 
 async function openVideoWithFallback(candidates, title){
