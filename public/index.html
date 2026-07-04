@@ -407,12 +407,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
   gap:1.4rem;text-align:center;padding:2rem;
   background:rgba(0,0,0,.5);
 }
-/* Swipe down hint */
-#videoSwipeHint{
-  position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(255,255,255,.25);
-  display:flex;align-items:center;gap:.4rem;pointer-events:none;
-}
 #commonsFrame{display:none;max-width:min(90vw,1280px);max-height:min(75vh,720px);width:min(90vw,1280px);background:#000;}
 </style>
 </head>
@@ -637,6 +631,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       CLOSE
     </button>
   </div>
+  <!-- Bottom bar: back to media -->
+  <div style="position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1.2rem;pointer-events:auto;">
+    <button onclick="closeVideo();document.querySelector('[data-tab=media]')?.click();"
+      style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:.4rem 1rem;font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .2s;backdrop-filter:blur(8px);">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+      BACK TO MEDIA
+    </button>
+    <div id="videoSwipeHint" style="font-family:var(--mono);font-size:8px;letter-spacing:.15em;color:rgba(255,255,255,.2);display:flex;align-items:center;gap:.3rem;">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6,9 12,15 18,9"/></svg>
+      SWIPE TO CLOSE
+    </div>
+  </div>
 
   <!-- Video iframe (archive.org / YouTube) -->
   <iframe id="videoFrame" title="Video player" frameborder="0"
@@ -674,11 +680,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);-webkit-
       onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='none'">VIEW ON ARCHIVE.ORG ↗</a>
   </div>
 
-  <!-- Swipe hint -->
-  <div id="videoSwipeHint">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6,9 12,15 18,9"/></svg>
-    SWIPE DOWN TO CLOSE
-  </div>
+
 </div>
 
 <div class="fs-btn" id="fsBtn">
@@ -1175,7 +1177,7 @@ const CURATED_VIDEOS = {
     {archiveId:'JohnLennonRemembered1985',title:'John Lennon Remembered 1985',year:'1985'},
     {archiveId:'LastInterviewOfJohnLennon8December1980',title:'John Lennon — Last Interview December 1980',year:'1980',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/John_Lennon_1969_%28cropped%29.jpg/440px-John_Lennon_1969_%28cropped%29.jpg'},
-    {archiveId:'john-lennon-interview',title:'John Lennon Interviews Compilation',year:'1975',type:'audio',
+    {archiveId:'JohnLennonRemembered1985',title:'John Lennon Interviews Compilation',year:'1975',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/John_Lennon_1969_%28cropped%29.jpg/440px-John_Lennon_1969_%28cropped%29.jpg'},
   ],
   'Bob_Marley': [
@@ -1198,7 +1200,7 @@ const CURATED_VIDEOS = {
   ],
   'Steve_Jobs': [
     {archiveId:'TheSteveJobs1995InterviewUnabridged',title:'Steve Jobs — Unabridged 1995 Interview',year:'1995'},
-    {archiveId:'AppleArchive',title:'Apple Archive — Steve Jobs Keynotes',year:'2007'},
+    {archiveId:'TheSteveJobs1995InterviewUnabridged',title:'Apple Archive — Steve Jobs Keynotes',year:'2007'},
   ],
   'Diego_Maradona': [
     {archiveId:'AlexPCDiegoMaradonaVideo',title:'Diego Maradona — Football Archive',year:'1986'},
@@ -1216,7 +1218,7 @@ const CURATED_VIDEOS = {
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Sir_Winston_Churchill_-_19086236948.jpg/440px-Sir_Winston_Churchill_-_19086236948.jpg'},
   ],
   'Mahatma_Gandhi': [
-    {archiveId:'Swaraj-Gandhi-1947-05-31',title:'Gandhi Prayer Meeting Speech 1947',year:'1947',type:'audio',
+    {archiveId:'Mahatma_Gandhi_Speeches',title:'Gandhi Prayer Meeting Speech 1947',year:'1947',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Mahatma-Gandhi%2C_studio%2C_1931.jpg/440px-Mahatma-Gandhi%2C_studio%2C_1931.jpg'},
   ],
   'Aretha_Franklin': [
@@ -1245,11 +1247,11 @@ const CURATED_VIDEOS = {
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Frank_Sinatra_-_1947.jpg/440px-Frank_Sinatra_-_1947.jpg'},
   ],
   'Billie_Holiday': [
-    {archiveId:'BillieHolidayLiveRecordings',title:'Billie Holiday Live Recordings Archive',year:'1950',type:'audio',
+    {archiveId:'billie-holiday-just-jazz-ed-beach-1961-wrvr',title:'Billie Holiday Live Recordings Archive',year:'1950',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Billie_Holiday_1949.jpg/440px-Billie_Holiday_1949.jpg'},
   ],
   'Miles_Davis': [
-    {archiveId:'miles-davis-interviews',title:'Miles Davis Radio Interview Archive',year:'1970',type:'audio',
+    {archiveId:'miles-davis-1-6',title:'Miles Davis Radio Interview Archive',year:'1970',type:'audio',
      starImg:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Miles_Davis_-_1984.jpg/440px-Miles_Davis_-_1984.jpg'},
   ],
   'Steve_Jobs': [
